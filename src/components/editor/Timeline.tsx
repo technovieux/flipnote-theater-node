@@ -1,0 +1,260 @@
+import React, { useRef, useState } from 'react';
+import { EditorObject, Scene } from '@/types/editor';
+import { Button } from '@/components/ui/button';
+import { Play, Pause, Square, RotateCcw, Plus } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+
+interface TimelineProps {
+  objects: EditorObject[];
+  scenes: Scene[];
+  selectedObjectId: string | null;
+  currentTime: number;
+  duration: number;
+  isPlaying: boolean;
+  onPlay: () => void;
+  onPause: () => void;
+  onStop: () => void;
+  onSeek: (time: number) => void;
+  onAddScene: (name: string) => void;
+  onSelectObject: (id: string) => void;
+}
+
+const formatTime = (ms: number): string => {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const milliseconds = Math.floor((ms % 1000) / 10);
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+};
+
+const PIXELS_PER_SECOND = 50;
+const VISIBLE_DURATION = 60000; // 60 seconds visible by default
+
+export const Timeline: React.FC<TimelineProps> = ({
+  objects,
+  scenes,
+  selectedObjectId,
+  currentTime,
+  duration,
+  isPlaying,
+  onPlay,
+  onPause,
+  onStop,
+  onSeek,
+  onAddScene,
+  onSelectObject,
+}) => {
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [sceneDialogOpen, setSceneDialogOpen] = useState(false);
+  const [newSceneName, setNewSceneName] = useState('');
+
+  const totalWidth = (duration / 1000) * PIXELS_PER_SECOND;
+
+  const handleTimelineClick = (e: React.MouseEvent) => {
+    if (!timelineRef.current) return;
+    const rect = timelineRef.current.getBoundingClientRect();
+    const scrollLeft = timelineRef.current.scrollLeft;
+    const x = e.clientX - rect.left + scrollLeft;
+    const time = (x / PIXELS_PER_SECOND) * 1000;
+    onSeek(Math.max(0, Math.min(time, duration)));
+  };
+
+  const handleAddScene = () => {
+    if (newSceneName.trim()) {
+      onAddScene(newSceneName.trim());
+      setNewSceneName('');
+      setSceneDialogOpen(false);
+    }
+  };
+
+  const cursorPosition = (currentTime / 1000) * PIXELS_PER_SECOND;
+
+  // Generate time markers every 5 seconds
+  const markers = [];
+  for (let t = 0; t <= duration; t += 5000) {
+    markers.push(t);
+  }
+
+  const isAtStart = currentTime === 0;
+  const showStopAsReset = !isPlaying && !isAtStart;
+
+  return (
+    <div className="panel h-full flex flex-col">
+      <div className="panel-header flex items-center justify-between">
+        <span>Timeline</span>
+        <div className="flex items-center gap-2">
+          {isPlaying ? (
+            <Button size="sm" variant="secondary" onClick={onPause} className="transport-btn transport-btn-primary">
+              <Pause className="h-3 w-3 mr-1" /> Pause
+            </Button>
+          ) : (
+            <Button size="sm" variant="secondary" onClick={onPlay} className="transport-btn transport-btn-primary">
+              <Play className="h-3 w-3 mr-1" /> Play
+            </Button>
+          )}
+          
+          {(isPlaying || !isAtStart) && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={onStop}
+              className="transport-btn transport-btn-secondary"
+            >
+              {showStopAsReset ? (
+                <><RotateCcw className="h-3 w-3 mr-1" /> Reset</>
+              ) : (
+                <><Square className="h-3 w-3 mr-1" /> Stop</>
+              )}
+            </Button>
+          )}
+          
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setSceneDialogOpen(true)}
+            className="transport-btn transport-btn-primary"
+          >
+            <Plus className="h-3 w-3 mr-1" /> Ajouter Scène
+          </Button>
+          
+          <span className="text-sm font-mono ml-4">{formatTime(currentTime)}</span>
+        </div>
+      </div>
+      
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Track labels */}
+        <div className="flex border-b border-panel-border">
+          <div className="w-32 flex-shrink-0 border-r border-panel-border" />
+          <div
+            ref={timelineRef}
+            className="flex-1 timeline-scroll relative"
+            onClick={handleTimelineClick}
+          >
+            {/* Time ruler */}
+            <div className="h-6 relative bg-timeline-bg" style={{ width: totalWidth }}>
+              {markers.map((t) => (
+                <div
+                  key={t}
+                  className="absolute top-0 h-full flex flex-col items-center"
+                  style={{ left: (t / 1000) * PIXELS_PER_SECOND }}
+                >
+                  <div className="h-2 w-px bg-timeline-line" />
+                  <span className="text-[10px] text-muted-foreground">
+                    {formatTime(t).substring(0, 8)}
+                  </span>
+                </div>
+              ))}
+              {/* Cursor */}
+              <div
+                className="absolute top-0 h-full w-px bg-timeline-cursor z-10"
+                style={{ left: cursorPosition }}
+              >
+                <div className="w-3 h-3 bg-timeline-cursor -translate-x-1/2 rotate-45 -translate-y-1" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tracks */}
+        <div className="flex-1 overflow-auto">
+          <div className="flex flex-col">
+            {/* Scenes track */}
+            <div className="flex border-b border-panel-border">
+              <div className="w-32 flex-shrink-0 px-2 py-1 text-sm bg-keyframe-scene/20 border-r border-panel-border font-medium">
+                Scènes
+              </div>
+              <div
+                className="flex-1 timeline-track bg-timeline-bg relative"
+                style={{ width: totalWidth }}
+              >
+                {scenes.map((scene) => (
+                  <div
+                    key={scene.id}
+                    className="keyframe-diamond bg-keyframe-scene"
+                    style={{ left: (scene.time / 1000) * PIXELS_PER_SECOND - 6 }}
+                    title={`${scene.number}. ${scene.name}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Object tracks */}
+            {objects.map((obj) => (
+              <div
+                key={obj.id}
+                className={`flex border-b border-panel-border cursor-pointer ${
+                  selectedObjectId === obj.id ? 'bg-primary/10' : ''
+                }`}
+                onClick={() => onSelectObject(obj.id)}
+              >
+                <div className="w-32 flex-shrink-0 px-2 py-1 text-sm truncate border-r border-panel-border flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-sm"
+                    style={{ backgroundColor: obj.properties.color }}
+                  />
+                  {obj.name}
+                </div>
+                <div
+                  className="flex-1 timeline-track bg-timeline-bg relative"
+                  style={{ width: totalWidth }}
+                >
+                  {obj.keyframes.map((kf, idx) => (
+                    <div
+                      key={idx}
+                      className="keyframe-circle"
+                      style={{
+                        left: (kf.time / 1000) * PIXELS_PER_SECOND - 6,
+                        backgroundColor: kf.properties.color,
+                      }}
+                      title={formatTime(kf.time)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {/* Audio track placeholder */}
+            <div className="flex border-b border-panel-border">
+              <div className="w-32 flex-shrink-0 px-2 py-1 text-sm text-muted-foreground border-r border-panel-border">
+                Audio
+              </div>
+              <div
+                className="flex-1 timeline-track bg-timeline-bg"
+                style={{ width: totalWidth }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={sceneDialogOpen} onOpenChange={setSceneDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nouvelle Scène</DialogTitle>
+          </DialogHeader>
+          <Input
+            placeholder="Nom de la scène"
+            value={newSceneName}
+            onChange={(e) => setNewSceneName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddScene()}
+          />
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setSceneDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleAddScene}>Ajouter</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
