@@ -1,7 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { EditorObject, Scene } from '@/types/editor';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, Square, RotateCcw, Plus } from 'lucide-react';
+import { Play, Pause, Square, RotateCcw, Plus, ZoomIn, ZoomOut } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -36,8 +36,9 @@ const formatTime = (ms: number): string => {
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
 };
 
-const PIXELS_PER_SECOND = 50;
-const VISIBLE_DURATION = 60000; // 60 seconds visible by default
+const BASE_PIXELS_PER_SECOND = 50;
+const MIN_ZOOM = 0.1;
+const MAX_ZOOM = 5;
 
 export const Timeline: React.FC<TimelineProps> = ({
   objects,
@@ -56,16 +57,43 @@ export const Timeline: React.FC<TimelineProps> = ({
   const timelineRef = useRef<HTMLDivElement>(null);
   const [sceneDialogOpen, setSceneDialogOpen] = useState(false);
   const [newSceneName, setNewSceneName] = useState('');
+  const [zoom, setZoom] = useState(1);
 
-  const totalWidth = (duration / 1000) * PIXELS_PER_SECOND;
+  const pixelsPerSecond = BASE_PIXELS_PER_SECOND * zoom;
+  const totalWidth = (duration / 1000) * pixelsPerSecond;
+
+  // Calculate marker interval based on zoom
+  const getMarkerInterval = () => {
+    if (zoom < 0.2) return 60000; // 1 minute
+    if (zoom < 0.5) return 30000; // 30 seconds
+    if (zoom < 1) return 10000; // 10 seconds
+    if (zoom < 2) return 5000; // 5 seconds
+    return 1000; // 1 second
+  };
 
   const handleTimelineClick = (e: React.MouseEvent) => {
     if (!timelineRef.current) return;
     const rect = timelineRef.current.getBoundingClientRect();
     const scrollLeft = timelineRef.current.scrollLeft;
     const x = e.clientX - rect.left + scrollLeft;
-    const time = (x / PIXELS_PER_SECOND) * 1000;
+    const time = (x / pixelsPerSecond) * 1000;
     onSeek(Math.max(0, Math.min(time, duration)));
+  };
+
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      setZoom(prev => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta)));
+    }
+  }, []);
+
+  const handleZoomIn = () => {
+    setZoom(prev => Math.min(MAX_ZOOM, prev + 0.2));
+  };
+
+  const handleZoomOut = () => {
+    setZoom(prev => Math.max(MIN_ZOOM, prev - 0.2));
   };
 
   const handleAddScene = () => {
@@ -76,11 +104,12 @@ export const Timeline: React.FC<TimelineProps> = ({
     }
   };
 
-  const cursorPosition = (currentTime / 1000) * PIXELS_PER_SECOND;
+  const cursorPosition = (currentTime / 1000) * pixelsPerSecond;
 
-  // Generate time markers every 5 seconds
+  // Generate time markers based on zoom level
+  const markerInterval = getMarkerInterval();
   const markers = [];
-  for (let t = 0; t <= duration; t += 5000) {
+  for (let t = 0; t <= duration; t += markerInterval) {
     markers.push(t);
   }
 
@@ -125,18 +154,28 @@ export const Timeline: React.FC<TimelineProps> = ({
           >
             <Plus className="h-3 w-3 mr-1" /> Ajouter Scène
           </Button>
+
+          <div className="flex items-center gap-1 ml-2 border-l border-panel-border pl-2">
+            <Button size="sm" variant="ghost" onClick={handleZoomOut} className="h-6 w-6 p-0">
+              <ZoomOut className="h-3 w-3" />
+            </Button>
+            <span className="text-xs w-12 text-center">{Math.round(zoom * 100)}%</span>
+            <Button size="sm" variant="ghost" onClick={handleZoomIn} className="h-6 w-6 p-0">
+              <ZoomIn className="h-3 w-3" />
+            </Button>
+          </div>
           
           <span className="text-sm font-mono ml-4">{formatTime(currentTime)}</span>
         </div>
       </div>
       
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden" onWheel={handleWheel}>
         {/* Track labels */}
         <div className="flex border-b border-panel-border">
           <div className="w-32 flex-shrink-0 border-r border-panel-border" />
           <div
             ref={timelineRef}
-            className="flex-1 timeline-scroll relative"
+            className="flex-1 timeline-scroll relative overflow-x-auto"
             onClick={handleTimelineClick}
           >
             {/* Time ruler */}
@@ -145,10 +184,10 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <div
                   key={t}
                   className="absolute top-0 h-full flex flex-col items-center"
-                  style={{ left: (t / 1000) * PIXELS_PER_SECOND }}
+                  style={{ left: (t / 1000) * pixelsPerSecond }}
                 >
                   <div className="h-2 w-px bg-timeline-line" />
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">
                     {formatTime(t).substring(0, 8)}
                   </span>
                 </div>
@@ -173,14 +212,14 @@ export const Timeline: React.FC<TimelineProps> = ({
                 Scènes
               </div>
               <div
-                className="flex-1 timeline-track bg-timeline-bg relative"
+                className="flex-1 timeline-track bg-timeline-bg relative overflow-x-auto"
                 style={{ width: totalWidth }}
               >
                 {scenes.map((scene) => (
                   <div
                     key={scene.id}
                     className="keyframe-diamond bg-keyframe-scene"
-                    style={{ left: (scene.time / 1000) * PIXELS_PER_SECOND - 6 }}
+                    style={{ left: (scene.time / 1000) * pixelsPerSecond - 6 }}
                     title={`${scene.number}. ${scene.name}`}
                   />
                 ))}
@@ -204,7 +243,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                   {obj.name}
                 </div>
                 <div
-                  className="flex-1 timeline-track bg-timeline-bg relative"
+                  className="flex-1 timeline-track bg-timeline-bg relative overflow-x-auto"
                   style={{ width: totalWidth }}
                 >
                   {obj.keyframes.map((kf, idx) => (
@@ -212,7 +251,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                       key={idx}
                       className="keyframe-circle"
                       style={{
-                        left: (kf.time / 1000) * PIXELS_PER_SECOND - 6,
+                        left: (kf.time / 1000) * pixelsPerSecond - 6,
                         backgroundColor: kf.properties.color,
                       }}
                       title={formatTime(kf.time)}
@@ -228,7 +267,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                 Audio
               </div>
               <div
-                className="flex-1 timeline-track bg-timeline-bg"
+                className="flex-1 timeline-track bg-timeline-bg overflow-x-auto"
                 style={{ width: totalWidth }}
               />
             </div>
