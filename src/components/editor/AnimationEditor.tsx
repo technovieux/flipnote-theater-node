@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { MenuBar } from './MenuBar';
 import { ObjectsList } from './ObjectsList';
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export const AnimationEditor: React.FC = () => {
   const {
@@ -40,8 +41,23 @@ export const AnimationEditor: React.FC = () => {
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedObject = state.objects.find(obj => obj.id === state.selectedObjectId) || null;
+
+  const handleOpenFile = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // For now, we just show a toast - you can extend this to actually load projects
+      toast.success(`Fichier sélectionné: ${file.name}`);
+      // Reset the input so the same file can be selected again
+      e.target.value = '';
+    }
+  };
 
   const handleRename = () => {
     if (selectedObject && newName.trim()) {
@@ -66,8 +82,18 @@ export const AnimationEditor: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
+      {/* Hidden file input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        accept=".json,.anim,.project"
+      />
+      
       <MenuBar
         onNewProject={resetProject}
+        onOpenFile={handleOpenFile}
         onAddObject={addObject}
         onAddKeyframe={addKeyframe}
         onDelete={handleDelete}
