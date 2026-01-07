@@ -17,6 +17,7 @@ import { ShapeType, ThemeMode } from '@/types/editor';
 interface MenuBarProps {
   onNewProject: () => void;
   onOpenFile: () => void;
+  onImport: () => void;
   onAddObject: (type: ShapeType) => void;
   onAddKeyframe: () => void;
   onDelete: () => void;
@@ -33,6 +34,7 @@ interface MenuBarProps {
 export const MenuBar: React.FC<MenuBarProps> = ({
   onNewProject,
   onOpenFile,
+  onImport,
   onAddObject,
   onAddKeyframe,
   onDelete,
@@ -55,6 +57,9 @@ export const MenuBar: React.FC<MenuBarProps> = ({
           </MenubarItem>
           <MenubarItem onClick={onOpenFile}>
             Ouvrir <MenubarShortcut>Ctrl+O</MenubarShortcut>
+          </MenubarItem>
+          <MenubarItem onClick={onImport}>
+            Importer <MenubarShortcut>Ctrl+I</MenubarShortcut>
           </MenubarItem>
           <MenubarSeparator />
           <MenubarItem>

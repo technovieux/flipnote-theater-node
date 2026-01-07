@@ -1,5 +1,6 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { EditorObject, ObjectProperties } from '@/types/editor';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface CanvasProps {
   objects: EditorObject[];
@@ -8,6 +9,7 @@ interface CanvasProps {
   onUpdateProperties: (id: string, properties: Partial<ObjectProperties>) => void;
   getInterpolatedProperties: (object: EditorObject, time: number) => ObjectProperties;
   currentTime: number;
+  backgroundImage: string | null;
 }
 
 const SCENE_WIDTH = 1920;
@@ -20,6 +22,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   onUpdateProperties,
   getInterpolatedProperties,
   currentTime,
+  backgroundImage,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
@@ -27,11 +30,8 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [resizing, setResizing] = useState<{ id: string; handle: string } | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, objX: 0, objY: 0, objW: 0, objH: 0 });
   
-  // Zoom and pan state
+  // Zoom state
   const [zoom, setZoom] = useState(0.5);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState({ x: 0, y: 0, panX: 0, panY: 0 });
 
   // Handle zoom with mouse wheel
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -67,27 +67,13 @@ export const Canvas: React.FC<CanvasProps> = ({
     });
   };
 
-  const handlePanStart = (e: React.MouseEvent) => {
-    // Only start panning if clicking on the container background or scene background
-    if (e.target === containerRef.current || e.target === sceneRef.current) {
-      if (e.button === 1 || (e.button === 0 && e.altKey)) {
-        e.preventDefault();
-        setIsPanning(true);
-        setPanStart({ x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y });
-      } else if (e.button === 0) {
-        onSelect(null);
-      }
+  const handleContainerClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget || (e.target as HTMLElement).dataset.scene === 'true') {
+      onSelect(null);
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (isPanning) {
-      const deltaX = e.clientX - panStart.x;
-      const deltaY = e.clientY - panStart.y;
-      setPan({ x: panStart.panX + deltaX, y: panStart.panY + deltaY });
-      return;
-    }
-    
     if (dragging) {
       const deltaX = (e.clientX - dragStart.x) / zoom;
       const deltaY = (e.clientY - dragStart.y) / zoom;
@@ -140,7 +126,6 @@ export const Canvas: React.FC<CanvasProps> = ({
   const handleMouseUp = () => {
     setDragging(null);
     setResizing(null);
-    setIsPanning(false);
   };
 
   const renderShape = (obj: EditorObject) => {
@@ -222,52 +207,81 @@ export const Canvas: React.FC<CanvasProps> = ({
   // Render objects in reverse order (first in array = on top)
   const reversedObjects = [...objects].reverse();
 
+  // Calculate scaled dimensions
+  const scaledWidth = SCENE_WIDTH * zoom;
+  const scaledHeight = SCENE_HEIGHT * zoom;
+
   return (
     <div className="panel h-full flex flex-col">
       <div className="panel-header flex items-center justify-between">
         <span>Render / Composition View</span>
         <span className="text-xs text-muted-foreground">
-          Zoom: {Math.round(zoom * 100)}% | Alt+Drag to pan | Ctrl+Scroll to zoom
+          Zoom: {Math.round(zoom * 100)}% | Ctrl+Scroll to zoom
         </span>
       </div>
-      <div
-        ref={containerRef}
-        className="panel-content relative flex-1 bg-muted/50 overflow-hidden"
-        onMouseMove={handleMouseMove}
-        onMouseDown={handlePanStart}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+      <ScrollArea 
+        className="flex-1"
         onWheel={handleWheel}
-        style={{ cursor: isPanning ? 'grabbing' : 'default' }}
       >
-        {/* Scene container with fixed 1920x1080 */}
         <div
-          ref={sceneRef}
-          className="absolute bg-black shadow-2xl"
-          style={{
-            width: SCENE_WIDTH,
-            height: SCENE_HEIGHT,
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transformOrigin: 'top left',
-            left: '50%',
-            top: '50%',
-            marginLeft: -(SCENE_WIDTH * zoom) / 2 + pan.x,
-            marginTop: -(SCENE_HEIGHT * zoom) / 2 + pan.y,
+          ref={containerRef}
+          className="relative bg-muted/50 flex items-center justify-center"
+          style={{ 
+            minWidth: Math.max(scaledWidth + 100, '100%' as any),
+            minHeight: Math.max(scaledHeight + 100, 400),
+            padding: 50,
           }}
+          onClick={handleContainerClick}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
         >
-          {/* Checkerboard pattern for transparency indication */}
-          <div 
-            className="absolute inset-0"
+          {/* Scene container with fixed 1920x1080 */}
+          <div
+            ref={sceneRef}
+            data-scene="true"
+            className="relative bg-black shadow-2xl flex-shrink-0"
             style={{
-              backgroundImage: 'linear-gradient(45deg, #333 25%, transparent 25%), linear-gradient(-45deg, #333 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #333 75%), linear-gradient(-45deg, transparent 75%, #333 75%)',
-              backgroundSize: '20px 20px',
-              backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
-              opacity: 0.3,
+              width: scaledWidth,
+              height: scaledHeight,
             }}
-          />
-          {reversedObjects.map(renderShape)}
+          >
+            {/* Background image */}
+            {backgroundImage && (
+              <img
+                src={backgroundImage}
+                alt="Background"
+                className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+                style={{ objectFit: 'contain' }}
+              />
+            )}
+            {/* Checkerboard pattern for transparency indication (only show if no background) */}
+            {!backgroundImage && (
+              <div 
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  backgroundImage: 'linear-gradient(45deg, #333 25%, transparent 25%), linear-gradient(-45deg, #333 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #333 75%), linear-gradient(-45deg, transparent 75%, #333 75%)',
+                  backgroundSize: '20px 20px',
+                  backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
+                  opacity: 0.3,
+                }}
+              />
+            )}
+            {/* Scaled content container */}
+            <div
+              className="absolute inset-0"
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: 'top left',
+                width: SCENE_WIDTH,
+                height: SCENE_HEIGHT,
+              }}
+            >
+              {reversedObjects.map(renderShape)}
+            </div>
+          </div>
         </div>
-      </div>
+      </ScrollArea>
     </div>
   );
 };

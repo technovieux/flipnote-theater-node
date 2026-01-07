@@ -12,7 +12,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -37,11 +48,18 @@ export const AnimationEditor: React.FC = () => {
     setCurrentTime,
     getInterpolatedProperties,
     resetProject,
+    setBackgroundImage,
+    setAudioTrack,
   } = useEditorState();
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+  
+  // Confirmation dialog state
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingImport, setPendingImport] = useState<{ type: 'audio' | 'image'; file: File } | null>(null);
 
   const selectedObject = state.objects.find(obj => obj.id === state.selectedObjectId) || null;
 
@@ -49,14 +67,108 @@ export const AnimationEditor: React.FC = () => {
     fileInputRef.current?.click();
   };
 
+  const handleImport = () => {
+    importInputRef.current?.click();
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // For now, we just show a toast - you can extend this to actually load projects
       toast.success(`Fichier sélectionné: ${file.name}`);
-      // Reset the input so the same file can be selected again
       e.target.value = '';
     }
+  };
+
+  const processAudioFile = (file: File) => {
+    const audioContext = new AudioContext();
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+      try {
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        
+        // Generate simple waveform data
+        const rawData = audioBuffer.getChannelData(0);
+        const samples = 200;
+        const blockSize = Math.floor(rawData.length / samples);
+        const waveform: number[] = [];
+        
+        for (let i = 0; i < samples; i++) {
+          let sum = 0;
+          for (let j = 0; j < blockSize; j++) {
+            sum += Math.abs(rawData[i * blockSize + j]);
+          }
+          waveform.push(sum / blockSize);
+        }
+        
+        setAudioTrack(file, waveform, audioBuffer.duration * 1000);
+        toast.success(`Audio importé: ${file.name}`);
+      } catch (error) {
+        toast.error("Erreur lors du chargement de l'audio");
+      }
+    };
+    
+    reader.readAsArrayBuffer(file);
+  };
+
+  const processImageFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setBackgroundImage(dataUrl);
+      toast.success(`Image importée: ${file.name}`);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const isAudio = file.type.startsWith('audio/');
+    const isImage = file.type.startsWith('image/');
+    
+    if (!isAudio && !isImage) {
+      toast.error("Type de fichier non supporté. Utilisez une image ou un fichier audio.");
+      e.target.value = '';
+      return;
+    }
+    
+    // Check if we need confirmation
+    if (isAudio && state.audioTrack) {
+      setPendingImport({ type: 'audio', file });
+      setConfirmDialogOpen(true);
+    } else if (isImage && state.backgroundImage) {
+      setPendingImport({ type: 'image', file });
+      setConfirmDialogOpen(true);
+    } else {
+      // No existing content, import directly
+      if (isAudio) {
+        processAudioFile(file);
+      } else {
+        processImageFile(file);
+      }
+    }
+    
+    e.target.value = '';
+  };
+
+  const handleConfirmReplace = () => {
+    if (pendingImport) {
+      if (pendingImport.type === 'audio') {
+        processAudioFile(pendingImport.file);
+      } else {
+        processImageFile(pendingImport.file);
+      }
+    }
+    setPendingImport(null);
+    setConfirmDialogOpen(false);
+  };
+
+  const handleCancelReplace = () => {
+    setPendingImport(null);
+    setConfirmDialogOpen(false);
   };
 
   const handleRename = () => {
@@ -82,7 +194,7 @@ export const AnimationEditor: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Hidden file input */}
+      {/* Hidden file inputs */}
       <input
         type="file"
         ref={fileInputRef}
@@ -90,10 +202,18 @@ export const AnimationEditor: React.FC = () => {
         className="hidden"
         accept=".json,.anim,.project"
       />
+      <input
+        type="file"
+        ref={importInputRef}
+        onChange={handleImportChange}
+        className="hidden"
+        accept="image/*,audio/*"
+      />
       
       <MenuBar
         onNewProject={resetProject}
         onOpenFile={handleOpenFile}
+        onImport={handleImport}
         onAddObject={addObject}
         onAddKeyframe={addKeyframe}
         onDelete={handleDelete}
@@ -129,6 +249,7 @@ export const AnimationEditor: React.FC = () => {
                   onUpdateProperties={updateObjectProperties}
                   getInterpolatedProperties={getInterpolatedProperties}
                   currentTime={state.currentTime}
+                  backgroundImage={state.backgroundImage}
                 />
               </ResizablePanel>
             </ResizablePanelGroup>
@@ -188,6 +309,24 @@ export const AnimationEditor: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remplacer le contenu existant ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingImport?.type === 'audio' 
+                ? "Une bande son existe déjà. Voulez-vous la remplacer ?"
+                : "Une image d'arrière-plan existe déjà. Voulez-vous la remplacer ?"
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelReplace}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmReplace}>Remplacer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
