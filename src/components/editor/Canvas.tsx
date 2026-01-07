@@ -1,6 +1,5 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { EditorObject, ObjectProperties } from '@/types/editor';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface CanvasProps {
   objects: EditorObject[];
@@ -10,6 +9,7 @@ interface CanvasProps {
   getInterpolatedProperties: (object: EditorObject, time: number) => ObjectProperties;
   currentTime: number;
   backgroundImage: string | null;
+  isPlaying: boolean;
 }
 
 const SCENE_WIDTH = 1920;
@@ -23,6 +23,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   getInterpolatedProperties,
   currentTime,
   backgroundImage,
+  isPlaying,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
@@ -129,7 +130,10 @@ export const Canvas: React.FC<CanvasProps> = ({
   };
 
   const renderShape = (obj: EditorObject) => {
-    const props = getInterpolatedProperties(obj, currentTime);
+    // When playing, use interpolated. When not playing, use object.properties directly for immediate feedback
+    const props = isPlaying 
+      ? getInterpolatedProperties(obj, currentTime)
+      : (selectedObjectId === obj.id ? obj.properties : getInterpolatedProperties(obj, currentTime));
     const isSelected = selectedObjectId === obj.id;
     
     const shapeStyle: React.CSSProperties = {
@@ -219,16 +223,17 @@ export const Canvas: React.FC<CanvasProps> = ({
           Zoom: {Math.round(zoom * 100)}% | Ctrl+Scroll to zoom
         </span>
       </div>
-      <ScrollArea 
-        className="flex-1"
+      <div 
+        className="flex-1 overflow-auto"
         onWheel={handleWheel}
       >
         <div
           ref={containerRef}
           className="relative bg-muted/50 flex items-center justify-center"
           style={{ 
-            minWidth: Math.max(scaledWidth + 100, '100%' as any),
-            minHeight: Math.max(scaledHeight + 100, 400),
+            minWidth: scaledWidth + 100,
+            minHeight: scaledHeight + 100,
+            width: 'fit-content',
             padding: 50,
           }}
           onClick={handleContainerClick}
@@ -281,7 +286,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             </div>
           </div>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };

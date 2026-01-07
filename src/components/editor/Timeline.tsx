@@ -1,5 +1,5 @@
-import React, { useRef, useState, useCallback } from 'react';
-import { EditorObject, Scene } from '@/types/editor';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
+import { EditorObject, Scene, AudioTrack } from '@/types/editor';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, Square, RotateCcw, Plus, ZoomIn, ZoomOut } from 'lucide-react';
 import {
@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 interface TimelineProps {
   objects: EditorObject[];
   scenes: Scene[];
+  audioTrack: AudioTrack | null;
   selectedObjectId: string | null;
   currentTime: number;
   duration: number;
@@ -43,6 +44,7 @@ const MAX_ZOOM = 5;
 export const Timeline: React.FC<TimelineProps> = ({
   objects,
   scenes,
+  audioTrack,
   selectedObjectId,
   currentTime,
   duration,
@@ -55,14 +57,58 @@ export const Timeline: React.FC<TimelineProps> = ({
   onSelectObject,
 }) => {
   const timelineRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
   const [sceneDialogOpen, setSceneDialogOpen] = useState(false);
   const [newSceneName, setNewSceneName] = useState('');
   const [zoom, setZoom] = useState(1);
 
+  // Create audio element when audioTrack changes
+  useEffect(() => {
+    if (audioTrack?.file) {
+      // Cleanup old URL
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+      }
+      
+      const url = URL.createObjectURL(audioTrack.file);
+      audioUrlRef.current = url;
+      
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      
+      return () => {
+        audio.pause();
+        URL.revokeObjectURL(url);
+      };
+    }
+  }, [audioTrack?.file]);
+
+  // Sync audio playback with timeline
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.currentTime = currentTime / 1000;
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
+  }, [isPlaying]);
+
+  // Sync audio position when seeking
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || isPlaying) return;
+    
+    audio.currentTime = currentTime / 1000;
+  }, [currentTime, isPlaying]);
   const pixelsPerSecond = BASE_PIXELS_PER_SECOND * zoom;
   const totalWidth = (duration / 1000) * pixelsPerSecond;
 
-  // Calculate marker interval based on zoom
+  // Calculate audio waveform width based on audio duration
+  const audioWidth = audioTrack ? (audioTrack.duration / 1000) * pixelsPerSecond : 0;
   const getMarkerInterval = () => {
     if (zoom < 0.2) return 60000; // 1 minute
     if (zoom < 0.5) return 30000; // 30 seconds
@@ -261,15 +307,44 @@ export const Timeline: React.FC<TimelineProps> = ({
               </div>
             ))}
 
-            {/* Audio track placeholder */}
+            {/* Audio track */}
             <div className="flex border-b border-panel-border">
               <div className="w-32 flex-shrink-0 px-2 py-1 text-sm text-muted-foreground border-r border-panel-border">
-                Audio
+                Audio {audioTrack && <span className="text-xs">({audioTrack.name})</span>}
               </div>
               <div
-                className="flex-1 timeline-track bg-timeline-bg overflow-x-auto"
+                className="flex-1 timeline-track bg-timeline-bg overflow-x-auto relative h-8"
                 style={{ width: totalWidth }}
-              />
+              >
+                {audioTrack && audioTrack.waveform.length > 0 && (
+                  <svg
+                    className="absolute top-0 left-0 h-full"
+                    style={{ width: audioWidth }}
+                    preserveAspectRatio="none"
+                  >
+                    <defs>
+                      <linearGradient id="waveformGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.8" />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
+                      </linearGradient>
+                    </defs>
+                    {audioTrack.waveform.map((value, index) => {
+                      const barWidth = audioWidth / audioTrack.waveform.length;
+                      const barHeight = Math.max(2, value * 100);
+                      return (
+                        <rect
+                          key={index}
+                          x={index * barWidth}
+                          y={(32 - barHeight) / 2}
+                          width={Math.max(1, barWidth - 1)}
+                          height={barHeight}
+                          fill="url(#waveformGradient)"
+                        />
+                      );
+                    })}
+                  </svg>
+                )}
+              </div>
             </div>
           </div>
         </div>

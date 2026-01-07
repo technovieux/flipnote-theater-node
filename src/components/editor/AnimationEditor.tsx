@@ -250,6 +250,7 @@ export const AnimationEditor: React.FC = () => {
                   getInterpolatedProperties={getInterpolatedProperties}
                   currentTime={state.currentTime}
                   backgroundImage={state.backgroundImage}
+                  isPlaying={state.isPlaying}
                 />
               </ResizablePanel>
             </ResizablePanelGroup>
@@ -273,6 +274,7 @@ export const AnimationEditor: React.FC = () => {
                 <Timeline
                   objects={state.objects}
                   scenes={state.scenes}
+                  audioTrack={state.audioTrack}
                   selectedObjectId={state.selectedObjectId}
                   currentTime={state.currentTime}
                   duration={state.duration}
