@@ -18,6 +18,7 @@ const initialState: EditorState = {
   selectedObjectId: null,
   scenes: [],
   audioTrack: null,
+  backgroundImage: null,
   currentTime: 0,
   isPlaying: false,
   duration: 7200000, // 2 hours in ms
@@ -256,6 +257,23 @@ export const useEditorState = () => {
     setState(initialState);
   }, []);
 
+  const setBackgroundImage = useCallback((imageUrl: string | null) => {
+    setState(prev => ({ ...prev, backgroundImage: imageUrl }));
+  }, []);
+
+  const setAudioTrack = useCallback((file: File, waveform: number[], duration: number) => {
+    setState(prev => ({
+      ...prev,
+      audioTrack: {
+        id: generateId(),
+        name: file.name,
+        file,
+        waveform,
+        duration,
+      },
+    }));
+  }, []);
+
   return {
     state,
     setTheme,
@@ -275,5 +293,7 @@ export const useEditorState = () => {
     setCurrentTime,
     getInterpolatedProperties,
     resetProject,
+    setBackgroundImage,
+    setAudioTrack,
   };
 };

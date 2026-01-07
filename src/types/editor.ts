@@ -45,6 +45,7 @@ export interface EditorState {
   selectedObjectId: string | null;
   scenes: Scene[];
   audioTrack: AudioTrack | null;
+  backgroundImage: string | null; // URL or data URI
   currentTime: number;
   isPlaying: boolean;
   duration: number; // max 2 hours = 7200000ms
