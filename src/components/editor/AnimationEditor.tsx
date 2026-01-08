@@ -238,6 +238,7 @@ export const AnimationEditor: React.FC = () => {
                   onSelect={selectObject}
                   onReorder={reorderObjects}
                   onDelete={deleteObject}
+                  onRename={renameObject}
                 />
               </ResizablePanel>
               <ResizableHandle withHandle />
