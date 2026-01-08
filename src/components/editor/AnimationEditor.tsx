@@ -52,6 +52,7 @@ export const AnimationEditor: React.FC = () => {
     setAudioTrack,
     copySelectedObject,
     pasteObject,
+    moveKeyframe,
   } = useEditorState();
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -309,6 +310,7 @@ export const AnimationEditor: React.FC = () => {
                   onSeek={setCurrentTime}
                   onAddScene={addScene}
                   onSelectObject={selectObject}
+                  onMoveKeyframe={moveKeyframe}
                 />
               </ResizablePanel>
             </ResizablePanelGroup>
