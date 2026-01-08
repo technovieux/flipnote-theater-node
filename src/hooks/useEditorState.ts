@@ -3,6 +3,9 @@ import { EditorState, EditorObject, ObjectProperties, Keyframe, Scene, ShapeType
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+// Clipboard for copy/paste
+let clipboardObject: EditorObject | null = null;
+
 const defaultProperties: ObjectProperties = {
   x: 50,
   y: 50,
@@ -274,6 +277,35 @@ export const useEditorState = () => {
     }));
   }, []);
 
+  const copySelectedObject = useCallback(() => {
+    if (!state.selectedObjectId) return;
+    const obj = state.objects.find(o => o.id === state.selectedObjectId);
+    if (obj) {
+      clipboardObject = JSON.parse(JSON.stringify(obj));
+    }
+  }, [state.selectedObjectId, state.objects]);
+
+  const pasteObject = useCallback(() => {
+    if (!clipboardObject) return;
+    
+    const newObject: EditorObject = {
+      ...JSON.parse(JSON.stringify(clipboardObject)),
+      id: generateId(),
+      name: `${clipboardObject.name} (copie)`,
+      properties: {
+        ...clipboardObject.properties,
+        x: clipboardObject.properties.x + 20,
+        y: clipboardObject.properties.y + 20,
+      },
+    };
+    
+    setState(prev => ({
+      ...prev,
+      objects: [newObject, ...prev.objects],
+      selectedObjectId: newObject.id,
+    }));
+  }, []);
+
   return {
     state,
     setTheme,
@@ -295,5 +327,7 @@ export const useEditorState = () => {
     resetProject,
     setBackgroundImage,
     setAudioTrack,
+    copySelectedObject,
+    pasteObject,
   };
 };
