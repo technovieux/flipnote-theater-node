@@ -112,12 +112,37 @@ export const useEditorState = () => {
   }, []);
 
   const updateObjectProperties = useCallback((id: string, properties: Partial<ObjectProperties>) => {
-    setState(prev => ({
-      ...prev,
-      objects: prev.objects.map(obj =>
-        obj.id === id ? { ...obj, properties: { ...obj.properties, ...properties } } : obj
-      ),
-    }));
+    setState(prev => {
+      const obj = prev.objects.find(o => o.id === id);
+      if (!obj) return prev;
+
+      // Check if we're at a keyframe's time (within 100ms tolerance)
+      const keyframeIndex = obj.keyframes.findIndex(
+        kf => Math.abs(kf.time - prev.currentTime) < 100
+      );
+
+      return {
+        ...prev,
+        objects: prev.objects.map(o => {
+          if (o.id !== id) return o;
+
+          // Update base properties
+          const newProperties = { ...o.properties, ...properties };
+
+          // Also update keyframe if we're at one
+          if (keyframeIndex >= 0) {
+            const newKeyframes = [...o.keyframes];
+            newKeyframes[keyframeIndex] = {
+              ...newKeyframes[keyframeIndex],
+              properties: { ...newKeyframes[keyframeIndex].properties, ...properties },
+            };
+            return { ...o, properties: newProperties, keyframes: newKeyframes };
+          }
+
+          return { ...o, properties: newProperties };
+        }),
+      };
+    });
   }, []);
 
   const renameObject = useCallback((id: string, name: string) => {
@@ -306,6 +331,26 @@ export const useEditorState = () => {
     }));
   }, []);
 
+  const moveKeyframe = useCallback((objectId: string, keyframeIndex: number, newTime: number) => {
+    setState(prev => ({
+      ...prev,
+      objects: prev.objects.map(obj => {
+        if (obj.id !== objectId) return obj;
+        
+        const newKeyframes = [...obj.keyframes];
+        if (keyframeIndex >= 0 && keyframeIndex < newKeyframes.length) {
+          newKeyframes[keyframeIndex] = {
+            ...newKeyframes[keyframeIndex],
+            time: newTime,
+          };
+          // Re-sort keyframes by time
+          newKeyframes.sort((a, b) => a.time - b.time);
+        }
+        return { ...obj, keyframes: newKeyframes };
+      }),
+    }));
+  }, []);
+
   return {
     state,
     setTheme,
@@ -329,5 +374,6 @@ export const useEditorState = () => {
     setAudioTrack,
     copySelectedObject,
     pasteObject,
+    moveKeyframe,
   };
 };

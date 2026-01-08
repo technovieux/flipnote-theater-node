@@ -25,6 +25,7 @@ interface TimelineProps {
   onSeek: (time: number) => void;
   onAddScene: (name: string) => void;
   onSelectObject: (id: string) => void;
+  onMoveKeyframe?: (objectId: string, keyframeIndex: number, newTime: number) => void;
 }
 
 const formatTime = (ms: number): string => {
@@ -55,6 +56,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   onSeek,
   onAddScene,
   onSelectObject,
+  onMoveKeyframe,
 }) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -62,6 +64,12 @@ export const Timeline: React.FC<TimelineProps> = ({
   const [sceneDialogOpen, setSceneDialogOpen] = useState(false);
   const [newSceneName, setNewSceneName] = useState('');
   const [zoom, setZoom] = useState(1);
+  const [draggingKeyframe, setDraggingKeyframe] = useState<{
+    objectId: string;
+    keyframeIndex: number;
+    startX: number;
+    startTime: number;
+  } | null>(null);
 
   // Create audio element when audioTrack changes
   useEffect(() => {
@@ -149,6 +157,60 @@ export const Timeline: React.FC<TimelineProps> = ({
       setSceneDialogOpen(false);
     }
   };
+
+  // Keyframe drag handlers
+  const handleKeyframeMouseDown = (
+    e: React.MouseEvent,
+    objectId: string,
+    keyframeIndex: number,
+    keyframeTime: number
+  ) => {
+    e.stopPropagation();
+    setDraggingKeyframe({
+      objectId,
+      keyframeIndex,
+      startX: e.clientX,
+      startTime: keyframeTime,
+    });
+  };
+
+  const handleKeyframeDoubleClick = (
+    e: React.MouseEvent,
+    objectId: string,
+    keyframeTime: number
+  ) => {
+    e.stopPropagation();
+    onSelectObject(objectId);
+    onSeek(keyframeTime);
+  };
+
+  useEffect(() => {
+    if (!draggingKeyframe) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!draggingKeyframe) return;
+      
+      const deltaX = e.clientX - draggingKeyframe.startX;
+      const deltaTime = (deltaX / pixelsPerSecond) * 1000;
+      const newTime = Math.max(0, Math.min(duration, draggingKeyframe.startTime + deltaTime));
+      
+      if (onMoveKeyframe) {
+        onMoveKeyframe(draggingKeyframe.objectId, draggingKeyframe.keyframeIndex, newTime);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setDraggingKeyframe(null);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [draggingKeyframe, pixelsPerSecond, duration, onMoveKeyframe]);
 
   const cursorPosition = (currentTime / 1000) * pixelsPerSecond;
 
@@ -295,12 +357,18 @@ export const Timeline: React.FC<TimelineProps> = ({
                   {obj.keyframes.map((kf, idx) => (
                     <div
                       key={idx}
-                      className="keyframe-circle"
+                      className={`keyframe-circle cursor-grab ${
+                        draggingKeyframe?.objectId === obj.id && draggingKeyframe?.keyframeIndex === idx
+                          ? 'ring-2 ring-white scale-125'
+                          : ''
+                      }`}
                       style={{
                         left: (kf.time / 1000) * pixelsPerSecond - 6,
                         backgroundColor: kf.properties.color,
                       }}
-                      title={formatTime(kf.time)}
+                      title={`${formatTime(kf.time)} - Double-clic pour éditer`}
+                      onMouseDown={(e) => handleKeyframeMouseDown(e, obj.id, idx, kf.time)}
+                      onDoubleClick={(e) => handleKeyframeDoubleClick(e, obj.id, kf.time)}
                     />
                   ))}
                 </div>
