@@ -66,26 +66,55 @@ export const AnimationEditor: React.FC = () => {
 
   const selectedObject = state.objects.find(obj => obj.id === state.selectedObjectId) || null;
 
-  // Keyboard shortcuts for copy/paste
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       
+      // Ctrl/Cmd shortcuts
       if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'c') {
+        if (e.key === 'c' || e.key === 'C') {
           e.preventDefault();
           copySelectedObject();
-        } else if (e.key === 'v') {
+        } else if (e.key === 'v' || e.key === 'V') {
           e.preventDefault();
           pasteObject();
         }
+        return;
+      }
+      
+      // Space for play/pause
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (state.isPlaying) {
+          pause();
+        } else {
+          play();
+        }
+        return;
+      }
+      
+      // K for keyframe
+      if (e.key === 'k' || e.key === 'K') {
+        e.preventDefault();
+        addKeyframe();
+        return;
+      }
+      
+      // Delete or Backspace to delete selected object
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        if (state.selectedObjectId) {
+          deleteObject(state.selectedObjectId);
+        }
+        return;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [copySelectedObject, pasteObject]);
+  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectId, play, pause, addKeyframe, deleteObject]);
 
   const handleOpenFile = () => {
     fileInputRef.current?.click();
