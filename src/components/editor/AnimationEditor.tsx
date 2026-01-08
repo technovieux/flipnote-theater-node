@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { MenuBar } from './MenuBar';
 import { ObjectsList } from './ObjectsList';
@@ -50,6 +50,8 @@ export const AnimationEditor: React.FC = () => {
     resetProject,
     setBackgroundImage,
     setAudioTrack,
+    copySelectedObject,
+    pasteObject,
   } = useEditorState();
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -62,6 +64,27 @@ export const AnimationEditor: React.FC = () => {
   const [pendingImport, setPendingImport] = useState<{ type: 'audio' | 'image'; file: File } | null>(null);
 
   const selectedObject = state.objects.find(obj => obj.id === state.selectedObjectId) || null;
+
+  // Keyboard shortcuts for copy/paste
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'c') {
+          e.preventDefault();
+          copySelectedObject();
+        } else if (e.key === 'v') {
+          e.preventDefault();
+          pasteObject();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [copySelectedObject, pasteObject]);
 
   const handleOpenFile = () => {
     fileInputRef.current?.click();
