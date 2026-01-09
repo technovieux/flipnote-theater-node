@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { EditorState, EditorObject, ObjectProperties, Keyframe, Scene, ShapeType, ThemeMode } from '@/types/editor';
+import { EditorState, EditorObject, ObjectProperties, Keyframe, Scene, ShapeType, ThemeMode, AudioTrack } from '@/types/editor';
+import { FlptProject, base64ToFile } from '@/lib/fileOperations';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -285,6 +286,30 @@ export const useEditorState = () => {
     setState(initialState);
   }, []);
 
+  const loadProject = useCallback((project: FlptProject) => {
+    let audioTrack: AudioTrack | null = null;
+    
+    if (project.audioTrack) {
+      const file = base64ToFile(project.audioTrack.data, project.audioTrack.name);
+      audioTrack = {
+        id: generateId(),
+        name: project.audioTrack.name,
+        file,
+        waveform: project.audioTrack.waveform,
+        duration: project.audioTrack.duration,
+      };
+    }
+    
+    setState({
+      ...initialState,
+      objects: project.objects,
+      scenes: project.scenes,
+      backgroundImage: project.backgroundImage,
+      audioTrack,
+      duration: project.duration,
+    });
+  }, []);
+
   const setBackgroundImage = useCallback((imageUrl: string | null) => {
     setState(prev => ({ ...prev, backgroundImage: imageUrl }));
   }, []);
@@ -382,6 +407,7 @@ export const useEditorState = () => {
     setCurrentTime,
     getInterpolatedProperties,
     resetProject,
+    loadProject,
     setBackgroundImage,
     setAudioTrack,
     copySelectedObject,

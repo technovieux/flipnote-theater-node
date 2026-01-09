@@ -27,6 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { saveProject, saveProjectAs, openProject, hasCurrentFile, clearCurrentFile } from '@/lib/fileOperations';
 
 export const AnimationEditor: React.FC = () => {
   const {
@@ -48,6 +49,7 @@ export const AnimationEditor: React.FC = () => {
     setCurrentTime,
     getInterpolatedProperties,
     resetProject,
+    loadProject,
     setBackgroundImage,
     setAudioTrack,
     copySelectedObject,
@@ -70,7 +72,7 @@ export const AnimationEditor: React.FC = () => {
 
   // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
       // Don't trigger if typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       
@@ -82,6 +84,15 @@ export const AnimationEditor: React.FC = () => {
         } else if (e.key === 'v' || e.key === 'V') {
           e.preventDefault();
           pasteObject();
+        } else if (e.key === 's' || e.key === 'S') {
+          e.preventDefault();
+          await handleSave();
+        } else if (e.key === 'o' || e.key === 'O') {
+          e.preventDefault();
+          await handleOpen();
+        } else if (e.key === 'n' || e.key === 'N') {
+          e.preventDefault();
+          handleNewProject();
         }
         return;
       }
@@ -120,7 +131,50 @@ export const AnimationEditor: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectId, selectedKeyframe, play, pause, addKeyframe, deleteObject, deleteKeyframe]);
+  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectId, selectedKeyframe, play, pause, addKeyframe, deleteObject, deleteKeyframe, state]);
+
+  const handleSave = async () => {
+    try {
+      const success = await saveProject(state);
+      if (success) {
+        toast.success('Projet sauvegardé avec succès');
+      }
+    } catch (error) {
+      toast.error('Erreur lors de la sauvegarde');
+      console.error(error);
+    }
+  };
+
+  const handleSaveAs = async () => {
+    try {
+      const success = await saveProjectAs(state);
+      if (success) {
+        toast.success('Projet sauvegardé avec succès');
+      }
+    } catch (error) {
+      toast.error('Erreur lors de la sauvegarde');
+      console.error(error);
+    }
+  };
+
+  const handleOpen = async () => {
+    try {
+      const project = await openProject();
+      if (project) {
+        loadProject(project);
+        toast.success('Projet chargé avec succès');
+      }
+    } catch (error) {
+      toast.error('Erreur lors du chargement du projet');
+      console.error(error);
+    }
+  };
+
+  const handleNewProject = () => {
+    clearCurrentFile();
+    resetProject();
+    toast.info('Nouveau projet créé');
+  };
 
   const handleOpenFile = () => {
     fileInputRef.current?.click();
@@ -270,8 +324,10 @@ export const AnimationEditor: React.FC = () => {
       />
       
       <MenuBar
-        onNewProject={resetProject}
-        onOpenFile={handleOpenFile}
+        onNewProject={handleNewProject}
+        onOpenFile={handleOpen}
+        onSave={handleSave}
+        onSaveAs={handleSaveAs}
         onImport={handleImport}
         onAddObject={addObject}
         onAddKeyframe={addKeyframe}
