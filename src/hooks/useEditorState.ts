@@ -351,6 +351,18 @@ export const useEditorState = () => {
     }));
   }, []);
 
+  const deleteKeyframe = useCallback((objectId: string, keyframeIndex: number) => {
+    setState(prev => ({
+      ...prev,
+      objects: prev.objects.map(obj => {
+        if (obj.id !== objectId) return obj;
+        
+        const newKeyframes = obj.keyframes.filter((_, idx) => idx !== keyframeIndex);
+        return { ...obj, keyframes: newKeyframes };
+      }),
+    }));
+  }, []);
+
   return {
     state,
     setTheme,
@@ -375,5 +387,6 @@ export const useEditorState = () => {
     copySelectedObject,
     pasteObject,
     moveKeyframe,
+    deleteKeyframe,
   };
 };
