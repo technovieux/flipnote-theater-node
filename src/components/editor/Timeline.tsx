@@ -10,12 +10,18 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
 
 interface TimelineProps {
   objects: EditorObject[];
   scenes: Scene[];
   audioTrack: AudioTrack | null;
   selectedObjectId: string | null;
+  selectedKeyframe: { objectId: string; keyframeIndex: number } | null;
   currentTime: number;
   duration: number;
   isPlaying: boolean;
@@ -25,6 +31,7 @@ interface TimelineProps {
   onSeek: (time: number) => void;
   onAddScene: (name: string) => void;
   onSelectObject: (id: string) => void;
+  onSelectKeyframe: (objectId: string, keyframeIndex: number) => void;
   onMoveKeyframe?: (objectId: string, keyframeIndex: number, newTime: number) => void;
 }
 
@@ -47,6 +54,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   scenes,
   audioTrack,
   selectedObjectId,
+  selectedKeyframe,
   currentTime,
   duration,
   isPlaying,
@@ -56,6 +64,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   onSeek,
   onAddScene,
   onSelectObject,
+  onSelectKeyframe,
   onMoveKeyframe,
 }) => {
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -182,6 +191,15 @@ export const Timeline: React.FC<TimelineProps> = ({
     e.stopPropagation();
     onSelectObject(objectId);
     onSeek(keyframeTime);
+  };
+
+  const handleKeyframeClick = (
+    e: React.MouseEvent,
+    objectId: string,
+    keyframeIndex: number
+  ) => {
+    e.stopPropagation();
+    onSelectKeyframe(objectId, keyframeIndex);
   };
 
   useEffect(() => {
@@ -354,23 +372,64 @@ export const Timeline: React.FC<TimelineProps> = ({
                   className="flex-1 timeline-track bg-timeline-bg relative overflow-x-auto"
                   style={{ width: totalWidth }}
                 >
-                  {obj.keyframes.map((kf, idx) => (
-                    <div
-                      key={idx}
-                      className={`keyframe-circle cursor-grab ${
-                        draggingKeyframe?.objectId === obj.id && draggingKeyframe?.keyframeIndex === idx
-                          ? 'ring-2 ring-white scale-125'
-                          : ''
-                      }`}
-                      style={{
-                        left: (kf.time / 1000) * pixelsPerSecond - 6,
-                        backgroundColor: kf.properties.color,
-                      }}
-                      title={`${formatTime(kf.time)} - Double-clic pour éditer`}
-                      onMouseDown={(e) => handleKeyframeMouseDown(e, obj.id, idx, kf.time)}
-                      onDoubleClick={(e) => handleKeyframeDoubleClick(e, obj.id, kf.time)}
-                    />
-                  ))}
+                  {obj.keyframes.map((kf, idx) => {
+                    const isSelected = selectedKeyframe?.objectId === obj.id && selectedKeyframe?.keyframeIndex === idx;
+                    const isDragging = draggingKeyframe?.objectId === obj.id && draggingKeyframe?.keyframeIndex === idx;
+                    
+                    return (
+                      <HoverCard key={idx} openDelay={300} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                          <div
+                            className={`keyframe-circle cursor-grab ${
+                              isDragging ? 'ring-2 ring-white scale-125' : ''
+                            } ${isSelected ? 'ring-2 ring-primary scale-110' : ''}`}
+                            style={{
+                              left: (kf.time / 1000) * pixelsPerSecond - 6,
+                              backgroundColor: kf.properties.color,
+                            }}
+                            onClick={(e) => handleKeyframeClick(e, obj.id, idx)}
+                            onMouseDown={(e) => handleKeyframeMouseDown(e, obj.id, idx, kf.time)}
+                            onDoubleClick={(e) => handleKeyframeDoubleClick(e, obj.id, kf.time)}
+                          />
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-48 p-2 text-xs" side="top">
+                          <div className="font-semibold mb-1">{obj.name}</div>
+                          <div className="text-muted-foreground mb-2">{formatTime(kf.time)}</div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span>Position:</span>
+                              <span>{Math.round(kf.properties.x)}, {Math.round(kf.properties.y)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Taille:</span>
+                              <span>{Math.round(kf.properties.width)} × {Math.round(kf.properties.height)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Rotation:</span>
+                              <span>{Math.round(kf.properties.rotation)}°</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Opacité:</span>
+                              <span>{Math.round(kf.properties.opacity)}%</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span>Couleur:</span>
+                              <div className="flex items-center gap-1">
+                                <div 
+                                  className="w-3 h-3 rounded-sm border border-border" 
+                                  style={{ backgroundColor: kf.properties.color }}
+                                />
+                                <span>{kf.properties.color}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-border text-muted-foreground text-[10px]">
+                            Double-clic pour éditer • Suppr pour effacer
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
+                    );
+                  })}
                 </div>
               </div>
             ))}

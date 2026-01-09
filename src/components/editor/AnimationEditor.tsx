@@ -53,10 +53,12 @@ export const AnimationEditor: React.FC = () => {
     copySelectedObject,
     pasteObject,
     moveKeyframe,
+    deleteKeyframe,
   } = useEditorState();
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
+  const [selectedKeyframe, setSelectedKeyframe] = useState<{ objectId: string; keyframeIndex: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   
@@ -102,10 +104,14 @@ export const AnimationEditor: React.FC = () => {
         return;
       }
       
-      // Delete or Backspace to delete selected object
+      // Delete or Backspace to delete selected object or keyframe
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
-        if (state.selectedObjectId) {
+        // Prioritize keyframe deletion if one is selected
+        if (selectedKeyframe) {
+          deleteKeyframe(selectedKeyframe.objectId, selectedKeyframe.keyframeIndex);
+          setSelectedKeyframe(null);
+        } else if (state.selectedObjectId) {
           deleteObject(state.selectedObjectId);
         }
         return;
@@ -114,7 +120,7 @@ export const AnimationEditor: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectId, play, pause, addKeyframe, deleteObject]);
+  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectId, selectedKeyframe, play, pause, addKeyframe, deleteObject, deleteKeyframe]);
 
   const handleOpenFile = () => {
     fileInputRef.current?.click();
@@ -330,6 +336,7 @@ export const AnimationEditor: React.FC = () => {
                   scenes={state.scenes}
                   audioTrack={state.audioTrack}
                   selectedObjectId={state.selectedObjectId}
+                  selectedKeyframe={selectedKeyframe}
                   currentTime={state.currentTime}
                   duration={state.duration}
                   isPlaying={state.isPlaying}
@@ -339,6 +346,7 @@ export const AnimationEditor: React.FC = () => {
                   onSeek={setCurrentTime}
                   onAddScene={addScene}
                   onSelectObject={selectObject}
+                  onSelectKeyframe={(objectId, keyframeIndex) => setSelectedKeyframe({ objectId, keyframeIndex })}
                   onMoveKeyframe={moveKeyframe}
                 />
               </ResizablePanel>
