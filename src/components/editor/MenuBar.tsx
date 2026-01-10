@@ -20,9 +20,7 @@ interface MenuBarProps {
   onSave: () => void;
   onSaveAs: () => void;
   onImport: () => void;
-  onExportImages: () => void;
-  onExportVideo: () => void;
-  onExportPDF: () => void;
+  onExport: () => void;
   onAddObject: (type: ShapeType) => void;
   onAddKeyframe: () => void;
   onDelete: () => void;
@@ -42,9 +40,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   onSave,
   onSaveAs,
   onImport,
-  onExportImages,
-  onExportVideo,
-  onExportPDF,
+  onExport,
   onAddObject,
   onAddKeyframe,
   onDelete,
@@ -78,14 +74,9 @@ export const MenuBar: React.FC<MenuBarProps> = ({
           <MenubarItem onClick={onSaveAs}>
             Sauvegarder sous...
           </MenubarItem>
-          <MenubarSub>
-            <MenubarSubTrigger>Exporter</MenubarSubTrigger>
-            <MenubarSubContent>
-              <MenubarItem onClick={onExportImages}>Images (séquence)</MenubarItem>
-              <MenubarItem onClick={onExportVideo}>Vidéo</MenubarItem>
-              <MenubarItem onClick={onExportPDF}>PDF</MenubarItem>
-            </MenubarSubContent>
-          </MenubarSub>
+          <MenubarItem onClick={onExport}>
+            Exporter
+          </MenubarItem>
           <MenubarSeparator />
           <MenubarItem>
             Quitter <MenubarShortcut>Alt+F4</MenubarShortcut>

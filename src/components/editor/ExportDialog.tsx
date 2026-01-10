@@ -47,8 +47,8 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
   const [backgroundColor, setBackgroundColor] = useState('#000000');
   const [showRemarks, setShowRemarks] = useState(true);
   const [showInfos, setShowInfos] = useState(true);
-  const [remarksWidth, setRemarksWidth] = useState(25);
-  const [imageWidth, setImageWidth] = useState(50);
+  const [remarksHeight, setRemarksHeight] = useState(20);
+  const [infosHeight, setInfosHeight] = useState(10);
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -93,8 +93,8 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
       backgroundColor,
       showRemarks,
       showInfos,
-      remarksWidth,
-      imageWidth,
+      remarksHeight,
+      infosHeight,
     };
 
     const onProgress = (current: number, total: number) => {
@@ -197,45 +197,47 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
               <>
                 <div className="flex items-center space-x-2">
                   <Checkbox
-                    id="remarks"
-                    checked={showRemarks}
-                    onCheckedChange={(checked) => setShowRemarks(checked === true)}
-                  />
-                  <Label htmlFor="remarks">espace "remarques" :</Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
                     id="infos"
                     checked={showInfos}
                     onCheckedChange={(checked) => setShowInfos(checked === true)}
                   />
-                  <Label htmlFor="infos">espace "infos" :</Label>
+                  <Label htmlFor="infos">espace "infos"</Label>
                 </div>
 
-                {showRemarks && (
+                {showInfos && (
                   <div className="space-y-2">
-                    <Label>Largeur remarques: {remarksWidth}%</Label>
+                    <Label>Hauteur infos: {infosHeight}%</Label>
                     <Slider
-                      value={[remarksWidth]}
-                      onValueChange={(v) => setRemarksWidth(v[0])}
-                      min={10}
-                      max={50}
+                      value={[infosHeight]}
+                      onValueChange={(v) => setInfosHeight(v[0])}
+                      min={5}
+                      max={30}
                       step={5}
                     />
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label>Largeur image: {imageWidth}%</Label>
-                  <Slider
-                    value={[imageWidth]}
-                    onValueChange={(v) => setImageWidth(v[0])}
-                    min={30}
-                    max={80}
-                    step={5}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="remarks"
+                    checked={showRemarks}
+                    onCheckedChange={(checked) => setShowRemarks(checked === true)}
                   />
+                  <Label htmlFor="remarks">espace "remarques"</Label>
                 </div>
+
+                {showRemarks && (
+                  <div className="space-y-2">
+                    <Label>Hauteur remarques: {remarksHeight}%</Label>
+                    <Slider
+                      value={[remarksHeight]}
+                      onValueChange={(v) => setRemarksHeight(v[0])}
+                      min={10}
+                      max={40}
+                      step={5}
+                    />
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -251,29 +253,30 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                     className="w-full"
                   />
                   {exportType === 'pdf' && (
-                    <div className="absolute inset-0 flex">
+                    <div className="absolute inset-0 flex flex-col">
                       {showInfos && (
                         <div
-                          className="bg-muted/50 border-r border-border p-1 text-[6px] text-foreground"
-                          style={{ width: `${100 - imageWidth - (showRemarks ? remarksWidth : 0)}%` }}
+                          className="bg-muted/50 border-b border-border p-1 text-[6px] text-foreground flex items-center gap-4"
+                          style={{ height: `${infosHeight}%` }}
                         >
-                          <div className="font-bold">scène *</div>
-                          <div>titre de la scène</div>
-                          <div>timecode</div>
-                          <div className="mt-2">date de modif</div>
+                          <span className="font-bold">scène *</span>
+                          <span>titre</span>
+                          <span>timecode</span>
+                          <span>date</span>
                         </div>
                       )}
                       <div
-                        className="flex items-center justify-center text-[8px] text-muted-foreground"
-                        style={{ width: `${imageWidth}%` }}
+                        className="flex-1 flex items-center justify-center text-[8px] text-muted-foreground border-b border-border"
                       >
-                        image
+                        image (recadrée automatiquement)
                       </div>
                       {showRemarks && (
                         <div
-                          className="border-l border-border"
-                          style={{ width: `${remarksWidth}%` }}
-                        />
+                          className="bg-background border-t border-border flex items-start p-1"
+                          style={{ height: `${remarksHeight}%` }}
+                        >
+                          <span className="text-[6px] text-muted-foreground">Remarques</span>
+                        </div>
                       )}
                     </div>
                   )}
