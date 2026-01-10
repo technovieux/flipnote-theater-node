@@ -5,6 +5,7 @@ import { ObjectsList } from './ObjectsList';
 import { Canvas } from './Canvas';
 import { PropertiesPanel } from './PropertiesPanel';
 import { Timeline } from './Timeline';
+import { ExportDialog } from './ExportDialog';
 import { useEditorState } from '@/hooks/useEditorState';
 import {
   Dialog,
@@ -61,6 +62,7 @@ export const AnimationEditor: React.FC = () => {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [selectedKeyframe, setSelectedKeyframe] = useState<{ objectId: string; keyframeIndex: number } | null>(null);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   
@@ -329,6 +331,9 @@ export const AnimationEditor: React.FC = () => {
         onSave={handleSave}
         onSaveAs={handleSaveAs}
         onImport={handleImport}
+        onExportImages={() => setExportDialogOpen(true)}
+        onExportVideo={() => setExportDialogOpen(true)}
+        onExportPDF={() => setExportDialogOpen(true)}
         onAddObject={addObject}
         onAddKeyframe={addKeyframe}
         onDelete={handleDelete}
@@ -448,6 +453,12 @@ export const AnimationEditor: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        state={state}
+      />
     </div>
   );
 };
