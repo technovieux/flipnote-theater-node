@@ -331,9 +331,7 @@ export const AnimationEditor: React.FC = () => {
         onSave={handleSave}
         onSaveAs={handleSaveAs}
         onImport={handleImport}
-        onExportImages={() => setExportDialogOpen(true)}
-        onExportVideo={() => setExportDialogOpen(true)}
-        onExportPDF={() => setExportDialogOpen(true)}
+        onExport={() => setExportDialogOpen(true)}
         onAddObject={addObject}
         onAddKeyframe={addKeyframe}
         onDelete={handleDelete}

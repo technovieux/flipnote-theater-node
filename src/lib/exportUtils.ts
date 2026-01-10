@@ -11,8 +11,8 @@ export interface ExportOptions {
   // PDF specific
   showRemarks: boolean;
   showInfos: boolean;
-  remarksWidth: number;
-  imageWidth: number;
+  remarksHeight: number; // percentage of page height for remarks
+  infosHeight: number;   // percentage of page height for infos
 }
 
 export interface KeyframeExportData {
@@ -426,60 +426,76 @@ export const exportAsPDF = async (
     const scene = getSceneAtTime(state.scenes, time);
     const canvas = await renderSceneToCanvasAsync(state, time, options.backgroundColor, false);
 
-    // Calculate layout
-    const remarksWidth = options.showRemarks ? (options.remarksWidth / 100) * (pageWidth - margin * 3) : 0;
-    const imageWidth = (options.imageWidth / 100) * (pageWidth - margin * 3 - remarksWidth);
-    const infoWidth = pageWidth - margin * 3 - remarksWidth - imageWidth;
+    // Calculate layout - infos at top, image in middle, remarks at bottom
+    const contentWidth = pageWidth - margin * 2;
+    const totalContentHeight = pageHeight - margin * 2;
+    
+    const infosHeight = options.showInfos ? (options.infosHeight / 100) * totalContentHeight : 0;
+    const remarksHeight = options.showRemarks ? (options.remarksHeight / 100) * totalContentHeight : 0;
+    const imageHeight = totalContentHeight - infosHeight - remarksHeight;
 
-    let currentX = margin;
+    let currentY = margin;
 
-    // Info section
-    if (options.showInfos && infoWidth > 0) {
+    // Info section (top)
+    if (options.showInfos && infosHeight > 0) {
       pdf.setFillColor(240, 240, 240);
-      pdf.rect(currentX, margin, infoWidth, pageHeight - margin * 2, 'F');
+      pdf.rect(margin, currentY, contentWidth, infosHeight, 'F');
       pdf.setDrawColor(200, 200, 200);
-      pdf.rect(currentX, margin, infoWidth, pageHeight - margin * 2, 'S');
+      pdf.rect(margin, currentY, contentWidth, infosHeight, 'S');
 
       pdf.setFontSize(12);
       pdf.setTextColor(0, 0, 0);
-      pdf.text(`Scène ${scene.number}`, currentX + 5, margin + 10);
-      pdf.text(scene.name, currentX + 5, margin + 20);
-      pdf.text(formatTimecode(time), currentX + 5, margin + 30);
-      pdf.text(new Date().toLocaleDateString('fr-FR'), currentX + 5, margin + 40);
+      pdf.text(`Scène ${scene.number}`, margin + 5, currentY + 8);
+      pdf.text(scene.name, margin + 60, currentY + 8);
+      pdf.text(formatTimecode(time), margin + 150, currentY + 8);
+      pdf.text(new Date().toLocaleDateString('fr-FR'), margin + 220, currentY + 8);
 
-      currentX += infoWidth + margin;
+      currentY += infosHeight;
     }
 
-    // Image section
+    // Image section (middle) - automatically cropped to fit
     const imgData = canvas.toDataURL('image/jpeg', 0.9);
-    const imgHeight = pageHeight - margin * 2;
     const imgAspectRatio = SCENE_WIDTH / SCENE_HEIGHT;
-    const actualImgWidth = Math.min(imageWidth, imgHeight * imgAspectRatio);
-    const actualImgHeight = actualImgWidth / imgAspectRatio;
+    
+    // Calculate the actual image dimensions to fit in available space while maintaining aspect ratio
+    let actualImgWidth = contentWidth;
+    let actualImgHeight = actualImgWidth / imgAspectRatio;
+    
+    // If image is too tall, constrain by height instead
+    if (actualImgHeight > imageHeight) {
+      actualImgHeight = imageHeight;
+      actualImgWidth = actualImgHeight * imgAspectRatio;
+    }
+    
+    // Center the image horizontally
+    const imgX = margin + (contentWidth - actualImgWidth) / 2;
+    const imgY = currentY + (imageHeight - actualImgHeight) / 2;
 
     pdf.addImage(
       imgData,
       'JPEG',
-      currentX,
-      margin + (imgHeight - actualImgHeight) / 2,
+      imgX,
+      imgY,
       actualImgWidth,
       actualImgHeight
     );
+    
+    // Draw border around image area
     pdf.setDrawColor(0, 0, 0);
-    pdf.rect(currentX, margin, imageWidth, pageHeight - margin * 2, 'S');
+    pdf.rect(margin, currentY, contentWidth, imageHeight, 'S');
 
-    currentX += imageWidth + margin;
+    currentY += imageHeight;
 
-    // Remarks section
-    if (options.showRemarks && remarksWidth > 0) {
+    // Remarks section (bottom)
+    if (options.showRemarks && remarksHeight > 0) {
       pdf.setFillColor(255, 255, 255);
-      pdf.rect(currentX, margin, remarksWidth, pageHeight - margin * 2, 'F');
+      pdf.rect(margin, currentY, contentWidth, remarksHeight, 'F');
       pdf.setDrawColor(200, 200, 200);
-      pdf.rect(currentX, margin, remarksWidth, pageHeight - margin * 2, 'S');
+      pdf.rect(margin, currentY, contentWidth, remarksHeight, 'S');
 
       pdf.setFontSize(10);
       pdf.setTextColor(150, 150, 150);
-      pdf.text('Remarques', currentX + 5, margin + 10);
+      pdf.text('Remarques', margin + 5, currentY + 8);
     }
 
     onProgress?.(i + 1, keyframeTimes.length);
