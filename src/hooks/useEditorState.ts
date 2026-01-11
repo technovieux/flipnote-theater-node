@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { EditorState, EditorObject, ObjectProperties, Keyframe, Scene, ShapeType, ThemeMode, AudioTrack } from '@/types/editor';
 import { FlptProject, base64ToFile } from '@/lib/fileOperations';
+import { interpolateColor } from '@/lib/colorUtils';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -278,7 +279,7 @@ export const useEditorState = () => {
       height: interpolate(prevKf.properties.height, nextKf.properties.height),
       rotation: interpolate(prevKf.properties.rotation, nextKf.properties.rotation),
       opacity: interpolate(prevKf.properties.opacity, nextKf.properties.opacity),
-      color: prevKf.properties.color,
+      color: interpolateColor(prevKf.properties.color, nextKf.properties.color, progress),
     };
   }, [state.animatedMode]);
 
