@@ -36,6 +36,7 @@ interface ExportDialogProps {
 
 type ExportType = 'images' | 'video' | 'pdf';
 type ImageFormat = 'jpg' | 'png' | 'webp';
+type VideoFormat = 'webm' | 'mp4';
 
 export const ExportDialog: React.FC<ExportDialogProps> = ({
   open,
@@ -44,11 +45,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
 }) => {
   const [exportType, setExportType] = useState<ExportType>('images');
   const [imageFormat, setImageFormat] = useState<ImageFormat>('jpg');
+  const [videoFormat, setVideoFormat] = useState<VideoFormat>('mp4');
   const [backgroundColor, setBackgroundColor] = useState('#000000');
   const [showRemarks, setShowRemarks] = useState(true);
   const [showInfos, setShowInfos] = useState(true);
   const [remarksHeight, setRemarksHeight] = useState(20);
-  const [infosHeight, setInfosHeight] = useState(10);
+  const [infosWidth, setInfosWidth] = useState(25);
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -90,11 +92,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
     const options: ExportOptions = {
       type: exportType,
       format: imageFormat,
+      videoFormat,
       backgroundColor,
       showRemarks,
       showInfos,
       remarksHeight,
-      infosHeight,
+      infosWidth,
     };
 
     const onProgress = (current: number, total: number) => {
@@ -161,26 +164,45 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
 
             <div className="space-y-2">
               <Label>extension :</Label>
-              <Select
-                value={exportType === 'pdf' ? 'pdf' : exportType === 'video' ? 'webm' : imageFormat}
-                onValueChange={(v) => setImageFormat(v as ImageFormat)}
-                disabled={exportType === 'pdf' || exportType === 'video'}
-              >
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {exportType === 'images' && (
-                    <>
-                      <SelectItem value="jpg">jpg</SelectItem>
-                      <SelectItem value="png">png</SelectItem>
-                      <SelectItem value="webp">webp</SelectItem>
-                    </>
-                  )}
-                  {exportType === 'video' && <SelectItem value="webm">webm</SelectItem>}
-                  {exportType === 'pdf' && <SelectItem value="pdf">pdf</SelectItem>}
-                </SelectContent>
-              </Select>
+              {exportType === 'images' && (
+                <Select
+                  value={imageFormat}
+                  onValueChange={(v) => setImageFormat(v as ImageFormat)}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="jpg">jpg</SelectItem>
+                    <SelectItem value="png">png</SelectItem>
+                    <SelectItem value="webp">webp</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              {exportType === 'video' && (
+                <Select
+                  value={videoFormat}
+                  onValueChange={(v) => setVideoFormat(v as VideoFormat)}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mp4">mp4</SelectItem>
+                    <SelectItem value="webm">webm</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              {exportType === 'pdf' && (
+                <Select value="pdf" disabled>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pdf">pdf</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -206,12 +228,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
 
                 {showInfos && (
                   <div className="space-y-2">
-                    <Label>Hauteur infos: {infosHeight}%</Label>
+                    <Label>Largeur infos: {infosWidth}%</Label>
                     <Slider
-                      value={[infosHeight]}
-                      onValueChange={(v) => setInfosHeight(v[0])}
-                      min={5}
-                      max={30}
+                      value={[infosWidth]}
+                      onValueChange={(v) => setInfosWidth(v[0])}
+                      min={15}
+                      max={40}
                       step={5}
                     />
                   </div>
@@ -254,22 +276,29 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                   />
                   {exportType === 'pdf' && (
                     <div className="absolute inset-0 flex flex-col">
-                      {showInfos && (
-                        <div
-                          className="bg-muted/50 border-b border-border p-1 text-[6px] text-foreground flex items-center gap-4"
-                          style={{ height: `${infosHeight}%` }}
-                        >
-                          <span className="font-bold">scène *</span>
-                          <span>titre</span>
-                          <span>timecode</span>
-                          <span>date</span>
-                        </div>
-                      )}
-                      <div
-                        className="flex-1 flex items-center justify-center text-[8px] text-muted-foreground border-b border-border"
+                      {/* Top row: infos (left) + image (right) */}
+                      <div 
+                        className="flex border-b border-border"
+                        style={{ height: `${100 - (showRemarks ? remarksHeight : 0)}%` }}
                       >
-                        image (recadrée automatiquement)
+                        {showInfos && (
+                          <div
+                            className="bg-muted/50 border-r border-border p-1 text-[6px] text-foreground flex flex-col gap-1"
+                            style={{ width: `${infosWidth}%` }}
+                          >
+                            <span className="font-bold">scène *</span>
+                            <span>titre</span>
+                            <span>timecode</span>
+                            <span>date</span>
+                          </div>
+                        )}
+                        <div
+                          className="flex-1 flex items-center justify-center text-[8px] text-muted-foreground"
+                        >
+                          image
+                        </div>
                       </div>
+                      {/* Bottom: remarks */}
                       {showRemarks && (
                         <div
                           className="bg-background border-t border-border flex items-start p-1"

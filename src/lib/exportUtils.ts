@@ -7,12 +7,13 @@ const SCENE_HEIGHT = 1080;
 export interface ExportOptions {
   type: 'images' | 'video' | 'pdf';
   format: 'jpg' | 'png' | 'webp';
+  videoFormat?: 'webm' | 'mp4';
   backgroundColor: string;
   // PDF specific
   showRemarks: boolean;
   showInfos: boolean;
   remarksHeight: number; // percentage of page height for remarks
-  infosHeight: number;   // percentage of page height for infos
+  infosWidth: number;    // percentage of top row width for infos (left side)
 }
 
 export interface KeyframeExportData {
@@ -336,9 +337,24 @@ export const exportAsVideo = async (
     }
   }
 
-  const mediaRecorder = new MediaRecorder(stream, {
-    mimeType: 'video/webm;codecs=vp9',
-  });
+  // Determine mimeType based on format
+  const isMP4 = options.videoFormat === 'mp4';
+  let mimeType = 'video/webm;codecs=vp9';
+  
+  // Check for MP4 support (H.264)
+  if (isMP4) {
+    if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')) {
+      mimeType = 'video/mp4;codecs=avc1';
+    } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+      mimeType = 'video/mp4';
+    } else {
+      // Fallback to webm if MP4 not supported
+      console.warn('MP4 not supported, falling back to WebM');
+      mimeType = 'video/webm;codecs=vp9';
+    }
+  }
+
+  const mediaRecorder = new MediaRecorder(stream, { mimeType });
 
   const chunks: Blob[] = [];
   mediaRecorder.ondataavailable = (e) => {
@@ -347,13 +363,16 @@ export const exportAsVideo = async (
     }
   };
 
+  const fileExtension = mimeType.startsWith('video/mp4') ? 'mp4' : 'webm';
+  const blobType = mimeType.startsWith('video/mp4') ? 'video/mp4' : 'video/webm';
+
   return new Promise((resolve) => {
     mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'video/webm' });
+      const blob = new Blob(chunks, { type: blobType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'animation.webm';
+      a.download = `animation.${fileExtension}`;
       a.click();
       URL.revokeObjectURL(url);
       resolve();
@@ -426,50 +445,65 @@ export const exportAsPDF = async (
     const scene = getSceneAtTime(state.scenes, time);
     const canvas = await renderSceneToCanvasAsync(state, time, options.backgroundColor, false);
 
-    // Calculate layout - infos at top, image in middle, remarks at bottom
+    // Calculate layout - Top row: [Infos (left) | Image (right)], Bottom: Remarks
     const contentWidth = pageWidth - margin * 2;
     const totalContentHeight = pageHeight - margin * 2;
     
-    const infosHeight = options.showInfos ? (options.infosHeight / 100) * totalContentHeight : 0;
     const remarksHeight = options.showRemarks ? (options.remarksHeight / 100) * totalContentHeight : 0;
-    const imageHeight = totalContentHeight - infosHeight - remarksHeight;
+    const topRowHeight = totalContentHeight - remarksHeight;
+    
+    // Info section width (left side of top row)
+    const infosWidth = options.showInfos ? (options.infosWidth / 100) * contentWidth : 0;
+    const imageWidth = contentWidth - infosWidth;
 
     let currentY = margin;
 
-    // Info section (top)
-    if (options.showInfos && infosHeight > 0) {
+    // Top row: Info (left) and Image (right)
+    // Info section (left side)
+    if (options.showInfos && infosWidth > 0) {
       pdf.setFillColor(240, 240, 240);
-      pdf.rect(margin, currentY, contentWidth, infosHeight, 'F');
+      pdf.rect(margin, currentY, infosWidth, topRowHeight, 'F');
       pdf.setDrawColor(200, 200, 200);
-      pdf.rect(margin, currentY, contentWidth, infosHeight, 'S');
+      pdf.rect(margin, currentY, infosWidth, topRowHeight, 'S');
 
       pdf.setFontSize(12);
       pdf.setTextColor(0, 0, 0);
-      pdf.text(`Scène ${scene.number}`, margin + 5, currentY + 8);
-      pdf.text(scene.name, margin + 60, currentY + 8);
-      pdf.text(formatTimecode(time), margin + 150, currentY + 8);
-      pdf.text(new Date().toLocaleDateString('fr-FR'), margin + 220, currentY + 8);
-
-      currentY += infosHeight;
+      
+      const textX = margin + 5;
+      let textY = currentY + 12;
+      const lineHeight = 8;
+      
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`Scène ${scene.number}`, textX, textY);
+      textY += lineHeight;
+      
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(scene.name, textX, textY);
+      textY += lineHeight;
+      
+      pdf.text(formatTimecode(time), textX, textY);
+      textY += lineHeight;
+      
+      pdf.text(new Date().toLocaleDateString('fr-FR'), textX, textY);
     }
 
-    // Image section (middle) - automatically cropped to fit
+    // Image section (right side of top row)
     const imgData = canvas.toDataURL('image/jpeg', 0.9);
     const imgAspectRatio = SCENE_WIDTH / SCENE_HEIGHT;
     
     // Calculate the actual image dimensions to fit in available space while maintaining aspect ratio
-    let actualImgWidth = contentWidth;
+    let actualImgWidth = imageWidth;
     let actualImgHeight = actualImgWidth / imgAspectRatio;
     
     // If image is too tall, constrain by height instead
-    if (actualImgHeight > imageHeight) {
-      actualImgHeight = imageHeight;
+    if (actualImgHeight > topRowHeight) {
+      actualImgHeight = topRowHeight;
       actualImgWidth = actualImgHeight * imgAspectRatio;
     }
     
-    // Center the image horizontally
-    const imgX = margin + (contentWidth - actualImgWidth) / 2;
-    const imgY = currentY + (imageHeight - actualImgHeight) / 2;
+    // Position image in the right side
+    const imgX = margin + infosWidth + (imageWidth - actualImgWidth) / 2;
+    const imgY = currentY + (topRowHeight - actualImgHeight) / 2;
 
     pdf.addImage(
       imgData,
@@ -482,11 +516,11 @@ export const exportAsPDF = async (
     
     // Draw border around image area
     pdf.setDrawColor(0, 0, 0);
-    pdf.rect(margin, currentY, contentWidth, imageHeight, 'S');
+    pdf.rect(margin + infosWidth, currentY, imageWidth, topRowHeight, 'S');
 
-    currentY += imageHeight;
+    currentY += topRowHeight;
 
-    // Remarks section (bottom)
+    // Remarks section (bottom, full width)
     if (options.showRemarks && remarksHeight > 0) {
       pdf.setFillColor(255, 255, 255);
       pdf.rect(margin, currentY, contentWidth, remarksHeight, 'F');
