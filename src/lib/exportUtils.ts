@@ -318,6 +318,16 @@ export const exportAsVideo = async (
   canvas.height = SCENE_HEIGHT;
   const ctx = canvas.getContext('2d')!;
 
+  // Pre-load background image to avoid async loading during frame rendering
+  let backgroundImg: HTMLImageElement | null = null;
+  if (state.backgroundImage) {
+    try {
+      backgroundImg = await loadImage(state.backgroundImage);
+    } catch (e) {
+      console.error('Failed to load background image:', e);
+    }
+  }
+
   const stream = canvas.captureStream(fps);
 
   // Add audio track if available
@@ -366,6 +376,28 @@ export const exportAsVideo = async (
   const fileExtension = mimeType.startsWith('video/mp4') ? 'mp4' : 'webm';
   const blobType = mimeType.startsWith('video/mp4') ? 'video/mp4' : 'video/webm';
 
+  // Render a single frame synchronously
+  const renderFrameSync = (time: number) => {
+    // Fill background
+    ctx.fillStyle = options.backgroundColor;
+    ctx.fillRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
+
+    // Draw pre-loaded background image
+    if (backgroundImg) {
+      const scale = Math.min(SCENE_WIDTH / backgroundImg.width, SCENE_HEIGHT / backgroundImg.height);
+      const x = (SCENE_WIDTH - backgroundImg.width * scale) / 2;
+      const y = (SCENE_HEIGHT - backgroundImg.height * scale) / 2;
+      ctx.drawImage(backgroundImg, x, y, backgroundImg.width * scale, backgroundImg.height * scale);
+    }
+
+    // Draw objects
+    const reversedObjects = [...state.objects].reverse();
+    for (const obj of reversedObjects) {
+      const props = getInterpolatedPropertiesAt(obj, time, state.animatedMode);
+      drawObject(ctx, obj.type, props);
+    }
+  };
+
   return new Promise((resolve) => {
     mediaRecorder.onstop = () => {
       const blob = new Blob(chunks, { type: blobType });
@@ -381,42 +413,32 @@ export const exportAsVideo = async (
     mediaRecorder.start();
 
     let frame = 0;
-    const renderFrame = async () => {
+    
+    // Use a controlled interval for consistent frame timing
+    const renderNextFrame = () => {
       if (frame >= totalFrames) {
         mediaRecorder.stop();
         return;
       }
 
       const time = frame * frameInterval;
-
-      // Fill background
-      ctx.fillStyle = options.backgroundColor;
-      ctx.fillRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
-
-      // Draw background image if exists
-      if (state.backgroundImage) {
-        try {
-          const img = await loadImage(state.backgroundImage);
-          const scale = Math.min(SCENE_WIDTH / img.width, SCENE_HEIGHT / img.height);
-          const x = (SCENE_WIDTH - img.width * scale) / 2;
-          const y = (SCENE_HEIGHT - img.height * scale) / 2;
-          ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-        } catch (e) {}
-      }
-
-      // Draw objects
-      const reversedObjects = [...state.objects].reverse();
-      for (const obj of reversedObjects) {
-        const props = getInterpolatedPropertiesAt(obj, time, state.animatedMode);
-        drawObject(ctx, obj.type, props);
-      }
+      renderFrameSync(time);
 
       onProgress?.(frame + 1, totalFrames);
       frame++;
-      requestAnimationFrame(renderFrame);
+      
+      // Use setTimeout with exact frame interval for consistent timing
+      // This prevents the black flashes caused by requestAnimationFrame's variable timing
+      setTimeout(renderNextFrame, frameInterval);
     };
 
-    renderFrame();
+    // Render first frame immediately to ensure canvas has content
+    renderFrameSync(0);
+    frame = 1;
+    onProgress?.(1, totalFrames);
+    
+    // Start the frame loop
+    setTimeout(renderNextFrame, frameInterval);
   });
 };
 
