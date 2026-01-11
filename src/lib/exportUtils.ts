@@ -1,4 +1,5 @@
 import { EditorState, EditorObject, ObjectProperties, Scene, Keyframe } from '@/types/editor';
+import { interpolateColor } from '@/lib/colorUtils';
 import jsPDF from 'jspdf';
 
 const SCENE_WIDTH = 1920;
@@ -63,7 +64,7 @@ const getInterpolatedPropertiesAt = (
     height: interpolate(prevKf.properties.height, nextKf.properties.height),
     rotation: interpolate(prevKf.properties.rotation, nextKf.properties.rotation),
     opacity: interpolate(prevKf.properties.opacity, nextKf.properties.opacity),
-    color: prevKf.properties.color,
+    color: interpolateColor(prevKf.properties.color, nextKf.properties.color, progress),
   };
 };
 
