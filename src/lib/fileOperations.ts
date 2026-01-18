@@ -1,8 +1,9 @@
-import { EditorState, EditorObject, Scene, AudioTrack } from '@/types/editor';
+import { EditorState, EditorObject, EditorObject3D, Scene, AudioTrack } from '@/types/editor';
 
 export interface FlptProject {
   version: string;
   objects: EditorObject[];
+  objects3D?: EditorObject3D[];
   scenes: Scene[];
   backgroundImage: string | null;
   audioTrack: {
@@ -39,6 +40,7 @@ export const serializeProject = async (state: EditorState): Promise<FlptProject>
   return {
     version: '1.0',
     objects: state.objects,
+    objects3D: state.objects3D,
     scenes: state.scenes,
     backgroundImage: state.backgroundImage,
     audioTrack: audioData,

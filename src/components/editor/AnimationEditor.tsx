@@ -2,8 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { MenuBar } from './MenuBar';
 import { ObjectsList } from './ObjectsList';
+import { ObjectsList3D } from './ObjectsList3D';
 import { Canvas } from './Canvas';
+import { Canvas3D } from './Canvas3D';
 import { PropertiesPanel } from './PropertiesPanel';
+import { PropertiesPanel3D } from './PropertiesPanel3D';
 import { Timeline } from './Timeline';
 import { ExportDialog } from './ExportDialog';
 import { useEditorState } from '@/hooks/useEditorState';
@@ -13,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -28,7 +30,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { saveProject, saveProjectAs, openProject, hasCurrentFile, clearCurrentFile } from '@/lib/fileOperations';
+import { saveProject, saveProjectAs, openProject, clearCurrentFile } from '@/lib/fileOperations';
 
 export const AnimationEditor: React.FC = () => {
   const {
@@ -36,9 +38,12 @@ export const AnimationEditor: React.FC = () => {
     setTheme,
     setShowProperties,
     setAnimatedMode,
+    setMode3D,
     addObject,
+    addObject3D,
     selectObject,
     updateObjectProperties,
+    updateObject3DProperties,
     renameObject,
     deleteObject,
     reorderObjects,
@@ -49,6 +54,7 @@ export const AnimationEditor: React.FC = () => {
     stop,
     setCurrentTime,
     getInterpolatedProperties,
+    getInterpolatedProperties3D,
     resetProject,
     loadProject,
     setBackgroundImage,
@@ -71,6 +77,7 @@ export const AnimationEditor: React.FC = () => {
   const [pendingImport, setPendingImport] = useState<{ type: 'audio' | 'image'; file: File } | null>(null);
 
   const selectedObject = state.objects.find(obj => obj.id === state.selectedObjectId) || null;
+  const selectedObject3D = state.objects3D.find(obj => obj.id === state.selectedObjectId) || null;
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -333,6 +340,7 @@ export const AnimationEditor: React.FC = () => {
         onImport={handleImport}
         onExport={() => setExportDialogOpen(true)}
         onAddObject={addObject}
+        onAddObject3D={addObject3D}
         onAddKeyframe={addKeyframe}
         onDelete={handleDelete}
         onRename={openRenameDialog}
@@ -342,6 +350,8 @@ export const AnimationEditor: React.FC = () => {
         onAnimatedModeChange={setAnimatedMode}
         showProperties={state.showProperties}
         onShowPropertiesChange={setShowProperties}
+        mode3D={state.mode3D}
+        onMode3DChange={setMode3D}
         hasSelectedObject={!!state.selectedObjectId}
       />
       
@@ -350,27 +360,50 @@ export const AnimationEditor: React.FC = () => {
           <ResizablePanel defaultSize={60} minSize={30}>
             <ResizablePanelGroup direction="horizontal">
               <ResizablePanel defaultSize={25} minSize={15}>
-                <ObjectsList
-                  objects={state.objects}
-                  selectedObjectId={state.selectedObjectId}
-                  onSelect={selectObject}
-                  onReorder={reorderObjects}
-                  onDelete={deleteObject}
-                  onRename={renameObject}
-                />
+                {state.mode3D ? (
+                  <ObjectsList3D
+                    objects={state.objects3D}
+                    selectedObjectId={state.selectedObjectId}
+                    onSelect={selectObject}
+                    onReorder={reorderObjects}
+                    onDelete={deleteObject}
+                    onRename={renameObject}
+                  />
+                ) : (
+                  <ObjectsList
+                    objects={state.objects}
+                    selectedObjectId={state.selectedObjectId}
+                    onSelect={selectObject}
+                    onReorder={reorderObjects}
+                    onDelete={deleteObject}
+                    onRename={renameObject}
+                  />
+                )}
               </ResizablePanel>
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize={75} minSize={30}>
-                <Canvas
-                  objects={state.objects}
-                  selectedObjectId={state.selectedObjectId}
-                  onSelect={selectObject}
-                  onUpdateProperties={updateObjectProperties}
-                  getInterpolatedProperties={getInterpolatedProperties}
-                  currentTime={state.currentTime}
-                  backgroundImage={state.backgroundImage}
-                  isPlaying={state.isPlaying}
-                />
+                {state.mode3D ? (
+                  <Canvas3D
+                    objects={state.objects3D}
+                    selectedObjectId={state.selectedObjectId}
+                    onSelect={selectObject}
+                    onUpdateProperties={updateObject3DProperties}
+                    getInterpolatedProperties={getInterpolatedProperties3D}
+                    currentTime={state.currentTime}
+                    isPlaying={state.isPlaying}
+                  />
+                ) : (
+                  <Canvas
+                    objects={state.objects}
+                    selectedObjectId={state.selectedObjectId}
+                    onSelect={selectObject}
+                    onUpdateProperties={updateObjectProperties}
+                    getInterpolatedProperties={getInterpolatedProperties}
+                    currentTime={state.currentTime}
+                    backgroundImage={state.backgroundImage}
+                    isPlaying={state.isPlaying}
+                  />
+                )}
               </ResizablePanel>
             </ResizablePanelGroup>
           </ResizablePanel>
@@ -380,11 +413,19 @@ export const AnimationEditor: React.FC = () => {
               {state.showProperties && (
                 <>
                   <ResizablePanel defaultSize={30} minSize={20}>
-                    <PropertiesPanel
-                      selectedObject={selectedObject}
-                      onUpdateProperties={updateObjectProperties}
-                      onAddKeyframe={addKeyframe}
-                    />
+                    {state.mode3D ? (
+                      <PropertiesPanel3D
+                        selectedObject={selectedObject3D}
+                        onUpdateProperties={updateObject3DProperties}
+                        onAddKeyframe={addKeyframe}
+                      />
+                    ) : (
+                      <PropertiesPanel
+                        selectedObject={selectedObject}
+                        onUpdateProperties={updateObjectProperties}
+                        onAddKeyframe={addKeyframe}
+                      />
+                    )}
                   </ResizablePanel>
                   <ResizableHandle withHandle />
                 </>

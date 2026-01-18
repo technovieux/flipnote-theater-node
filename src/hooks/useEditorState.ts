@@ -1,5 +1,18 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { EditorState, EditorObject, ObjectProperties, Keyframe, Scene, ShapeType, ThemeMode, AudioTrack } from '@/types/editor';
+import { 
+  EditorState, 
+  EditorObject, 
+  EditorObject3D,
+  ObjectProperties, 
+  Object3DProperties,
+  Keyframe, 
+  Keyframe3D,
+  Scene, 
+  ShapeType, 
+  Shape3DType,
+  ThemeMode, 
+  AudioTrack 
+} from '@/types/editor';
 import { FlptProject, base64ToFile } from '@/lib/fileOperations';
 import { interpolateColor } from '@/lib/colorUtils';
 
@@ -7,6 +20,7 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 // Clipboard for copy/paste
 let clipboardObject: EditorObject | null = null;
+let clipboardObject3D: EditorObject3D | null = null;
 
 const defaultProperties: ObjectProperties = {
   x: 50,
@@ -18,8 +32,23 @@ const defaultProperties: ObjectProperties = {
   color: '#00d4ff',
 };
 
+const default3DProperties: Object3DProperties = {
+  x: 0,
+  y: 0,
+  z: 0,
+  width: 100,
+  height: 100,
+  depth: 100,
+  rotationX: 0,
+  rotationY: 0,
+  rotationZ: 0,
+  opacity: 100,
+  color: '#00d4ff',
+};
+
 const initialState: EditorState = {
   objects: [],
+  objects3D: [],
   selectedObjectId: null,
   scenes: [],
   audioTrack: null,
@@ -30,6 +59,7 @@ const initialState: EditorState = {
   showProperties: true,
   animatedMode: true,
   theme: 'dark',
+  mode3D: false,
 };
 
 export const useEditorState = () => {
@@ -90,6 +120,10 @@ export const useEditorState = () => {
     setState(prev => ({ ...prev, animatedMode: animated }));
   }, []);
 
+  const setMode3D = useCallback((mode3D: boolean) => {
+    setState(prev => ({ ...prev, mode3D, selectedObjectId: null }));
+  }, []);
+
   const addObject = useCallback((type: ShapeType) => {
     const colors = ['#00d4ff', '#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
@@ -108,6 +142,33 @@ export const useEditorState = () => {
       selectedObjectId: newObject.id,
     }));
   }, [state.objects.length]);
+
+  const addObject3D = useCallback((type: Shape3DType) => {
+    const colors = ['#00d4ff', '#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    
+    const typeNames: Record<Shape3DType, string> = {
+      cube: 'Cube',
+      sphere: 'Sphère',
+      cylinder: 'Cylindre',
+      cone: 'Cône',
+      torus: 'Tore',
+    };
+    
+    const newObject: EditorObject3D = {
+      id: generateId(),
+      name: `${typeNames[type]} ${state.objects3D.length + 1}`,
+      type,
+      properties: { ...default3DProperties, color: randomColor },
+      keyframes: [],
+    };
+    
+    setState(prev => ({
+      ...prev,
+      objects3D: [newObject, ...prev.objects3D],
+      selectedObjectId: newObject.id,
+    }));
+  }, [state.objects3D.length]);
 
   const selectObject = useCallback((id: string | null) => {
     setState(prev => ({ ...prev, selectedObjectId: id }));
@@ -147,10 +208,44 @@ export const useEditorState = () => {
     });
   }, []);
 
+  const updateObject3DProperties = useCallback((id: string, properties: Partial<Object3DProperties>) => {
+    setState(prev => {
+      const obj = prev.objects3D.find(o => o.id === id);
+      if (!obj) return prev;
+
+      const keyframeIndex = obj.keyframes.findIndex(
+        kf => Math.abs(kf.time - prev.currentTime) < 100
+      );
+
+      return {
+        ...prev,
+        objects3D: prev.objects3D.map(o => {
+          if (o.id !== id) return o;
+
+          const newProperties = { ...o.properties, ...properties };
+
+          if (keyframeIndex >= 0) {
+            const newKeyframes = [...o.keyframes];
+            newKeyframes[keyframeIndex] = {
+              ...newKeyframes[keyframeIndex],
+              properties: { ...newKeyframes[keyframeIndex].properties, ...properties },
+            };
+            return { ...o, properties: newProperties, keyframes: newKeyframes };
+          }
+
+          return { ...o, properties: newProperties };
+        }),
+      };
+    });
+  }, []);
+
   const renameObject = useCallback((id: string, name: string) => {
     setState(prev => ({
       ...prev,
       objects: prev.objects.map(obj =>
+        obj.id === id ? { ...obj, name } : obj
+      ),
+      objects3D: prev.objects3D.map(obj =>
         obj.id === id ? { ...obj, name } : obj
       ),
     }));
@@ -160,16 +255,24 @@ export const useEditorState = () => {
     setState(prev => ({
       ...prev,
       objects: prev.objects.filter(obj => obj.id !== id),
+      objects3D: prev.objects3D.filter(obj => obj.id !== id),
       selectedObjectId: prev.selectedObjectId === id ? null : prev.selectedObjectId,
     }));
   }, []);
 
   const reorderObjects = useCallback((fromIndex: number, toIndex: number) => {
     setState(prev => {
-      const newObjects = [...prev.objects];
-      const [removed] = newObjects.splice(fromIndex, 1);
-      newObjects.splice(toIndex, 0, removed);
-      return { ...prev, objects: newObjects };
+      if (prev.mode3D) {
+        const newObjects = [...prev.objects3D];
+        const [removed] = newObjects.splice(fromIndex, 1);
+        newObjects.splice(toIndex, 0, removed);
+        return { ...prev, objects3D: newObjects };
+      } else {
+        const newObjects = [...prev.objects];
+        const [removed] = newObjects.splice(fromIndex, 1);
+        newObjects.splice(toIndex, 0, removed);
+        return { ...prev, objects: newObjects };
+      }
     });
   }, []);
 
@@ -177,34 +280,65 @@ export const useEditorState = () => {
     if (!state.selectedObjectId) return;
     
     setState(prev => {
-      const selectedObject = prev.objects.find(obj => obj.id === prev.selectedObjectId);
-      if (!selectedObject) return prev;
-      
-      const existingIndex = selectedObject.keyframes.findIndex(
-        kf => Math.abs(kf.time - prev.currentTime) < 100
-      );
-      
-      const newKeyframe: Keyframe = {
-        time: prev.currentTime,
-        properties: { ...selectedObject.properties },
-      };
-      
-      return {
-        ...prev,
-        objects: prev.objects.map(obj => {
-          if (obj.id !== prev.selectedObjectId) return obj;
-          
-          let newKeyframes = [...obj.keyframes];
-          if (existingIndex >= 0) {
-            newKeyframes[existingIndex] = newKeyframe;
-          } else {
-            newKeyframes.push(newKeyframe);
-            newKeyframes.sort((a, b) => a.time - b.time);
-          }
-          
-          return { ...obj, keyframes: newKeyframes };
-        }),
-      };
+      if (prev.mode3D) {
+        const selectedObject = prev.objects3D.find(obj => obj.id === prev.selectedObjectId);
+        if (!selectedObject) return prev;
+        
+        const existingIndex = selectedObject.keyframes.findIndex(
+          kf => Math.abs(kf.time - prev.currentTime) < 100
+        );
+        
+        const newKeyframe: Keyframe3D = {
+          time: prev.currentTime,
+          properties: { ...selectedObject.properties },
+        };
+        
+        return {
+          ...prev,
+          objects3D: prev.objects3D.map(obj => {
+            if (obj.id !== prev.selectedObjectId) return obj;
+            
+            let newKeyframes = [...obj.keyframes];
+            if (existingIndex >= 0) {
+              newKeyframes[existingIndex] = newKeyframe;
+            } else {
+              newKeyframes.push(newKeyframe);
+              newKeyframes.sort((a, b) => a.time - b.time);
+            }
+            
+            return { ...obj, keyframes: newKeyframes };
+          }),
+        };
+      } else {
+        const selectedObject = prev.objects.find(obj => obj.id === prev.selectedObjectId);
+        if (!selectedObject) return prev;
+        
+        const existingIndex = selectedObject.keyframes.findIndex(
+          kf => Math.abs(kf.time - prev.currentTime) < 100
+        );
+        
+        const newKeyframe: Keyframe = {
+          time: prev.currentTime,
+          properties: { ...selectedObject.properties },
+        };
+        
+        return {
+          ...prev,
+          objects: prev.objects.map(obj => {
+            if (obj.id !== prev.selectedObjectId) return obj;
+            
+            let newKeyframes = [...obj.keyframes];
+            if (existingIndex >= 0) {
+              newKeyframes[existingIndex] = newKeyframe;
+            } else {
+              newKeyframes.push(newKeyframe);
+              newKeyframes.sort((a, b) => a.time - b.time);
+            }
+            
+            return { ...obj, keyframes: newKeyframes };
+          }),
+        };
+      }
     });
   }, [state.selectedObjectId]);
 
@@ -283,6 +417,49 @@ export const useEditorState = () => {
     };
   }, [state.animatedMode]);
 
+  const getInterpolatedProperties3D = useCallback((object: EditorObject3D, time: number): Object3DProperties => {
+    if (object.keyframes.length === 0) return object.properties;
+    
+    const sortedKeyframes = [...object.keyframes].sort((a, b) => a.time - b.time);
+    
+    let prevKf: Keyframe3D | null = null;
+    let nextKf: Keyframe3D | null = null;
+    
+    for (const kf of sortedKeyframes) {
+      if (kf.time <= time) {
+        prevKf = kf;
+      } else if (!nextKf && kf.time > time) {
+        nextKf = kf;
+        break;
+      }
+    }
+    
+    if (!prevKf && !nextKf) return object.properties;
+    if (!prevKf) return nextKf!.properties;
+    if (!nextKf) return prevKf.properties;
+    
+    if (!state.animatedMode) {
+      return prevKf.properties;
+    }
+    
+    const progress = (time - prevKf.time) / (nextKf.time - prevKf.time);
+    const interpolate = (a: number, b: number) => a + (b - a) * progress;
+    
+    return {
+      x: interpolate(prevKf.properties.x, nextKf.properties.x),
+      y: interpolate(prevKf.properties.y, nextKf.properties.y),
+      z: interpolate(prevKf.properties.z, nextKf.properties.z),
+      width: interpolate(prevKf.properties.width, nextKf.properties.width),
+      height: interpolate(prevKf.properties.height, nextKf.properties.height),
+      depth: interpolate(prevKf.properties.depth, nextKf.properties.depth),
+      rotationX: interpolate(prevKf.properties.rotationX, nextKf.properties.rotationX),
+      rotationY: interpolate(prevKf.properties.rotationY, nextKf.properties.rotationY),
+      rotationZ: interpolate(prevKf.properties.rotationZ, nextKf.properties.rotationZ),
+      opacity: interpolate(prevKf.properties.opacity, nextKf.properties.opacity),
+      color: interpolateColor(prevKf.properties.color, nextKf.properties.color, progress),
+    };
+  }, [state.animatedMode]);
+
   const resetProject = useCallback(() => {
     setState(initialState);
   }, []);
@@ -304,6 +481,7 @@ export const useEditorState = () => {
     setState({
       ...initialState,
       objects: project.objects,
+      objects3D: project.objects3D || [],
       scenes: project.scenes,
       backgroundImage: project.backgroundImage,
       audioTrack,
@@ -330,32 +508,59 @@ export const useEditorState = () => {
 
   const copySelectedObject = useCallback(() => {
     if (!state.selectedObjectId) return;
-    const obj = state.objects.find(o => o.id === state.selectedObjectId);
-    if (obj) {
-      clipboardObject = JSON.parse(JSON.stringify(obj));
+    
+    if (state.mode3D) {
+      const obj = state.objects3D.find(o => o.id === state.selectedObjectId);
+      if (obj) {
+        clipboardObject3D = JSON.parse(JSON.stringify(obj));
+        clipboardObject = null;
+      }
+    } else {
+      const obj = state.objects.find(o => o.id === state.selectedObjectId);
+      if (obj) {
+        clipboardObject = JSON.parse(JSON.stringify(obj));
+        clipboardObject3D = null;
+      }
     }
-  }, [state.selectedObjectId, state.objects]);
+  }, [state.selectedObjectId, state.objects, state.objects3D, state.mode3D]);
 
   const pasteObject = useCallback(() => {
-    if (!clipboardObject) return;
-    
-    const newObject: EditorObject = {
-      ...JSON.parse(JSON.stringify(clipboardObject)),
-      id: generateId(),
-      name: `${clipboardObject.name} (copie)`,
-      properties: {
-        ...clipboardObject.properties,
-        x: clipboardObject.properties.x + 20,
-        y: clipboardObject.properties.y + 20,
-      },
-    };
-    
-    setState(prev => ({
-      ...prev,
-      objects: [newObject, ...prev.objects],
-      selectedObjectId: newObject.id,
-    }));
-  }, []);
+    if (state.mode3D && clipboardObject3D) {
+      const newObject: EditorObject3D = {
+        ...JSON.parse(JSON.stringify(clipboardObject3D)),
+        id: generateId(),
+        name: `${clipboardObject3D.name} (copie)`,
+        properties: {
+          ...clipboardObject3D.properties,
+          x: clipboardObject3D.properties.x + 20,
+          z: clipboardObject3D.properties.z + 20,
+        },
+      };
+      
+      setState(prev => ({
+        ...prev,
+        objects3D: [newObject, ...prev.objects3D],
+        selectedObjectId: newObject.id,
+      }));
+    } else if (!state.mode3D && clipboardObject) {
+      const newObject: EditorObject = {
+        ...JSON.parse(JSON.stringify(clipboardObject)),
+        id: generateId(),
+        name: `${clipboardObject.name} (copie)`,
+        properties: {
+          ...clipboardObject.properties,
+          x: clipboardObject.properties.x + 20,
+          y: clipboardObject.properties.y + 20,
+        },
+      };
+      
+      setState(prev => ({
+        ...prev,
+        objects: [newObject, ...prev.objects],
+        selectedObjectId: newObject.id,
+      }));
+    }
+  }, [state.mode3D]);
 
   const moveKeyframe = useCallback((objectId: string, keyframeIndex: number, newTime: number) => {
     setState(prev => ({
@@ -369,7 +574,19 @@ export const useEditorState = () => {
             ...newKeyframes[keyframeIndex],
             time: newTime,
           };
-          // Re-sort keyframes by time
+          newKeyframes.sort((a, b) => a.time - b.time);
+        }
+        return { ...obj, keyframes: newKeyframes };
+      }),
+      objects3D: prev.objects3D.map(obj => {
+        if (obj.id !== objectId) return obj;
+        
+        const newKeyframes = [...obj.keyframes];
+        if (keyframeIndex >= 0 && keyframeIndex < newKeyframes.length) {
+          newKeyframes[keyframeIndex] = {
+            ...newKeyframes[keyframeIndex],
+            time: newTime,
+          };
           newKeyframes.sort((a, b) => a.time - b.time);
         }
         return { ...obj, keyframes: newKeyframes };
@@ -382,7 +599,11 @@ export const useEditorState = () => {
       ...prev,
       objects: prev.objects.map(obj => {
         if (obj.id !== objectId) return obj;
-        
+        const newKeyframes = obj.keyframes.filter((_, idx) => idx !== keyframeIndex);
+        return { ...obj, keyframes: newKeyframes };
+      }),
+      objects3D: prev.objects3D.map(obj => {
+        if (obj.id !== objectId) return obj;
         const newKeyframes = obj.keyframes.filter((_, idx) => idx !== keyframeIndex);
         return { ...obj, keyframes: newKeyframes };
       }),
@@ -394,9 +615,12 @@ export const useEditorState = () => {
     setTheme,
     setShowProperties,
     setAnimatedMode,
+    setMode3D,
     addObject,
+    addObject3D,
     selectObject,
     updateObjectProperties,
+    updateObject3DProperties,
     renameObject,
     deleteObject,
     reorderObjects,
@@ -407,6 +631,7 @@ export const useEditorState = () => {
     stop,
     setCurrentTime,
     getInterpolatedProperties,
+    getInterpolatedProperties3D,
     resetProject,
     loadProject,
     setBackgroundImage,
