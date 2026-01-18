@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Menubar,
   MenubarContent,
@@ -12,7 +12,7 @@ import {
   MenubarTrigger,
   MenubarCheckboxItem,
 } from '@/components/ui/menubar';
-import { ShapeType, ThemeMode } from '@/types/editor';
+import { ShapeType, Shape3DType, ThemeMode } from '@/types/editor';
 
 interface MenuBarProps {
   onNewProject: () => void;
@@ -22,6 +22,7 @@ interface MenuBarProps {
   onImport: () => void;
   onExport: () => void;
   onAddObject: (type: ShapeType) => void;
+  onAddObject3D: (type: Shape3DType) => void;
   onAddKeyframe: () => void;
   onDelete: () => void;
   onRename: () => void;
@@ -31,6 +32,8 @@ interface MenuBarProps {
   onAnimatedModeChange: (animated: boolean) => void;
   showProperties: boolean;
   onShowPropertiesChange: (show: boolean) => void;
+  mode3D: boolean;
+  onMode3DChange: (mode3D: boolean) => void;
   hasSelectedObject: boolean;
 }
 
@@ -42,6 +45,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   onImport,
   onExport,
   onAddObject,
+  onAddObject3D,
   onAddKeyframe,
   onDelete,
   onRename,
@@ -51,6 +55,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   onAnimatedModeChange,
   showProperties,
   onShowPropertiesChange,
+  mode3D,
+  onMode3DChange,
   hasSelectedObject,
 }) => {
   return (
@@ -100,14 +106,27 @@ export const MenuBar: React.FC<MenuBarProps> = ({
       <MenubarMenu>
         <MenubarTrigger className="text-sm">Objet</MenubarTrigger>
         <MenubarContent>
-          <MenubarSub>
-            <MenubarSubTrigger>Ajouter</MenubarSubTrigger>
-            <MenubarSubContent>
-              <MenubarItem onClick={() => onAddObject('rectangle')}>Rectangle</MenubarItem>
-              <MenubarItem onClick={() => onAddObject('circle')}>Cercle</MenubarItem>
-              <MenubarItem onClick={() => onAddObject('triangle')}>Triangle</MenubarItem>
-            </MenubarSubContent>
-          </MenubarSub>
+          {!mode3D ? (
+            <MenubarSub>
+              <MenubarSubTrigger>Ajouter 2D</MenubarSubTrigger>
+              <MenubarSubContent>
+                <MenubarItem onClick={() => onAddObject('rectangle')}>Rectangle</MenubarItem>
+                <MenubarItem onClick={() => onAddObject('circle')}>Cercle</MenubarItem>
+                <MenubarItem onClick={() => onAddObject('triangle')}>Triangle</MenubarItem>
+              </MenubarSubContent>
+            </MenubarSub>
+          ) : (
+            <MenubarSub>
+              <MenubarSubTrigger>Ajouter 3D</MenubarSubTrigger>
+              <MenubarSubContent>
+                <MenubarItem onClick={() => onAddObject3D('cube')}>Cube</MenubarItem>
+                <MenubarItem onClick={() => onAddObject3D('sphere')}>Sphère</MenubarItem>
+                <MenubarItem onClick={() => onAddObject3D('cylinder')}>Cylindre</MenubarItem>
+                <MenubarItem onClick={() => onAddObject3D('cone')}>Cône</MenubarItem>
+                <MenubarItem onClick={() => onAddObject3D('torus')}>Tore</MenubarItem>
+              </MenubarSubContent>
+            </MenubarSub>
+          )}
           <MenubarItem onClick={onRename} disabled={!hasSelectedObject}>
             Renommer <MenubarShortcut>F2</MenubarShortcut>
           </MenubarItem>
@@ -132,6 +151,12 @@ export const MenuBar: React.FC<MenuBarProps> = ({
             </MenubarSubContent>
           </MenubarSub>
           <MenubarSeparator />
+          <MenubarCheckboxItem
+            checked={mode3D}
+            onCheckedChange={onMode3DChange}
+          >
+            Mode 3D
+          </MenubarCheckboxItem>
           <MenubarCheckboxItem
             checked={animatedMode}
             onCheckedChange={onAnimatedModeChange}
