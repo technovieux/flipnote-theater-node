@@ -33,7 +33,6 @@ interface MenuBarProps {
   showProperties: boolean;
   onShowPropertiesChange: (show: boolean) => void;
   mode3D: boolean;
-  onMode3DChange: (mode3D: boolean) => void;
   hasSelectedObject: boolean;
 }
 
@@ -56,7 +55,6 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   showProperties,
   onShowPropertiesChange,
   mode3D,
-  onMode3DChange,
   hasSelectedObject,
 }) => {
   return (
@@ -148,15 +146,9 @@ export const MenuBar: React.FC<MenuBarProps> = ({
               <MenubarItem onClick={() => onThemeChange('system')}>
                 {theme === 'system' && '✓ '}Système
               </MenubarItem>
-            </MenubarSubContent>
+          </MenubarSubContent>
           </MenubarSub>
           <MenubarSeparator />
-          <MenubarCheckboxItem
-            checked={mode3D}
-            onCheckedChange={onMode3DChange}
-          >
-            Mode 3D
-          </MenubarCheckboxItem>
           <MenubarCheckboxItem
             checked={animatedMode}
             onCheckedChange={onAnimatedModeChange}
