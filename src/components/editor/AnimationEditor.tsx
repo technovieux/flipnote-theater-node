@@ -9,6 +9,7 @@ import { PropertiesPanel } from './PropertiesPanel';
 import { PropertiesPanel3D } from './PropertiesPanel3D';
 import { Timeline } from './Timeline';
 import { ExportDialog } from './ExportDialog';
+import { WelcomeDialog } from './WelcomeDialog';
 import { useEditorState } from '@/hooks/useEditorState';
 import {
   Dialog,
@@ -69,6 +70,7 @@ export const AnimationEditor: React.FC = () => {
   const [newName, setNewName] = useState('');
   const [selectedKeyframe, setSelectedKeyframe] = useState<{ objectId: string; keyframeIndex: number } | null>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [welcomeDialogOpen, setWelcomeDialogOpen] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   
@@ -182,7 +184,13 @@ export const AnimationEditor: React.FC = () => {
   const handleNewProject = () => {
     clearCurrentFile();
     resetProject();
+    setWelcomeDialogOpen(true);
     toast.info('Nouveau projet créé');
+  };
+
+  const handleSelectMode = (mode3D: boolean) => {
+    setMode3D(mode3D);
+    setWelcomeDialogOpen(false);
   };
 
   const handleOpenFile = () => {
@@ -351,7 +359,6 @@ export const AnimationEditor: React.FC = () => {
         showProperties={state.showProperties}
         onShowPropertiesChange={setShowProperties}
         mode3D={state.mode3D}
-        onMode3DChange={setMode3D}
         hasSelectedObject={!!state.selectedObjectId}
       />
       
@@ -497,6 +504,11 @@ export const AnimationEditor: React.FC = () => {
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
         state={state}
+      />
+
+      <WelcomeDialog
+        open={welcomeDialogOpen}
+        onSelectMode={handleSelectMode}
       />
     </div>
   );
