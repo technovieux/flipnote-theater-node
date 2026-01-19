@@ -7,6 +7,7 @@ import {
   Object3DProperties,
   Keyframe, 
   Keyframe3D,
+  CameraPosition,
   Scene, 
   ShapeType, 
   Shape3DType,
@@ -15,6 +16,17 @@ import {
 } from '@/types/editor';
 import { FlptProject, base64ToFile } from '@/lib/fileOperations';
 import { interpolateColor } from '@/lib/colorUtils';
+
+// Store current camera position for 3D keyframes
+let currentCameraPosition: CameraPosition | null = null;
+
+export const setCameraPosition = (pos: CameraPosition) => {
+  currentCameraPosition = pos;
+};
+
+export const getCameraPosition = (): CameraPosition | null => {
+  return currentCameraPosition;
+};
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -291,6 +303,7 @@ export const useEditorState = () => {
         const newKeyframe: Keyframe3D = {
           time: prev.currentTime,
           properties: { ...selectedObject.properties },
+          camera: currentCameraPosition || undefined,
         };
         
         return {
@@ -486,6 +499,7 @@ export const useEditorState = () => {
       backgroundImage: project.backgroundImage,
       audioTrack,
       duration: project.duration,
+      mode3D: project.mode3D || false,
     });
   }, []);
 

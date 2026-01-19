@@ -1,7 +1,8 @@
-import React, { useRef, useState, useCallback, Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
+import React, { useRef, useState, useCallback, Suspense, useEffect } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport } from '@react-three/drei';
-import { EditorObject3D, Object3DProperties } from '@/types/editor';
+import { EditorObject3D, Object3DProperties, CameraPosition } from '@/types/editor';
+import { setCameraPosition } from '@/hooks/useEditorState';
 import * as THREE from 'three';
 
 interface Canvas3DProps {
@@ -123,6 +124,31 @@ const Shape3D: React.FC<Shape3DProps> = ({
   );
 };
 
+// Component to track camera position
+const CameraTracker: React.FC = () => {
+  const { camera } = useThree();
+  
+  useEffect(() => {
+    const updateCameraPosition = () => {
+      const target = new THREE.Vector3(0, 0, 0);
+      // Try to get the target from OrbitControls if available
+      setCameraPosition({
+        position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+        target: { x: target.x, y: target.y, z: target.z },
+        fov: (camera as THREE.PerspectiveCamera).fov || 50,
+      });
+    };
+    
+    // Update on mount and regularly
+    updateCameraPosition();
+    const interval = setInterval(updateCameraPosition, 100);
+    
+    return () => clearInterval(interval);
+  }, [camera]);
+  
+  return null;
+};
+
 export const Canvas3D: React.FC<Canvas3DProps> = ({
   objects,
   selectedObjectId,
@@ -150,6 +176,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
           onPointerMissed={handleBackgroundClick}
         >
           <Suspense fallback={null}>
+            <CameraTracker />
             <ambientLight intensity={0.5} />
             <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
             <pointLight position={[-10, -10, -5]} intensity={0.5} />

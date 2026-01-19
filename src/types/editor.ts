@@ -25,6 +25,12 @@ export interface Object3DProperties {
   color: string;
 }
 
+export interface CameraPosition {
+  position: { x: number; y: number; z: number };
+  target: { x: number; y: number; z: number };
+  fov: number;
+}
+
 export interface Keyframe {
   time: number; // in milliseconds
   properties: ObjectProperties;
@@ -33,6 +39,7 @@ export interface Keyframe {
 export interface Keyframe3D {
   time: number;
   properties: Object3DProperties;
+  camera?: CameraPosition;
 }
 
 export interface EditorObject {

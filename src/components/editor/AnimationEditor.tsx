@@ -173,6 +173,7 @@ export const AnimationEditor: React.FC = () => {
       const project = await openProject();
       if (project) {
         loadProject(project);
+        setWelcomeDialogOpen(false); // Close welcome dialog when loading a project
         toast.success('Projet chargé avec succès');
       }
     } catch (error) {
@@ -440,6 +441,8 @@ export const AnimationEditor: React.FC = () => {
               <ResizablePanel defaultSize={state.showProperties ? 70 : 100} minSize={40}>
                 <Timeline
                   objects={state.objects}
+                  objects3D={state.objects3D}
+                  mode3D={state.mode3D}
                   scenes={state.scenes}
                   audioTrack={state.audioTrack}
                   selectedObjectId={state.selectedObjectId}
