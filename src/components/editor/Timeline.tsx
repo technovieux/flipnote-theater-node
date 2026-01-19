@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { EditorObject, Scene, AudioTrack } from '@/types/editor';
+import { EditorObject, EditorObject3D, Scene, AudioTrack } from '@/types/editor';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, Square, RotateCcw, Plus, ZoomIn, ZoomOut } from 'lucide-react';
 import {
@@ -18,6 +18,8 @@ import {
 
 interface TimelineProps {
   objects: EditorObject[];
+  objects3D: EditorObject3D[];
+  mode3D: boolean;
   scenes: Scene[];
   audioTrack: AudioTrack | null;
   selectedObjectId: string | null;
@@ -51,6 +53,8 @@ const MAX_ZOOM = 5;
 
 export const Timeline: React.FC<TimelineProps> = ({
   objects,
+  objects3D,
+  mode3D,
   scenes,
   audioTrack,
   selectedObjectId,
@@ -352,8 +356,8 @@ export const Timeline: React.FC<TimelineProps> = ({
               </div>
             </div>
 
-            {/* Object tracks */}
-            {objects.map((obj) => (
+            {/* Object tracks - 2D */}
+            {!mode3D && objects.map((obj) => (
               <div
                 key={obj.id}
                 className={`flex border-b border-panel-border cursor-pointer ${
@@ -412,6 +416,94 @@ export const Timeline: React.FC<TimelineProps> = ({
                               <span>Opacité:</span>
                               <span>{Math.round(kf.properties.opacity)}%</span>
                             </div>
+                            <div className="flex justify-between items-center">
+                              <span>Couleur:</span>
+                              <div className="flex items-center gap-1">
+                                <div 
+                                  className="w-3 h-3 rounded-sm border border-border" 
+                                  style={{ backgroundColor: kf.properties.color }}
+                                />
+                                <span>{kf.properties.color}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-border text-muted-foreground text-[10px]">
+                            Double-clic pour éditer • Suppr pour effacer
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            {/* Object tracks - 3D */}
+            {mode3D && objects3D.map((obj) => (
+              <div
+                key={obj.id}
+                className={`flex border-b border-panel-border cursor-pointer ${
+                  selectedObjectId === obj.id ? 'bg-primary/10' : ''
+                }`}
+                onClick={() => onSelectObject(obj.id)}
+              >
+                <div className="w-32 flex-shrink-0 px-2 py-1 text-sm truncate border-r border-panel-border flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-sm"
+                    style={{ backgroundColor: obj.properties.color }}
+                  />
+                  {obj.name}
+                </div>
+                <div
+                  className="flex-1 timeline-track bg-timeline-bg relative overflow-x-auto"
+                  style={{ width: totalWidth }}
+                >
+                  {obj.keyframes.map((kf, idx) => {
+                    const isSelected = selectedKeyframe?.objectId === obj.id && selectedKeyframe?.keyframeIndex === idx;
+                    const isDragging = draggingKeyframe?.objectId === obj.id && draggingKeyframe?.keyframeIndex === idx;
+                    
+                    return (
+                      <HoverCard key={idx} openDelay={300} closeDelay={100}>
+                        <HoverCardTrigger asChild>
+                          <div
+                            className={`keyframe-circle cursor-grab ${
+                              isDragging ? 'ring-2 ring-white scale-125' : ''
+                            } ${isSelected ? 'ring-2 ring-primary scale-110' : ''}`}
+                            style={{
+                              left: (kf.time / 1000) * pixelsPerSecond - 6,
+                              backgroundColor: kf.properties.color,
+                            }}
+                            onClick={(e) => handleKeyframeClick(e, obj.id, idx)}
+                            onMouseDown={(e) => handleKeyframeMouseDown(e, obj.id, idx, kf.time)}
+                            onDoubleClick={(e) => handleKeyframeDoubleClick(e, obj.id, kf.time)}
+                          />
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-56 p-2 text-xs" side="top">
+                          <div className="font-semibold mb-1">{obj.name}</div>
+                          <div className="text-muted-foreground mb-2">{formatTime(kf.time)}</div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between">
+                              <span>Position:</span>
+                              <span>{Math.round(kf.properties.x)}, {Math.round(kf.properties.y)}, {Math.round(kf.properties.z)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Taille:</span>
+                              <span>{Math.round(kf.properties.width)} × {Math.round(kf.properties.height)} × {Math.round(kf.properties.depth)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Rotation:</span>
+                              <span>{Math.round(kf.properties.rotationX)}° / {Math.round(kf.properties.rotationY)}° / {Math.round(kf.properties.rotationZ)}°</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Opacité:</span>
+                              <span>{Math.round(kf.properties.opacity)}%</span>
+                            </div>
+                            {kf.camera && (
+                              <div className="flex justify-between">
+                                <span>Caméra:</span>
+                                <span className="text-primary">✓ Sauvegardée</span>
+                              </div>
+                            )}
                             <div className="flex justify-between items-center">
                               <span>Couleur:</span>
                               <div className="flex items-center gap-1">

@@ -13,6 +13,7 @@ export interface FlptProject {
     data: string; // base64 encoded audio
   } | null;
   duration: number;
+  mode3D?: boolean;
 }
 
 let currentFileHandle: FileSystemFileHandle | null = null;
@@ -38,13 +39,14 @@ export const serializeProject = async (state: EditorState): Promise<FlptProject>
   }
 
   return {
-    version: '1.0',
+    version: '1.1',
     objects: state.objects,
     objects3D: state.objects3D,
     scenes: state.scenes,
     backgroundImage: state.backgroundImage,
     audioTrack: audioData,
     duration: state.duration,
+    mode3D: state.mode3D,
   };
 };
 
