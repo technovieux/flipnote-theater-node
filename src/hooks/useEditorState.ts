@@ -72,6 +72,7 @@ const initialState: EditorState = {
   animatedMode: true,
   theme: 'dark',
   mode3D: false,
+  hasUnsavedChanges: false,
 };
 
 export const useEditorState = () => {
@@ -136,6 +137,14 @@ export const useEditorState = () => {
     setState(prev => ({ ...prev, mode3D, selectedObjectId: null }));
   }, []);
 
+  const markAsChanged = useCallback(() => {
+    setState(prev => ({ ...prev, hasUnsavedChanges: true }));
+  }, []);
+
+  const markAsSaved = useCallback(() => {
+    setState(prev => ({ ...prev, hasUnsavedChanges: false }));
+  }, []);
+
   const addObject = useCallback((type: ShapeType) => {
     const colors = ['#00d4ff', '#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
@@ -152,6 +161,7 @@ export const useEditorState = () => {
       ...prev,
       objects: [newObject, ...prev.objects],
       selectedObjectId: newObject.id,
+      hasUnsavedChanges: true,
     }));
   }, [state.objects.length]);
 
@@ -179,6 +189,7 @@ export const useEditorState = () => {
       ...prev,
       objects3D: [newObject, ...prev.objects3D],
       selectedObjectId: newObject.id,
+      hasUnsavedChanges: true,
     }));
   }, [state.objects3D.length]);
 
@@ -198,6 +209,7 @@ export const useEditorState = () => {
 
       return {
         ...prev,
+        hasUnsavedChanges: true,
         objects: prev.objects.map(o => {
           if (o.id !== id) return o;
 
@@ -231,6 +243,7 @@ export const useEditorState = () => {
 
       return {
         ...prev,
+        hasUnsavedChanges: true,
         objects3D: prev.objects3D.map(o => {
           if (o.id !== id) return o;
 
@@ -254,6 +267,7 @@ export const useEditorState = () => {
   const renameObject = useCallback((id: string, name: string) => {
     setState(prev => ({
       ...prev,
+      hasUnsavedChanges: true,
       objects: prev.objects.map(obj =>
         obj.id === id ? { ...obj, name } : obj
       ),
@@ -266,6 +280,7 @@ export const useEditorState = () => {
   const deleteObject = useCallback((id: string) => {
     setState(prev => ({
       ...prev,
+      hasUnsavedChanges: true,
       objects: prev.objects.filter(obj => obj.id !== id),
       objects3D: prev.objects3D.filter(obj => obj.id !== id),
       selectedObjectId: prev.selectedObjectId === id ? null : prev.selectedObjectId,
@@ -278,12 +293,12 @@ export const useEditorState = () => {
         const newObjects = [...prev.objects3D];
         const [removed] = newObjects.splice(fromIndex, 1);
         newObjects.splice(toIndex, 0, removed);
-        return { ...prev, objects3D: newObjects };
+        return { ...prev, objects3D: newObjects, hasUnsavedChanges: true };
       } else {
         const newObjects = [...prev.objects];
         const [removed] = newObjects.splice(fromIndex, 1);
         newObjects.splice(toIndex, 0, removed);
-        return { ...prev, objects: newObjects };
+        return { ...prev, objects: newObjects, hasUnsavedChanges: true };
       }
     });
   }, []);
@@ -308,6 +323,7 @@ export const useEditorState = () => {
         
         return {
           ...prev,
+          hasUnsavedChanges: true,
           objects3D: prev.objects3D.map(obj => {
             if (obj.id !== prev.selectedObjectId) return obj;
             
@@ -337,6 +353,7 @@ export const useEditorState = () => {
         
         return {
           ...prev,
+          hasUnsavedChanges: true,
           objects: prev.objects.map(obj => {
             if (obj.id !== prev.selectedObjectId) return obj;
             
@@ -368,7 +385,7 @@ export const useEditorState = () => {
       // Renumber scenes after sorting
       newScenes.forEach((s, i) => s.number = i + 1);
       
-      return { ...prev, scenes: newScenes };
+      return { ...prev, scenes: newScenes, hasUnsavedChanges: true };
     });
   }, []);
 
@@ -500,16 +517,18 @@ export const useEditorState = () => {
       audioTrack,
       duration: project.duration,
       mode3D: project.mode3D || false,
+      hasUnsavedChanges: false,
     });
   }, []);
 
   const setBackgroundImage = useCallback((imageUrl: string | null) => {
-    setState(prev => ({ ...prev, backgroundImage: imageUrl }));
+    setState(prev => ({ ...prev, backgroundImage: imageUrl, hasUnsavedChanges: true }));
   }, []);
 
   const setAudioTrack = useCallback((file: File, waveform: number[], duration: number) => {
     setState(prev => ({
       ...prev,
+      hasUnsavedChanges: true,
       audioTrack: {
         id: generateId(),
         name: file.name,
@@ -555,6 +574,7 @@ export const useEditorState = () => {
         ...prev,
         objects3D: [newObject, ...prev.objects3D],
         selectedObjectId: newObject.id,
+        hasUnsavedChanges: true,
       }));
     } else if (!state.mode3D && clipboardObject) {
       const newObject: EditorObject = {
@@ -572,6 +592,7 @@ export const useEditorState = () => {
         ...prev,
         objects: [newObject, ...prev.objects],
         selectedObjectId: newObject.id,
+        hasUnsavedChanges: true,
       }));
     }
   }, [state.mode3D]);
@@ -579,6 +600,7 @@ export const useEditorState = () => {
   const moveKeyframe = useCallback((objectId: string, keyframeIndex: number, newTime: number) => {
     setState(prev => ({
       ...prev,
+      hasUnsavedChanges: true,
       objects: prev.objects.map(obj => {
         if (obj.id !== objectId) return obj;
         
@@ -611,6 +633,7 @@ export const useEditorState = () => {
   const deleteKeyframe = useCallback((objectId: string, keyframeIndex: number) => {
     setState(prev => ({
       ...prev,
+      hasUnsavedChanges: true,
       objects: prev.objects.map(obj => {
         if (obj.id !== objectId) return obj;
         const newKeyframes = obj.keyframes.filter((_, idx) => idx !== keyframeIndex);
@@ -654,5 +677,6 @@ export const useEditorState = () => {
     pasteObject,
     moveKeyframe,
     deleteKeyframe,
+    markAsSaved,
   };
 };
