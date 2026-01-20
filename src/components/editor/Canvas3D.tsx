@@ -1,8 +1,11 @@
-import React, { useRef, useState, useCallback, Suspense, useEffect } from 'react';
+import React, { useRef, useState, Suspense, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport } from '@react-three/drei';
 import { EditorObject3D, Object3DProperties, CameraPosition } from '@/types/editor';
 import { setCameraPosition } from '@/hooks/useEditorState';
+import { Move, ZoomIn, ZoomOut, RotateCcw, Hand, MousePointer } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import * as THREE from 'three';
 
 interface Canvas3DProps {
@@ -22,6 +25,7 @@ interface Shape3DProps {
   onSelect: () => void;
   onUpdateProperties: (properties: Partial<Object3DProperties>) => void;
   isPlaying: boolean;
+  controlsRef: React.RefObject<any>;
 }
 
 const Shape3D: React.FC<Shape3DProps> = ({
@@ -31,52 +35,82 @@ const Shape3D: React.FC<Shape3DProps> = ({
   onSelect,
   onUpdateProperties,
   isPlaying,
+  controlsRef,
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0, z: 0 });
+  const dragPlaneRef = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
+  const dragOffsetRef = useRef(new THREE.Vector3());
+  const { camera, raycaster } = useThree();
 
   const handlePointerDown = (e: any) => {
     e.stopPropagation();
     onSelect();
-    if (!isPlaying) {
+    if (!isPlaying && meshRef.current) {
+      // Disable orbit controls while dragging
+      if (controlsRef.current) {
+        controlsRef.current.enabled = false;
+      }
       setIsDragging(true);
-      setDragStart({ x: properties.x, y: properties.y, z: properties.z });
-      e.target.setPointerCapture(e.pointerId);
+      
+      // Create a plane facing the camera for dragging
+      const cameraDirection = new THREE.Vector3();
+      camera.getWorldDirection(cameraDirection);
+      dragPlaneRef.current.setFromNormalAndCoplanarPoint(
+        cameraDirection.negate(),
+        meshRef.current.position
+      );
+      
+      // Calculate offset from intersection point to object center
+      const intersectionPoint = new THREE.Vector3();
+      raycaster.ray.intersectPlane(dragPlaneRef.current, intersectionPoint);
+      dragOffsetRef.current.subVectors(meshRef.current.position, intersectionPoint);
+      
+      (e.target as any).setPointerCapture(e.pointerId);
     }
   };
 
   const handlePointerMove = (e: any) => {
     if (isDragging && !isPlaying) {
-      const deltaX = (e.point.x - dragStart.x);
-      const deltaY = (e.point.y - dragStart.y);
-      onUpdateProperties({
-        x: e.point.x,
-        y: e.point.y,
-      });
+      const intersectionPoint = new THREE.Vector3();
+      raycaster.ray.intersectPlane(dragPlaneRef.current, intersectionPoint);
+      
+      if (intersectionPoint) {
+        const newPosition = intersectionPoint.add(dragOffsetRef.current);
+        onUpdateProperties({
+          x: newPosition.x * 100,
+          y: newPosition.y * 100,
+          z: newPosition.z * 100,
+        });
+      }
     }
   };
 
   const handlePointerUp = () => {
     setIsDragging(false);
+    // Re-enable orbit controls
+    if (controlsRef.current) {
+      controlsRef.current.enabled = true;
+    }
   };
 
+  // Z-up coordinate system: swap Y and Z for display
   const position: [number, number, number] = [
     properties.x / 100,
-    properties.y / 100,
-    properties.z / 100,
+    properties.z / 100, // Z becomes Y (up)
+    -properties.y / 100, // Y becomes -Z (forward)
   ];
 
   const rotation: [number, number, number] = [
     THREE.MathUtils.degToRad(properties.rotationX),
-    THREE.MathUtils.degToRad(properties.rotationY),
     THREE.MathUtils.degToRad(properties.rotationZ),
+    THREE.MathUtils.degToRad(-properties.rotationY),
   ];
 
   const scale: [number, number, number] = [
     properties.width / 100,
-    properties.height / 100,
     properties.depth / 100,
+    properties.height / 100,
   ];
 
   const renderGeometry = () => {
@@ -131,7 +165,6 @@ const CameraTracker: React.FC = () => {
   useEffect(() => {
     const updateCameraPosition = () => {
       const target = new THREE.Vector3(0, 0, 0);
-      // Try to get the target from OrbitControls if available
       setCameraPosition({
         position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
         target: { x: target.x, y: target.y, z: target.z },
@@ -139,12 +172,160 @@ const CameraTracker: React.FC = () => {
       });
     };
     
-    // Update on mount and regularly
     updateCameraPosition();
     const interval = setInterval(updateCameraPosition, 100);
     
     return () => clearInterval(interval);
   }, [camera]);
+  
+  return null;
+};
+
+// Navigation controls component
+interface NavigationControlsProps {
+  controlsRef: React.RefObject<any>;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onResetView: () => void;
+  mode: 'select' | 'pan' | 'rotate';
+  onModeChange: (mode: 'select' | 'pan' | 'rotate') => void;
+}
+
+const NavigationControls: React.FC<NavigationControlsProps> = ({
+  onZoomIn,
+  onZoomOut,
+  onResetView,
+  mode,
+  onModeChange,
+}) => {
+  return (
+    <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant={mode === 'select' ? 'default' : 'secondary'}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onModeChange('select')}
+          >
+            <MousePointer className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="left">Sélectionner / Déplacer objets</TooltipContent>
+      </Tooltip>
+      
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant={mode === 'pan' ? 'default' : 'secondary'}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onModeChange('pan')}
+          >
+            <Hand className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="left">Déplacer la vue (Pan)</TooltipContent>
+      </Tooltip>
+      
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant={mode === 'rotate' ? 'default' : 'secondary'}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onModeChange('rotate')}
+          >
+            <Move className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="left">Rotation de la vue</TooltipContent>
+      </Tooltip>
+      
+      <div className="h-px bg-border my-1" />
+      
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="h-8 w-8"
+            onClick={onZoomIn}
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="left">Zoom avant</TooltipContent>
+      </Tooltip>
+      
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="h-8 w-8"
+            onClick={onZoomOut}
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="left">Zoom arrière</TooltipContent>
+      </Tooltip>
+      
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="h-8 w-8"
+            onClick={onResetView}
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="left">Réinitialiser la vue</TooltipContent>
+      </Tooltip>
+    </div>
+  );
+};
+
+// Camera controller inside Canvas
+interface CameraControllerProps {
+  controlsRef: React.RefObject<any>;
+  mode: 'select' | 'pan' | 'rotate';
+}
+
+const CameraController: React.FC<CameraControllerProps> = ({ controlsRef, mode }) => {
+  const { camera } = useThree();
+  
+  useEffect(() => {
+    if (controlsRef.current) {
+      // In select mode, disable orbit controls mouse buttons except scroll
+      if (mode === 'select') {
+        controlsRef.current.enableRotate = false;
+        controlsRef.current.enablePan = false;
+        controlsRef.current.enableZoom = true;
+      } else if (mode === 'pan') {
+        controlsRef.current.enableRotate = false;
+        controlsRef.current.enablePan = true;
+        controlsRef.current.enableZoom = true;
+        controlsRef.current.mouseButtons = {
+          LEFT: THREE.MOUSE.PAN,
+          MIDDLE: THREE.MOUSE.DOLLY,
+          RIGHT: THREE.MOUSE.PAN,
+        };
+      } else if (mode === 'rotate') {
+        controlsRef.current.enableRotate = true;
+        controlsRef.current.enablePan = false;
+        controlsRef.current.enableZoom = true;
+        controlsRef.current.mouseButtons = {
+          LEFT: THREE.MOUSE.ROTATE,
+          MIDDLE: THREE.MOUSE.DOLLY,
+          RIGHT: THREE.MOUSE.ROTATE,
+        };
+      }
+    }
+  }, [mode, controlsRef]);
   
   return null;
 };
@@ -158,8 +339,45 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
   currentTime,
   isPlaying,
 }) => {
+  const controlsRef = useRef<any>(null);
+  const [navMode, setNavMode] = useState<'select' | 'pan' | 'rotate'>('select');
+  const [cameraState, setCameraState] = useState({ zoom: 1 });
+
   const handleBackgroundClick = () => {
     onSelect(null);
+  };
+
+  const handleZoomIn = () => {
+    if (controlsRef.current) {
+      const camera = controlsRef.current.object;
+      camera.position.multiplyScalar(0.8);
+      controlsRef.current.update();
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (controlsRef.current) {
+      const camera = controlsRef.current.object;
+      camera.position.multiplyScalar(1.25);
+      controlsRef.current.update();
+    }
+  };
+
+  const handleResetView = () => {
+    if (controlsRef.current) {
+      const camera = controlsRef.current.object;
+      camera.position.set(5, 5, 5);
+      controlsRef.current.target.set(0, 0, 0);
+      controlsRef.current.update();
+    }
+  };
+
+  const getModeLabel = () => {
+    switch (navMode) {
+      case 'select': return 'Mode: Sélection | Molette: zoom';
+      case 'pan': return 'Mode: Déplacement | Clic: pan | Molette: zoom';
+      case 'rotate': return 'Mode: Rotation | Clic: orbite | Molette: zoom';
+    }
   };
 
   return (
@@ -167,25 +385,36 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
       <div className="panel-header flex items-center justify-between">
         <span>Vue 3D</span>
         <span className="text-xs text-muted-foreground">
-          Clic gauche: rotation | Clic droit: déplacer | Molette: zoom
+          {getModeLabel()}
         </span>
       </div>
-      <div className="flex-1 bg-background">
+      <div className="flex-1 bg-background relative">
+        <NavigationControls
+          controlsRef={controlsRef}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onResetView={handleResetView}
+          mode={navMode}
+          onModeChange={setNavMode}
+        />
         <Canvas
-          camera={{ position: [5, 5, 5], fov: 50 }}
+          camera={{ position: [5, 5, 5], fov: 50, up: [0, 1, 0] }}
           onPointerMissed={handleBackgroundClick}
         >
           <Suspense fallback={null}>
             <CameraTracker />
+            <CameraController controlsRef={controlsRef} mode={navMode} />
             <ambientLight intensity={0.5} />
             <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
             <pointLight position={[-10, -10, -5]} intensity={0.5} />
             
             <Environment preset="studio" />
             
+            {/* Grid on XY plane (Z-up) */}
             <Grid
               args={[20, 20]}
-              position={[0, -0.01, 0]}
+              position={[0, 0, 0]}
+              rotation={[0, 0, 0]}
               cellSize={0.5}
               cellThickness={0.5}
               cellColor="#444"
@@ -211,11 +440,13 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                   onSelect={() => onSelect(obj.id)}
                   onUpdateProperties={(p) => onUpdateProperties(obj.id, p)}
                   isPlaying={isPlaying}
+                  controlsRef={controlsRef}
                 />
               );
             })}
             
             <OrbitControls
+              ref={controlsRef}
               enablePan={true}
               enableZoom={true}
               enableRotate={true}
