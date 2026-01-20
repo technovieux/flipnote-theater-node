@@ -64,6 +64,7 @@ export const AnimationEditor: React.FC = () => {
     pasteObject,
     moveKeyframe,
     deleteKeyframe,
+    markAsSaved,
   } = useEditorState();
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -77,9 +78,26 @@ export const AnimationEditor: React.FC = () => {
   // Confirmation dialog state
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingImport, setPendingImport] = useState<{ type: 'audio' | 'image'; file: File } | null>(null);
+  
+  // Exit confirmation dialog state
+  const [exitDialogOpen, setExitDialogOpen] = useState(false);
 
   const selectedObject = state.objects.find(obj => obj.id === state.selectedObjectId) || null;
   const selectedObject3D = state.objects3D.find(obj => obj.id === state.selectedObjectId) || null;
+
+  // Handle beforeunload event
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (state.hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [state.hasUnsavedChanges]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -148,6 +166,7 @@ export const AnimationEditor: React.FC = () => {
     try {
       const success = await saveProject(state);
       if (success) {
+        markAsSaved();
         toast.success('Projet sauvegardé avec succès');
       }
     } catch (error) {
@@ -160,12 +179,24 @@ export const AnimationEditor: React.FC = () => {
     try {
       const success = await saveProjectAs(state);
       if (success) {
+        markAsSaved();
         toast.success('Projet sauvegardé avec succès');
       }
     } catch (error) {
       toast.error('Erreur lors de la sauvegarde');
       console.error(error);
     }
+  };
+
+  const handleExitWithoutSave = () => {
+    setExitDialogOpen(false);
+    window.removeEventListener('beforeunload', () => {});
+    window.close();
+  };
+
+  const handleSaveAndExit = async () => {
+    await handleSave();
+    setExitDialogOpen(false);
   };
 
   const handleOpen = async () => {
@@ -513,6 +544,25 @@ export const AnimationEditor: React.FC = () => {
         open={welcomeDialogOpen}
         onSelectMode={handleSelectMode}
       />
+
+      <AlertDialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr de vouloir quitter sans sauvegarder ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vous avez des modifications non sauvegardées. Que souhaitez-vous faire ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleExitWithoutSave}>
+              Oui, laissez-moi partir
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleSaveAndExit}>
+              Bonne idée, je vais sauvegarder
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

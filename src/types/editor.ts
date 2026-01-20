@@ -89,4 +89,5 @@ export interface EditorState {
   animatedMode: boolean;
   theme: ThemeMode;
   mode3D: boolean;
+  hasUnsavedChanges: boolean;
 }
