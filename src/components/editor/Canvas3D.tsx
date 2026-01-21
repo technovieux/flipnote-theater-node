@@ -1,7 +1,7 @@
 import React, { useRef, useState, Suspense, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport } from '@react-three/drei';
-import { EditorObject3D, Object3DProperties, CameraPosition } from '@/types/editor';
+import { EditorObject3D, Object3DProperties } from '@/types/editor';
 import { setCameraPosition } from '@/hooks/useEditorState';
 import { Move, ZoomIn, ZoomOut, RotateCcw, Hand, MousePointer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -158,26 +158,31 @@ const Shape3D: React.FC<Shape3DProps> = ({
   );
 };
 
-// Component to track camera position
-const CameraTracker: React.FC = () => {
+// Component to track camera position (used when creating 3D keyframes)
+const CameraTracker: React.FC<{ controlsRef: React.RefObject<any> }> = ({
+  controlsRef,
+}) => {
   const { camera } = useThree();
-  
+
   useEffect(() => {
     const updateCameraPosition = () => {
-      const target = new THREE.Vector3(0, 0, 0);
+      const target = controlsRef.current?.target
+        ? (controlsRef.current.target as THREE.Vector3)
+        : new THREE.Vector3(0, 0, 0);
+
       setCameraPosition({
         position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
         target: { x: target.x, y: target.y, z: target.z },
         fov: (camera as THREE.PerspectiveCamera).fov || 50,
       });
     };
-    
+
     updateCameraPosition();
     const interval = setInterval(updateCameraPosition, 100);
-    
+
     return () => clearInterval(interval);
-  }, [camera]);
-  
+  }, [camera, controlsRef]);
+
   return null;
 };
 
@@ -402,7 +407,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
           onPointerMissed={handleBackgroundClick}
         >
           <Suspense fallback={null}>
-            <CameraTracker />
+            <CameraTracker controlsRef={controlsRef} />
             <CameraController controlsRef={controlsRef} mode={navMode} />
             <ambientLight intensity={0.5} />
             <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
