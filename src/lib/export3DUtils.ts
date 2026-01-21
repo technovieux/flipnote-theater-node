@@ -5,6 +5,9 @@ import { interpolateColor } from '@/lib/colorUtils';
 const SCENE_WIDTH = 1920;
 const SCENE_HEIGHT = 1080;
 
+// Editor 3D properties are stored in "centi-units" (100 = 1 Three.js unit)
+const EDITOR_UNIT_SCALE = 1 / 100;
+
 // Get interpolated 3D properties at a specific time
 export const getInterpolatedProperties3DAt = (
   object: EditorObject3D,
@@ -163,7 +166,7 @@ export const render3DSceneToCanvas = async (
     camera.lookAt(cameraPos.target.x, cameraPos.target.y, cameraPos.target.z);
   } else {
     // Default camera position
-    camera.position.set(0, 300, 500);
+    camera.position.set(5, 5, 5);
     camera.lookAt(0, 0, 0);
   }
 
@@ -228,28 +231,27 @@ export const render3DSceneToCanvas = async (
 // Create 3D mesh based on type and properties
 const create3DMesh = (type: string, props: Object3DProperties): THREE.Mesh | null => {
   let geometry: THREE.BufferGeometry;
-  
-  // Scale factor to convert from editor units
-  const scale = 1;
-  const width = props.width * scale;
-  const height = props.height * scale;
-  const depth = props.depth * scale;
+
+  // Match the in-editor R3F geometry+scale approach (unit geometry + scale)
+  const scaleX = props.width * EDITOR_UNIT_SCALE;
+  const scaleY = props.depth * EDITOR_UNIT_SCALE;
+  const scaleZ = props.height * EDITOR_UNIT_SCALE;
 
   switch (type) {
     case 'cube':
-      geometry = new THREE.BoxGeometry(width, depth, height); // Swap Y/Z for Z-up
+      geometry = new THREE.BoxGeometry(1, 1, 1);
       break;
     case 'sphere':
-      geometry = new THREE.SphereGeometry(Math.max(width, height, depth) / 2, 32, 32);
+      geometry = new THREE.SphereGeometry(0.5, 32, 32);
       break;
     case 'cylinder':
-      geometry = new THREE.CylinderGeometry(width / 2, width / 2, height, 32);
+      geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
       break;
     case 'cone':
-      geometry = new THREE.ConeGeometry(width / 2, height, 32);
+      geometry = new THREE.ConeGeometry(0.5, 1, 32);
       break;
     case 'torus':
-      geometry = new THREE.TorusGeometry(width / 2, depth / 4, 16, 48);
+      geometry = new THREE.TorusGeometry(0.35, 0.15, 16, 48);
       break;
     default:
       return null;
@@ -262,9 +264,16 @@ const create3DMesh = (type: string, props: Object3DProperties): THREE.Mesh | nul
   });
 
   const mesh = new THREE.Mesh(geometry, material);
+
+  // Scale (same mapping as Canvas3D)
+  mesh.scale.set(scaleX, scaleY, scaleZ);
   
   // Position (swap Y and Z for Z-up coordinate system)
-  mesh.position.set(props.x, props.z, -props.y);
+  mesh.position.set(
+    props.x * EDITOR_UNIT_SCALE,
+    props.z * EDITOR_UNIT_SCALE,
+    -props.y * EDITOR_UNIT_SCALE
+  );
   
   // Rotation (in radians, also adjusted for Z-up)
   mesh.rotation.set(
