@@ -167,10 +167,7 @@ export const render3DSceneToCanvas = async (
     camera.lookAt(0, 0, 0);
   }
 
-  // Add grid helper for reference
-  const gridHelper = new THREE.GridHelper(1000, 20, 0x444444, 0x333333);
-  gridHelper.rotation.x = Math.PI / 2; // Z-up
-  scene.add(gridHelper);
+  // Note: Grid is NOT added to export - only visible in editor
 
   // Add 3D objects with interpolated properties
   for (const obj of state.objects3D) {
