@@ -19,7 +19,7 @@ import {
 import { EditorState } from '@/types/editor';
 import {
   ExportOptions,
-  renderSceneToCanvasAsync,
+  renderSceneAsync,
   exportAsImageSequence,
   exportAsVideo,
   exportAsPDF,
@@ -63,7 +63,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
     const generatePreview = async () => {
       const keyframeTimes = getAllKeyframeTimes(state);
       const previewTime = keyframeTimes[0] || 0;
-      const canvas = await renderSceneToCanvasAsync(
+      const canvas = await renderSceneAsync(
         state,
         previewTime,
         backgroundColor,

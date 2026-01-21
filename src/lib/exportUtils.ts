@@ -1,6 +1,7 @@
 import { EditorState, EditorObject, ObjectProperties, Scene, Keyframe } from '@/types/editor';
 import { interpolateColor } from '@/lib/colorUtils';
 import jsPDF from 'jspdf';
+import { render3DSceneToCanvas, getAllKeyframeTimes3D } from '@/lib/export3DUtils';
 
 const SCENE_WIDTH = 1920;
 const SCENE_HEIGHT = 1080;
@@ -248,13 +249,34 @@ export const getAllKeyframeTimes = (state: EditorState): number[] => {
   const times = new Set<number>();
   times.add(0); // Always include start
 
-  for (const obj of state.objects) {
-    for (const kf of obj.keyframes) {
-      times.add(kf.time);
+  if (state.mode3D) {
+    for (const obj of state.objects3D) {
+      for (const kf of obj.keyframes) {
+        times.add(kf.time);
+      }
+    }
+  } else {
+    for (const obj of state.objects) {
+      for (const kf of obj.keyframes) {
+        times.add(kf.time);
+      }
     }
   }
 
   return Array.from(times).sort((a, b) => a - b);
+};
+
+// Render scene (2D or 3D) based on mode
+export const renderSceneAsync = async (
+  state: EditorState,
+  time: number,
+  backgroundColor: string,
+  includeOverlay: boolean = false
+): Promise<HTMLCanvasElement> => {
+  if (state.mode3D) {
+    return render3DSceneToCanvas(state, time, backgroundColor, includeOverlay);
+  }
+  return renderSceneToCanvasAsync(state, time, backgroundColor, includeOverlay);
 };
 
 // Export as image sequence
@@ -267,7 +289,7 @@ export const exportAsImageSequence = async (
 
   for (let i = 0; i < keyframeTimes.length; i++) {
     const time = keyframeTimes[i];
-    const canvas = await renderSceneToCanvasAsync(state, time, options.backgroundColor, true);
+    const canvas = await renderSceneAsync(state, time, options.backgroundColor, true);
 
     // Convert to blob and download
     const blob = await new Promise<Blob>((resolve) => {
@@ -301,11 +323,10 @@ export const exportAsVideo = async (
   options: ExportOptions,
   onProgress?: (current: number, total: number) => void
 ): Promise<void> => {
-  // Determine end time
-  const lastKeyframeTime = Math.max(
-    ...state.objects.flatMap((obj) => obj.keyframes.map((kf) => kf.time)),
-    0
-  );
+  // Determine end time based on mode
+  const lastKeyframeTime = state.mode3D
+    ? Math.max(...state.objects3D.flatMap((obj) => obj.keyframes.map((kf) => kf.time)), 0)
+    : Math.max(...state.objects.flatMap((obj) => obj.keyframes.map((kf) => kf.time)), 0);
   const audioDuration = state.audioTrack?.duration ? state.audioTrack.duration * 1000 : 0;
   const endTime = Math.max(lastKeyframeTime, audioDuration) || 5000;
 
@@ -377,8 +398,8 @@ export const exportAsVideo = async (
   const fileExtension = mimeType.startsWith('video/mp4') ? 'mp4' : 'webm';
   const blobType = mimeType.startsWith('video/mp4') ? 'video/mp4' : 'video/webm';
 
-  // Render a single frame synchronously
-  const renderFrameSync = (time: number) => {
+  // Render a single frame synchronously (2D only)
+  const renderFrameSync2D = (time: number) => {
     // Fill background
     ctx.fillStyle = options.backgroundColor;
     ctx.fillRect(0, 0, SCENE_WIDTH, SCENE_HEIGHT);
@@ -399,6 +420,16 @@ export const exportAsVideo = async (
     }
   };
 
+  // Render a frame (async for 3D)
+  const renderFrame = async (time: number) => {
+    if (state.mode3D) {
+      const renderedCanvas = await render3DSceneToCanvas(state, time, options.backgroundColor, false);
+      ctx.drawImage(renderedCanvas, 0, 0);
+    } else {
+      renderFrameSync2D(time);
+    }
+  };
+
   return new Promise((resolve) => {
     mediaRecorder.onstop = () => {
       const blob = new Blob(chunks, { type: blobType });
@@ -411,35 +442,39 @@ export const exportAsVideo = async (
       resolve();
     };
 
-    mediaRecorder.start();
+    const startRecording = async () => {
+      mediaRecorder.start();
 
-    let frame = 0;
-    
-    // Use a controlled interval for consistent frame timing
-    const renderNextFrame = () => {
-      if (frame >= totalFrames) {
-        mediaRecorder.stop();
-        return;
-      }
-
-      const time = frame * frameInterval;
-      renderFrameSync(time);
-
-      onProgress?.(frame + 1, totalFrames);
-      frame++;
+      let frame = 0;
       
-      // Use setTimeout with exact frame interval for consistent timing
-      // This prevents the black flashes caused by requestAnimationFrame's variable timing
+      // Use a controlled interval for consistent frame timing
+      const renderNextFrame = async () => {
+        if (frame >= totalFrames) {
+          mediaRecorder.stop();
+          return;
+        }
+
+        const time = frame * frameInterval;
+        await renderFrame(time);
+
+        onProgress?.(frame + 1, totalFrames);
+        frame++;
+        
+        // Use setTimeout with exact frame interval for consistent timing
+        // This prevents the black flashes caused by requestAnimationFrame's variable timing
+        setTimeout(renderNextFrame, frameInterval);
+      };
+
+      // Render first frame immediately to ensure canvas has content
+      await renderFrame(0);
+      frame = 1;
+      onProgress?.(1, totalFrames);
+      
+      // Start the frame loop
       setTimeout(renderNextFrame, frameInterval);
     };
 
-    // Render first frame immediately to ensure canvas has content
-    renderFrameSync(0);
-    frame = 1;
-    onProgress?.(1, totalFrames);
-    
-    // Start the frame loop
-    setTimeout(renderNextFrame, frameInterval);
+    startRecording();
   });
 };
 
@@ -466,7 +501,7 @@ export const exportAsPDF = async (
 
     const time = keyframeTimes[i];
     const scene = getSceneAtTime(state.scenes, time);
-    const canvas = await renderSceneToCanvasAsync(state, time, options.backgroundColor, false);
+    const canvas = await renderSceneAsync(state, time, options.backgroundColor, false);
 
     // Calculate layout - Top row: [Infos (left) | Image (right)], Bottom: Remarks
     const contentWidth = pageWidth - margin * 2;
