@@ -234,8 +234,8 @@ const create3DMesh = (type: string, props: Object3DProperties): THREE.Mesh | nul
 
   // Match the in-editor R3F geometry+scale approach (unit geometry + scale)
   const scaleX = props.width * EDITOR_UNIT_SCALE;
-  const scaleY = props.depth * EDITOR_UNIT_SCALE;
-  const scaleZ = props.height * EDITOR_UNIT_SCALE;
+  const scaleY = props.height * EDITOR_UNIT_SCALE;
+  const scaleZ = props.depth * EDITOR_UNIT_SCALE;
 
   switch (type) {
     case 'cube':
@@ -268,18 +268,18 @@ const create3DMesh = (type: string, props: Object3DProperties): THREE.Mesh | nul
   // Scale (same mapping as Canvas3D)
   mesh.scale.set(scaleX, scaleY, scaleZ);
   
-  // Position (swap Y and Z for Z-up coordinate system)
+  // Position (standard Y-up coordinate system matching the gizmo)
   mesh.position.set(
     props.x * EDITOR_UNIT_SCALE,
-    props.z * EDITOR_UNIT_SCALE,
-    -props.y * EDITOR_UNIT_SCALE
+    props.y * EDITOR_UNIT_SCALE,
+    props.z * EDITOR_UNIT_SCALE
   );
   
-  // Rotation (in radians, also adjusted for Z-up)
+  // Rotation (in radians, standard Y-up)
   mesh.rotation.set(
     THREE.MathUtils.degToRad(props.rotationX),
-    THREE.MathUtils.degToRad(props.rotationZ),
-    THREE.MathUtils.degToRad(-props.rotationY)
+    THREE.MathUtils.degToRad(props.rotationY),
+    THREE.MathUtils.degToRad(props.rotationZ)
   );
 
   return mesh;
