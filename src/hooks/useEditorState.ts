@@ -559,15 +559,31 @@ export const useEditorState = () => {
 
   const pasteObject = useCallback(() => {
     if (state.mode3D && clipboardObject3D) {
+      // Calculate position offset for the duplicated object
+      const offsetX = 20;
+      const offsetY = 20;
+      
+      // Adjust keyframes to be relative to the new position
+      // The offset between old and new base position
+      const adjustedKeyframes = clipboardObject3D.keyframes.map(kf => ({
+        ...kf,
+        properties: {
+          ...kf.properties,
+          x: kf.properties.x + offsetX,
+          y: kf.properties.y + offsetY,
+        },
+      }));
+      
       const newObject: EditorObject3D = {
         ...JSON.parse(JSON.stringify(clipboardObject3D)),
         id: generateId(),
         name: `${clipboardObject3D.name} (copie)`,
         properties: {
           ...clipboardObject3D.properties,
-          x: clipboardObject3D.properties.x + 20,
-          z: clipboardObject3D.properties.z + 20,
+          x: clipboardObject3D.properties.x + offsetX,
+          y: clipboardObject3D.properties.y + offsetY,
         },
+        keyframes: adjustedKeyframes,
       };
       
       setState(prev => ({
@@ -577,15 +593,30 @@ export const useEditorState = () => {
         hasUnsavedChanges: true,
       }));
     } else if (!state.mode3D && clipboardObject) {
+      // Calculate position offset for the duplicated object
+      const offsetX = 20;
+      const offsetY = 20;
+      
+      // Adjust keyframes to be relative to the new position
+      const adjustedKeyframes = clipboardObject.keyframes.map(kf => ({
+        ...kf,
+        properties: {
+          ...kf.properties,
+          x: kf.properties.x + offsetX,
+          y: kf.properties.y + offsetY,
+        },
+      }));
+      
       const newObject: EditorObject = {
         ...JSON.parse(JSON.stringify(clipboardObject)),
         id: generateId(),
         name: `${clipboardObject.name} (copie)`,
         properties: {
           ...clipboardObject.properties,
-          x: clipboardObject.properties.x + 20,
-          y: clipboardObject.properties.y + 20,
+          x: clipboardObject.properties.x + offsetX,
+          y: clipboardObject.properties.y + offsetY,
         },
+        keyframes: adjustedKeyframes,
       };
       
       setState(prev => ({

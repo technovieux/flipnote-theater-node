@@ -94,23 +94,23 @@ const Shape3D: React.FC<Shape3DProps> = ({
     }
   };
 
-  // Z-up coordinate system: swap Y and Z for display
+  // Standard Three.js Y-up coordinate system (matches gizmo)
   const position: [number, number, number] = [
     properties.x / 100,
-    properties.z / 100, // Z becomes Y (up)
-    -properties.y / 100, // Y becomes -Z (forward)
+    properties.y / 100,
+    properties.z / 100,
   ];
 
   const rotation: [number, number, number] = [
     THREE.MathUtils.degToRad(properties.rotationX),
+    THREE.MathUtils.degToRad(properties.rotationY),
     THREE.MathUtils.degToRad(properties.rotationZ),
-    THREE.MathUtils.degToRad(-properties.rotationY),
   ];
 
   const scale: [number, number, number] = [
     properties.width / 100,
-    properties.depth / 100,
     properties.height / 100,
+    properties.depth / 100,
   ];
 
   const renderGeometry = () => {
