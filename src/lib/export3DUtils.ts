@@ -41,10 +41,17 @@ export const getInterpolatedProperties3DAt = (
   const progress = (time - prevKf.time) / (nextKf.time - prevKf.time);
   const interpolate = (a: number, b: number) => a + (b - a) * progress;
 
+  // Calculate base offset from first keyframe to current object properties
+  // This makes animations RELATIVE to the object's current position
+  const firstKf = sortedKeyframes[0];
+  const offsetX = object.properties.x - firstKf.properties.x;
+  const offsetY = object.properties.y - firstKf.properties.y;
+  const offsetZ = object.properties.z - firstKf.properties.z;
+
   return {
-    x: interpolate(prevKf.properties.x, nextKf.properties.x),
-    y: interpolate(prevKf.properties.y, nextKf.properties.y),
-    z: interpolate(prevKf.properties.z, nextKf.properties.z),
+    x: interpolate(prevKf.properties.x, nextKf.properties.x) + offsetX,
+    y: interpolate(prevKf.properties.y, nextKf.properties.y) + offsetY,
+    z: interpolate(prevKf.properties.z, nextKf.properties.z) + offsetZ,
     width: interpolate(prevKf.properties.width, nextKf.properties.width),
     height: interpolate(prevKf.properties.height, nextKf.properties.height),
     depth: interpolate(prevKf.properties.depth, nextKf.properties.depth),

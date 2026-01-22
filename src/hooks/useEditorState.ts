@@ -436,9 +436,15 @@ export const useEditorState = () => {
     
     const interpolate = (a: number, b: number) => a + (b - a) * progress;
     
+    // Calculate base offset from first keyframe to current object properties
+    // This makes animations RELATIVE to the object's current position
+    const firstKf = sortedKeyframes[0];
+    const offsetX = object.properties.x - firstKf.properties.x;
+    const offsetY = object.properties.y - firstKf.properties.y;
+    
     return {
-      x: interpolate(prevKf.properties.x, nextKf.properties.x),
-      y: interpolate(prevKf.properties.y, nextKf.properties.y),
+      x: interpolate(prevKf.properties.x, nextKf.properties.x) + offsetX,
+      y: interpolate(prevKf.properties.y, nextKf.properties.y) + offsetY,
       width: interpolate(prevKf.properties.width, nextKf.properties.width),
       height: interpolate(prevKf.properties.height, nextKf.properties.height),
       rotation: interpolate(prevKf.properties.rotation, nextKf.properties.rotation),
@@ -475,10 +481,17 @@ export const useEditorState = () => {
     const progress = (time - prevKf.time) / (nextKf.time - prevKf.time);
     const interpolate = (a: number, b: number) => a + (b - a) * progress;
     
+    // Calculate base offset from first keyframe to current object properties
+    // This makes animations RELATIVE to the object's current position
+    const firstKf = sortedKeyframes[0];
+    const offsetX = object.properties.x - firstKf.properties.x;
+    const offsetY = object.properties.y - firstKf.properties.y;
+    const offsetZ = object.properties.z - firstKf.properties.z;
+    
     return {
-      x: interpolate(prevKf.properties.x, nextKf.properties.x),
-      y: interpolate(prevKf.properties.y, nextKf.properties.y),
-      z: interpolate(prevKf.properties.z, nextKf.properties.z),
+      x: interpolate(prevKf.properties.x, nextKf.properties.x) + offsetX,
+      y: interpolate(prevKf.properties.y, nextKf.properties.y) + offsetY,
+      z: interpolate(prevKf.properties.z, nextKf.properties.z) + offsetZ,
       width: interpolate(prevKf.properties.width, nextKf.properties.width),
       height: interpolate(prevKf.properties.height, nextKf.properties.height),
       depth: interpolate(prevKf.properties.depth, nextKf.properties.depth),
@@ -559,21 +572,12 @@ export const useEditorState = () => {
 
   const pasteObject = useCallback(() => {
     if (state.mode3D && clipboardObject3D) {
-      // Calculate position offset for the duplicated object
+      // Position offset for the duplicated object
       const offsetX = 20;
       const offsetY = 20;
       
-      // Adjust keyframes to be relative to the new position
-      // The offset between old and new base position
-      const adjustedKeyframes = clipboardObject3D.keyframes.map(kf => ({
-        ...kf,
-        properties: {
-          ...kf.properties,
-          x: kf.properties.x + offsetX,
-          y: kf.properties.y + offsetY,
-        },
-      }));
-      
+      // With relative animations, we only offset the base properties
+      // The keyframes stay the same - the animation will be relative to the new position
       const newObject: EditorObject3D = {
         ...JSON.parse(JSON.stringify(clipboardObject3D)),
         id: generateId(),
@@ -583,7 +587,7 @@ export const useEditorState = () => {
           x: clipboardObject3D.properties.x + offsetX,
           y: clipboardObject3D.properties.y + offsetY,
         },
-        keyframes: adjustedKeyframes,
+        // Keep original keyframes - animation is now relative to object.properties
       };
       
       setState(prev => ({
@@ -593,20 +597,11 @@ export const useEditorState = () => {
         hasUnsavedChanges: true,
       }));
     } else if (!state.mode3D && clipboardObject) {
-      // Calculate position offset for the duplicated object
+      // Position offset for the duplicated object
       const offsetX = 20;
       const offsetY = 20;
       
-      // Adjust keyframes to be relative to the new position
-      const adjustedKeyframes = clipboardObject.keyframes.map(kf => ({
-        ...kf,
-        properties: {
-          ...kf.properties,
-          x: kf.properties.x + offsetX,
-          y: kf.properties.y + offsetY,
-        },
-      }));
-      
+      // With relative animations, we only offset the base properties
       const newObject: EditorObject = {
         ...JSON.parse(JSON.stringify(clipboardObject)),
         id: generateId(),
@@ -616,7 +611,7 @@ export const useEditorState = () => {
           x: clipboardObject.properties.x + offsetX,
           y: clipboardObject.properties.y + offsetY,
         },
-        keyframes: adjustedKeyframes,
+        // Keep original keyframes - animation is now relative to object.properties
       };
       
       setState(prev => ({
