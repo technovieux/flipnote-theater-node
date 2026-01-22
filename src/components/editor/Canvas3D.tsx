@@ -1,9 +1,9 @@
 import React, { useRef, useState, Suspense, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport } from '@react-three/drei';
+import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport, TransformControls } from '@react-three/drei';
 import { EditorObject3D, Object3DProperties } from '@/types/editor';
 import { setCameraPosition } from '@/hooks/useEditorState';
-import { Move, ZoomIn, ZoomOut, RotateCcw, Hand, MousePointer } from 'lucide-react';
+import { Move, ZoomIn, ZoomOut, RotateCcw, Hand, MousePointer, Move3d, RotateCw, Maximize } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import * as THREE from 'three';
@@ -158,6 +158,152 @@ const Shape3D: React.FC<Shape3DProps> = ({
   );
 };
 
+// TransformControls wrapper component
+interface TransformableObjectProps {
+  object: EditorObject3D;
+  properties: Object3DProperties;
+  isSelected: boolean;
+  onSelect: () => void;
+  onUpdateProperties: (properties: Partial<Object3DProperties>) => void;
+  isPlaying: boolean;
+  controlsRef: React.RefObject<any>;
+  transformMode: 'translate' | 'rotate' | 'scale';
+}
+
+const TransformableObject: React.FC<TransformableObjectProps> = ({
+  object,
+  properties,
+  isSelected,
+  onSelect,
+  onUpdateProperties,
+  isPlaying,
+  controlsRef,
+  transformMode,
+}) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const transformControlsRef = useRef<any>(null);
+
+  // Handle transform changes
+  const handleTransformChange = () => {
+    if (!meshRef.current || isPlaying) return;
+    
+    const mesh = meshRef.current;
+    
+    if (transformMode === 'translate') {
+      onUpdateProperties({
+        x: mesh.position.x * 100,
+        y: mesh.position.y * 100,
+        z: mesh.position.z * 100,
+      });
+    } else if (transformMode === 'rotate') {
+      onUpdateProperties({
+        rotationX: THREE.MathUtils.radToDeg(mesh.rotation.x),
+        rotationY: THREE.MathUtils.radToDeg(mesh.rotation.y),
+        rotationZ: THREE.MathUtils.radToDeg(mesh.rotation.z),
+      });
+    } else if (transformMode === 'scale') {
+      onUpdateProperties({
+        width: mesh.scale.x * 100,
+        height: mesh.scale.y * 100,
+        depth: mesh.scale.z * 100,
+      });
+    }
+  };
+
+  // Disable orbit controls when dragging transform
+  useEffect(() => {
+    if (!transformControlsRef.current || !controlsRef.current) return;
+    
+    const controls = transformControlsRef.current;
+    
+    const handleDraggingChanged = (event: any) => {
+      if (controlsRef.current) {
+        controlsRef.current.enabled = !event.value;
+      }
+    };
+    
+    controls.addEventListener('dragging-changed', handleDraggingChanged);
+    return () => {
+      controls.removeEventListener('dragging-changed', handleDraggingChanged);
+    };
+  }, [controlsRef]);
+
+  // Position, rotation, scale
+  const position: [number, number, number] = [
+    properties.x / 100,
+    properties.y / 100,
+    properties.z / 100,
+  ];
+
+  const rotation: [number, number, number] = [
+    THREE.MathUtils.degToRad(properties.rotationX),
+    THREE.MathUtils.degToRad(properties.rotationY),
+    THREE.MathUtils.degToRad(properties.rotationZ),
+  ];
+
+  const scale: [number, number, number] = [
+    properties.width / 100,
+    properties.height / 100,
+    properties.depth / 100,
+  ];
+
+  const renderGeometry = () => {
+    switch (object.type) {
+      case 'cube':
+        return <boxGeometry args={[1, 1, 1]} />;
+      case 'sphere':
+        return <sphereGeometry args={[0.5, 32, 32]} />;
+      case 'cylinder':
+        return <cylinderGeometry args={[0.5, 0.5, 1, 32]} />;
+      case 'cone':
+        return <coneGeometry args={[0.5, 1, 32]} />;
+      case 'torus':
+        return <torusGeometry args={[0.35, 0.15, 16, 48]} />;
+      default:
+        return <boxGeometry args={[1, 1, 1]} />;
+    }
+  };
+
+  return (
+    <>
+      <mesh
+        ref={meshRef}
+        position={position}
+        rotation={rotation}
+        scale={scale}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect();
+        }}
+      >
+        {renderGeometry()}
+        <meshStandardMaterial
+          color={properties.color}
+          transparent
+          opacity={properties.opacity / 100}
+          metalness={0.1}
+          roughness={0.5}
+        />
+        {isSelected && (
+          <lineSegments>
+            <edgesGeometry args={[new THREE.BoxGeometry(1.05, 1.05, 1.05)]} />
+            <lineBasicMaterial color="#00d4ff" linewidth={2} />
+          </lineSegments>
+        )}
+      </mesh>
+      {isSelected && !isPlaying && meshRef.current && (
+        <TransformControls
+          ref={transformControlsRef}
+          object={meshRef.current}
+          mode={transformMode}
+          size={0.75}
+          onObjectChange={handleTransformChange}
+        />
+      )}
+    </>
+  );
+}
+
 // Component to track camera position (used when creating 3D keyframes)
 const CameraTracker: React.FC<{ controlsRef: React.RefObject<any> }> = ({
   controlsRef,
@@ -194,6 +340,9 @@ interface NavigationControlsProps {
   onResetView: () => void;
   mode: 'select' | 'pan' | 'rotate';
   onModeChange: (mode: 'select' | 'pan' | 'rotate') => void;
+  transformMode: 'translate' | 'rotate' | 'scale';
+  onTransformModeChange: (mode: 'translate' | 'rotate' | 'scale') => void;
+  hasSelection: boolean;
 }
 
 const NavigationControls: React.FC<NavigationControlsProps> = ({
@@ -202,6 +351,9 @@ const NavigationControls: React.FC<NavigationControlsProps> = ({
   onResetView,
   mode,
   onModeChange,
+  transformMode,
+  onTransformModeChange,
+  hasSelection,
 }) => {
   return (
     <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
@@ -246,6 +398,55 @@ const NavigationControls: React.FC<NavigationControlsProps> = ({
         </TooltipTrigger>
         <TooltipContent side="left">Rotation de la vue</TooltipContent>
       </Tooltip>
+      
+      {/* Transform mode buttons - only show when object selected */}
+      {hasSelection && (
+        <>
+          <div className="h-px bg-border my-1" />
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={transformMode === 'translate' ? 'default' : 'secondary'}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => onTransformModeChange('translate')}
+              >
+                <Move3d className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">Déplacer (G)</TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={transformMode === 'rotate' ? 'default' : 'secondary'}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => onTransformModeChange('rotate')}
+              >
+                <RotateCw className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">Rotation (R)</TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={transformMode === 'scale' ? 'default' : 'secondary'}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => onTransformModeChange('scale')}
+              >
+                <Maximize className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">Échelle (S)</TooltipContent>
+          </Tooltip>
+        </>
+      )}
       
       <div className="h-px bg-border my-1" />
       
@@ -345,8 +546,30 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
   isPlaying,
 }) => {
   const controlsRef = useRef<any>(null);
+  const transformRef = useRef<any>(null);
   const [navMode, setNavMode] = useState<'select' | 'pan' | 'rotate'>('select');
+  const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate');
   const [cameraState, setCameraState] = useState({ zoom: 1 });
+
+  // Keyboard shortcuts for transform modes
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selectedObjectId) return;
+      if (e.key === 'g' || e.key === 'G') {
+        setTransformMode('translate');
+      } else if (e.key === 'r' || e.key === 'R') {
+        setTransformMode('rotate');
+      } else if (e.key === 's' || e.key === 'S') {
+        setTransformMode('scale');
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedObjectId]);
+
+  // Get selected object for TransformControls
+  const selectedObject = objects.find(obj => obj.id === selectedObjectId);
 
   const handleBackgroundClick = () => {
     onSelect(null);
@@ -401,6 +624,9 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
           onResetView={handleResetView}
           mode={navMode}
           onModeChange={setNavMode}
+          transformMode={transformMode}
+          onTransformModeChange={setTransformMode}
+          hasSelection={!!selectedObjectId}
         />
         <Canvas
           camera={{ position: [5, 5, 5], fov: 50, up: [0, 1, 0] }}
@@ -437,7 +663,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                 : (selectedObjectId === obj.id ? obj.properties : getInterpolatedProperties(obj, currentTime));
               
               return (
-                <Shape3D
+                <TransformableObject
                   key={obj.id}
                   object={obj}
                   properties={props}
@@ -446,6 +672,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                   onUpdateProperties={(p) => onUpdateProperties(obj.id, p)}
                   isPlaying={isPlaying}
                   controlsRef={controlsRef}
+                  transformMode={transformMode}
                 />
               );
             })}
