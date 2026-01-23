@@ -1,6 +1,6 @@
-import React, { useRef, useState, Suspense, useEffect } from 'react';
+import React, { useRef, useState, Suspense, useEffect, useMemo } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport, TransformControls } from '@react-three/drei';
+import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport, TransformControls, Line } from '@react-three/drei';
 import { EditorObject3D, Object3DProperties } from '@/types/editor';
 import { setCameraPosition } from '@/hooks/useEditorState';
 import { Move, ZoomIn, ZoomOut, RotateCcw, Hand, MousePointer, Move3d, RotateCw, Maximize } from 'lucide-react';
@@ -303,6 +303,93 @@ const TransformableObject: React.FC<TransformableObjectProps> = ({
     </>
   );
 }
+
+// Component to render 3D trajectory path for selected object
+interface Trajectory3DProps {
+  object: EditorObject3D;
+  getInterpolatedProperties: (object: EditorObject3D, time: number) => Object3DProperties;
+}
+
+const Trajectory3D: React.FC<Trajectory3DProps> = ({ object, getInterpolatedProperties }) => {
+  const trajectoryData = useMemo(() => {
+    if (object.keyframes.length < 2) return null;
+    
+    const sortedKeyframes = [...object.keyframes].sort((a, b) => a.time - b.time);
+    const startTime = sortedKeyframes[0].time;
+    const endTime = sortedKeyframes[sortedKeyframes.length - 1].time;
+    
+    // Sample points along the trajectory
+    const points: THREE.Vector3[] = [];
+    const steps = Math.max(50, Math.ceil((endTime - startTime) / 50));
+    
+    for (let i = 0; i <= steps; i++) {
+      const t = startTime + (endTime - startTime) * (i / steps);
+      const props = getInterpolatedProperties(object, t);
+      points.push(new THREE.Vector3(
+        props.x / 100,
+        props.y / 100,
+        props.z / 100
+      ));
+    }
+    
+    // Get keyframe positions for markers
+    const keyframePositions = sortedKeyframes.map(kf => {
+      const props = getInterpolatedProperties(object, kf.time);
+      return new THREE.Vector3(
+        props.x / 100,
+        props.y / 100,
+        props.z / 100
+      );
+    });
+    
+    return {
+      points,
+      start: points[0],
+      end: points[points.length - 1],
+      keyframePositions,
+    };
+  }, [object, getInterpolatedProperties]);
+  
+  if (!trajectoryData) return null;
+  
+  const { points, start, end, keyframePositions } = trajectoryData;
+  
+  return (
+    <group>
+      {/* Trajectory line */}
+      <Line
+        points={points}
+        color="white"
+        lineWidth={2}
+        dashed
+        dashSize={0.1}
+        gapSize={0.05}
+        opacity={0.6}
+        transparent
+      />
+      
+      {/* Start marker (square) */}
+      <mesh position={start}>
+        <boxGeometry args={[0.1, 0.1, 0.1]} />
+        <meshBasicMaterial color="white" opacity={0.8} transparent />
+      </mesh>
+      
+      {/* End marker (square) */}
+      <mesh position={end}>
+        <boxGeometry args={[0.1, 0.1, 0.1]} />
+        <meshBasicMaterial color="#aaaaaa" opacity={0.8} transparent />
+      </mesh>
+      
+      {/* Keyframe markers (small spheres) */}
+      {keyframePositions.map((pos, i) => (
+        <mesh key={i} position={pos}>
+          <sphereGeometry args={[0.06, 16, 16]} />
+          <meshBasicMaterial color="#00d4ff" opacity={0.9} transparent />
+        </mesh>
+      ))}
+    </group>
+  );
+};
 
 // Component to track camera position (used when creating 3D keyframes)
 const CameraTracker: React.FC<{ controlsRef: React.RefObject<any> }> = ({
@@ -676,6 +763,14 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                 />
               );
             })}
+            
+            {/* Trajectory visualization for selected object */}
+            {selectedObject && selectedObject.keyframes.length >= 2 && (
+              <Trajectory3D
+                object={selectedObject}
+                getInterpolatedProperties={getInterpolatedProperties}
+              />
+            )}
             
             <OrbitControls
               ref={controlsRef}
