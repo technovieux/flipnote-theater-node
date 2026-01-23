@@ -47,6 +47,11 @@ export interface EditorObject {
   name: string;
   type: ShapeType;
   properties: ObjectProperties;
+  /**
+   * Anchor used for relative animation offsets.
+   * When present, animations are offset from this base instead of the current pose.
+   */
+  baseProperties?: ObjectProperties;
   keyframes: Keyframe[];
 }
 
@@ -55,6 +60,8 @@ export interface EditorObject3D {
   name: string;
   type: Shape3DType;
   properties: Object3DProperties;
+  /** Anchor used for relative animation offsets (see EditorObject.baseProperties). */
+  baseProperties?: Object3DProperties;
   keyframes: Keyframe3D[];
 }
 
