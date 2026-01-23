@@ -213,19 +213,20 @@ export const useEditorState = () => {
         objects: prev.objects.map(o => {
           if (o.id !== id) return o;
 
-          // Update base properties
-          const newProperties = { ...o.properties, ...properties };
-
-          // Also update keyframe if we're at one
+          // If we're at a keyframe, ONLY update that keyframe (not base properties)
+          // This ensures other keyframes stay in place
           if (keyframeIndex >= 0) {
             const newKeyframes = [...o.keyframes];
             newKeyframes[keyframeIndex] = {
               ...newKeyframes[keyframeIndex],
               properties: { ...newKeyframes[keyframeIndex].properties, ...properties },
             };
-            return { ...o, properties: newProperties, keyframes: newKeyframes };
+            return { ...o, keyframes: newKeyframes };
           }
 
+          // If no keyframes exist, update base properties
+          // If keyframes exist but we're not at one, update base properties (which offsets the whole animation)
+          const newProperties = { ...o.properties, ...properties };
           return { ...o, properties: newProperties };
         }),
       };
@@ -247,17 +248,18 @@ export const useEditorState = () => {
         objects3D: prev.objects3D.map(o => {
           if (o.id !== id) return o;
 
-          const newProperties = { ...o.properties, ...properties };
-
+          // If we're at a keyframe, ONLY update that keyframe (not base properties)
           if (keyframeIndex >= 0) {
             const newKeyframes = [...o.keyframes];
             newKeyframes[keyframeIndex] = {
               ...newKeyframes[keyframeIndex],
               properties: { ...newKeyframes[keyframeIndex].properties, ...properties },
             };
-            return { ...o, properties: newProperties, keyframes: newKeyframes };
+            return { ...o, keyframes: newKeyframes };
           }
 
+          // If no keyframes or not at one, update base properties
+          const newProperties = { ...o.properties, ...properties };
           return { ...o, properties: newProperties };
         }),
       };
