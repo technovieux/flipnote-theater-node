@@ -1,9 +1,9 @@
-import React, { useRef, useState, Suspense, useEffect, useMemo } from 'react';
+import React, { useRef, useState, Suspense, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport, TransformControls, Line } from '@react-three/drei';
-import { EditorObject3D, Object3DProperties } from '@/types/editor';
+import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport } from '@react-three/drei';
+import { EditorObject3D, Object3DProperties, CameraPosition } from '@/types/editor';
 import { setCameraPosition } from '@/hooks/useEditorState';
-import { Move, ZoomIn, ZoomOut, RotateCcw, Hand, MousePointer, Move3d, RotateCw, Maximize } from 'lucide-react';
+import { Move, ZoomIn, ZoomOut, RotateCcw, Hand, MousePointer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import * as THREE from 'three';
@@ -94,23 +94,23 @@ const Shape3D: React.FC<Shape3DProps> = ({
     }
   };
 
-  // Standard Three.js Y-up coordinate system (matches gizmo)
+  // Z-up coordinate system: swap Y and Z for display
   const position: [number, number, number] = [
     properties.x / 100,
-    properties.y / 100,
-    properties.z / 100,
+    properties.z / 100, // Z becomes Y (up)
+    -properties.y / 100, // Y becomes -Z (forward)
   ];
 
   const rotation: [number, number, number] = [
     THREE.MathUtils.degToRad(properties.rotationX),
-    THREE.MathUtils.degToRad(properties.rotationY),
     THREE.MathUtils.degToRad(properties.rotationZ),
+    THREE.MathUtils.degToRad(-properties.rotationY),
   ];
 
   const scale: [number, number, number] = [
     properties.width / 100,
-    properties.height / 100,
     properties.depth / 100,
+    properties.height / 100,
   ];
 
   const renderGeometry = () => {
@@ -158,264 +158,26 @@ const Shape3D: React.FC<Shape3DProps> = ({
   );
 };
 
-// TransformControls wrapper component
-interface TransformableObjectProps {
-  object: EditorObject3D;
-  properties: Object3DProperties;
-  isSelected: boolean;
-  onSelect: () => void;
-  onUpdateProperties: (properties: Partial<Object3DProperties>) => void;
-  isPlaying: boolean;
-  controlsRef: React.RefObject<any>;
-  transformMode: 'translate' | 'rotate' | 'scale';
-}
-
-const TransformableObject: React.FC<TransformableObjectProps> = ({
-  object,
-  properties,
-  isSelected,
-  onSelect,
-  onUpdateProperties,
-  isPlaying,
-  controlsRef,
-  transformMode,
-}) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const transformControlsRef = useRef<any>(null);
-
-  // Handle transform changes
-  const handleTransformChange = () => {
-    if (!meshRef.current || isPlaying) return;
-    
-    const mesh = meshRef.current;
-    
-    if (transformMode === 'translate') {
-      onUpdateProperties({
-        x: mesh.position.x * 100,
-        y: mesh.position.y * 100,
-        z: mesh.position.z * 100,
-      });
-    } else if (transformMode === 'rotate') {
-      onUpdateProperties({
-        rotationX: THREE.MathUtils.radToDeg(mesh.rotation.x),
-        rotationY: THREE.MathUtils.radToDeg(mesh.rotation.y),
-        rotationZ: THREE.MathUtils.radToDeg(mesh.rotation.z),
-      });
-    } else if (transformMode === 'scale') {
-      onUpdateProperties({
-        width: mesh.scale.x * 100,
-        height: mesh.scale.y * 100,
-        depth: mesh.scale.z * 100,
-      });
-    }
-  };
-
-  // Disable orbit controls when dragging transform
-  useEffect(() => {
-    if (!transformControlsRef.current || !controlsRef.current) return;
-    
-    const controls = transformControlsRef.current;
-    
-    const handleDraggingChanged = (event: any) => {
-      if (controlsRef.current) {
-        controlsRef.current.enabled = !event.value;
-      }
-    };
-    
-    controls.addEventListener('dragging-changed', handleDraggingChanged);
-    return () => {
-      controls.removeEventListener('dragging-changed', handleDraggingChanged);
-    };
-  }, [controlsRef]);
-
-  // Position, rotation, scale
-  const position: [number, number, number] = [
-    properties.x / 100,
-    properties.y / 100,
-    properties.z / 100,
-  ];
-
-  const rotation: [number, number, number] = [
-    THREE.MathUtils.degToRad(properties.rotationX),
-    THREE.MathUtils.degToRad(properties.rotationY),
-    THREE.MathUtils.degToRad(properties.rotationZ),
-  ];
-
-  const scale: [number, number, number] = [
-    properties.width / 100,
-    properties.height / 100,
-    properties.depth / 100,
-  ];
-
-  const renderGeometry = () => {
-    switch (object.type) {
-      case 'cube':
-        return <boxGeometry args={[1, 1, 1]} />;
-      case 'sphere':
-        return <sphereGeometry args={[0.5, 32, 32]} />;
-      case 'cylinder':
-        return <cylinderGeometry args={[0.5, 0.5, 1, 32]} />;
-      case 'cone':
-        return <coneGeometry args={[0.5, 1, 32]} />;
-      case 'torus':
-        return <torusGeometry args={[0.35, 0.15, 16, 48]} />;
-      default:
-        return <boxGeometry args={[1, 1, 1]} />;
-    }
-  };
-
-  return (
-    <>
-      <mesh
-        ref={meshRef}
-        position={position}
-        rotation={rotation}
-        scale={scale}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect();
-        }}
-      >
-        {renderGeometry()}
-        <meshStandardMaterial
-          color={properties.color}
-          transparent
-          opacity={properties.opacity / 100}
-          metalness={0.1}
-          roughness={0.5}
-        />
-        {isSelected && (
-          <lineSegments>
-            <edgesGeometry args={[new THREE.BoxGeometry(1.05, 1.05, 1.05)]} />
-            <lineBasicMaterial color="#00d4ff" linewidth={2} />
-          </lineSegments>
-        )}
-      </mesh>
-      {isSelected && !isPlaying && meshRef.current && (
-        <TransformControls
-          ref={transformControlsRef}
-          object={meshRef.current}
-          mode={transformMode}
-          size={0.75}
-          onObjectChange={handleTransformChange}
-        />
-      )}
-    </>
-  );
-}
-
-// Component to render 3D trajectory path for selected object
-interface Trajectory3DProps {
-  object: EditorObject3D;
-  getInterpolatedProperties: (object: EditorObject3D, time: number) => Object3DProperties;
-}
-
-const Trajectory3D: React.FC<Trajectory3DProps> = ({ object, getInterpolatedProperties }) => {
-  const trajectoryData = useMemo(() => {
-    if (object.keyframes.length < 2) return null;
-    
-    const sortedKeyframes = [...object.keyframes].sort((a, b) => a.time - b.time);
-    const startTime = sortedKeyframes[0].time;
-    const endTime = sortedKeyframes[sortedKeyframes.length - 1].time;
-    
-    // Sample points along the trajectory
-    const points: THREE.Vector3[] = [];
-    const steps = Math.max(50, Math.ceil((endTime - startTime) / 50));
-    
-    for (let i = 0; i <= steps; i++) {
-      const t = startTime + (endTime - startTime) * (i / steps);
-      const props = getInterpolatedProperties(object, t);
-      points.push(new THREE.Vector3(
-        props.x / 100,
-        props.y / 100,
-        props.z / 100
-      ));
-    }
-    
-    // Get keyframe positions for markers
-    const keyframePositions = sortedKeyframes.map(kf => {
-      const props = getInterpolatedProperties(object, kf.time);
-      return new THREE.Vector3(
-        props.x / 100,
-        props.y / 100,
-        props.z / 100
-      );
-    });
-    
-    return {
-      points,
-      start: points[0],
-      end: points[points.length - 1],
-      keyframePositions,
-    };
-  }, [object, getInterpolatedProperties]);
-  
-  if (!trajectoryData) return null;
-  
-  const { points, start, end, keyframePositions } = trajectoryData;
-  
-  return (
-    <group>
-      {/* Trajectory line */}
-      <Line
-        points={points}
-        color="white"
-        lineWidth={2}
-        dashed
-        dashSize={0.1}
-        gapSize={0.05}
-        opacity={0.6}
-        transparent
-      />
-      
-      {/* Start marker (square) */}
-      <mesh position={start}>
-        <boxGeometry args={[0.1, 0.1, 0.1]} />
-        <meshBasicMaterial color="white" opacity={0.8} transparent />
-      </mesh>
-      
-      {/* End marker (square) */}
-      <mesh position={end}>
-        <boxGeometry args={[0.1, 0.1, 0.1]} />
-        <meshBasicMaterial color="#aaaaaa" opacity={0.8} transparent />
-      </mesh>
-      
-      {/* Keyframe markers (small spheres) */}
-      {keyframePositions.map((pos, i) => (
-        <mesh key={i} position={pos}>
-          <sphereGeometry args={[0.06, 16, 16]} />
-          <meshBasicMaterial color="#00d4ff" opacity={0.9} transparent />
-        </mesh>
-      ))}
-    </group>
-  );
-};
-
-// Component to track camera position (used when creating 3D keyframes)
-const CameraTracker: React.FC<{ controlsRef: React.RefObject<any> }> = ({
-  controlsRef,
-}) => {
+// Component to track camera position
+const CameraTracker: React.FC = () => {
   const { camera } = useThree();
-
+  
   useEffect(() => {
     const updateCameraPosition = () => {
-      const target = controlsRef.current?.target
-        ? (controlsRef.current.target as THREE.Vector3)
-        : new THREE.Vector3(0, 0, 0);
-
+      const target = new THREE.Vector3(0, 0, 0);
       setCameraPosition({
         position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
         target: { x: target.x, y: target.y, z: target.z },
         fov: (camera as THREE.PerspectiveCamera).fov || 50,
       });
     };
-
+    
     updateCameraPosition();
     const interval = setInterval(updateCameraPosition, 100);
-
+    
     return () => clearInterval(interval);
-  }, [camera, controlsRef]);
-
+  }, [camera]);
+  
   return null;
 };
 
@@ -427,9 +189,6 @@ interface NavigationControlsProps {
   onResetView: () => void;
   mode: 'select' | 'pan' | 'rotate';
   onModeChange: (mode: 'select' | 'pan' | 'rotate') => void;
-  transformMode: 'translate' | 'rotate' | 'scale';
-  onTransformModeChange: (mode: 'translate' | 'rotate' | 'scale') => void;
-  hasSelection: boolean;
 }
 
 const NavigationControls: React.FC<NavigationControlsProps> = ({
@@ -438,9 +197,6 @@ const NavigationControls: React.FC<NavigationControlsProps> = ({
   onResetView,
   mode,
   onModeChange,
-  transformMode,
-  onTransformModeChange,
-  hasSelection,
 }) => {
   return (
     <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
@@ -485,55 +241,6 @@ const NavigationControls: React.FC<NavigationControlsProps> = ({
         </TooltipTrigger>
         <TooltipContent side="left">Rotation de la vue</TooltipContent>
       </Tooltip>
-      
-      {/* Transform mode buttons - only show when object selected */}
-      {hasSelection && (
-        <>
-          <div className="h-px bg-border my-1" />
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={transformMode === 'translate' ? 'default' : 'secondary'}
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onTransformModeChange('translate')}
-              >
-                <Move3d className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">Déplacer (G)</TooltipContent>
-          </Tooltip>
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={transformMode === 'rotate' ? 'default' : 'secondary'}
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onTransformModeChange('rotate')}
-              >
-                <RotateCw className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">Rotation (R)</TooltipContent>
-          </Tooltip>
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={transformMode === 'scale' ? 'default' : 'secondary'}
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onTransformModeChange('scale')}
-              >
-                <Maximize className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">Échelle (S)</TooltipContent>
-          </Tooltip>
-        </>
-      )}
       
       <div className="h-px bg-border my-1" />
       
@@ -633,30 +340,8 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
   isPlaying,
 }) => {
   const controlsRef = useRef<any>(null);
-  const transformRef = useRef<any>(null);
   const [navMode, setNavMode] = useState<'select' | 'pan' | 'rotate'>('select');
-  const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate');
   const [cameraState, setCameraState] = useState({ zoom: 1 });
-
-  // Keyboard shortcuts for transform modes
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!selectedObjectId) return;
-      if (e.key === 'g' || e.key === 'G') {
-        setTransformMode('translate');
-      } else if (e.key === 'r' || e.key === 'R') {
-        setTransformMode('rotate');
-      } else if (e.key === 's' || e.key === 'S') {
-        setTransformMode('scale');
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedObjectId]);
-
-  // Get selected object for TransformControls
-  const selectedObject = objects.find(obj => obj.id === selectedObjectId);
 
   const handleBackgroundClick = () => {
     onSelect(null);
@@ -711,16 +396,13 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
           onResetView={handleResetView}
           mode={navMode}
           onModeChange={setNavMode}
-          transformMode={transformMode}
-          onTransformModeChange={setTransformMode}
-          hasSelection={!!selectedObjectId}
         />
         <Canvas
           camera={{ position: [5, 5, 5], fov: 50, up: [0, 1, 0] }}
           onPointerMissed={handleBackgroundClick}
         >
           <Suspense fallback={null}>
-            <CameraTracker controlsRef={controlsRef} />
+            <CameraTracker />
             <CameraController controlsRef={controlsRef} mode={navMode} />
             <ambientLight intensity={0.5} />
             <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
@@ -750,7 +432,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                 : (selectedObjectId === obj.id ? obj.properties : getInterpolatedProperties(obj, currentTime));
               
               return (
-                <TransformableObject
+                <Shape3D
                   key={obj.id}
                   object={obj}
                   properties={props}
@@ -759,18 +441,9 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                   onUpdateProperties={(p) => onUpdateProperties(obj.id, p)}
                   isPlaying={isPlaying}
                   controlsRef={controlsRef}
-                  transformMode={transformMode}
                 />
               );
             })}
-            
-            {/* Trajectory visualization for selected object */}
-            {selectedObject && selectedObject.keyframes.length >= 2 && (
-              <Trajectory3D
-                object={selectedObject}
-                getInterpolatedProperties={getInterpolatedProperties}
-              />
-            )}
             
             <OrbitControls
               ref={controlsRef}

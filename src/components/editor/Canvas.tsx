@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { EditorObject, ObjectProperties } from '@/types/editor';
 
 interface CanvasProps {
@@ -11,101 +11,6 @@ interface CanvasProps {
   backgroundImage: string | null;
   isPlaying: boolean;
 }
-
-// Component to render trajectory path for selected object
-const TrajectoryPath: React.FC<{
-  object: EditorObject;
-  getInterpolatedProperties: (object: EditorObject, time: number) => ObjectProperties;
-}> = ({ object, getInterpolatedProperties }) => {
-  const trajectoryPoints = useMemo(() => {
-    if (object.keyframes.length < 2) return null;
-    
-    const sortedKeyframes = [...object.keyframes].sort((a, b) => a.time - b.time);
-    const startTime = sortedKeyframes[0].time;
-    const endTime = sortedKeyframes[sortedKeyframes.length - 1].time;
-    
-    // Sample points along the trajectory
-    const points: { x: number; y: number }[] = [];
-    const steps = Math.max(50, Math.ceil((endTime - startTime) / 50)); // Sample every 50ms or more
-    
-    for (let i = 0; i <= steps; i++) {
-      const t = startTime + (endTime - startTime) * (i / steps);
-      const props = getInterpolatedProperties(object, t);
-      points.push({
-        x: props.x + props.width / 2,
-        y: props.y + props.height / 2,
-      });
-    }
-    
-    return {
-      points,
-      start: points[0],
-      end: points[points.length - 1],
-    };
-  }, [object, getInterpolatedProperties]);
-  
-  if (!trajectoryPoints) return null;
-  
-  const { points, start, end } = trajectoryPoints;
-  
-  // Create SVG path
-  const pathD = points.reduce((acc, point, i) => {
-    return acc + (i === 0 ? `M ${point.x} ${point.y}` : ` L ${point.x} ${point.y}`);
-  }, '');
-  
-  return (
-    <svg
-      className="absolute inset-0 pointer-events-none"
-      style={{ width: '100%', height: '100%', overflow: 'visible' }}
-    >
-      {/* Trajectory line */}
-      <path
-        d={pathD}
-        fill="none"
-        stroke="rgba(255, 255, 255, 0.6)"
-        strokeWidth="2"
-        strokeDasharray="6 4"
-      />
-      {/* Start square */}
-      <rect
-        x={start.x - 5}
-        y={start.y - 5}
-        width={10}
-        height={10}
-        fill="rgba(255, 255, 255, 0.8)"
-        stroke="rgba(100, 100, 100, 0.8)"
-        strokeWidth="1"
-      />
-      {/* End square */}
-      <rect
-        x={end.x - 5}
-        y={end.y - 5}
-        width={10}
-        height={10}
-        fill="rgba(200, 200, 200, 0.8)"
-        stroke="rgba(100, 100, 100, 0.8)"
-        strokeWidth="1"
-      />
-      {/* Keyframe markers */}
-      {object.keyframes.map((kf, i) => {
-        const props = getInterpolatedProperties(object, kf.time);
-        const cx = props.x + props.width / 2;
-        const cy = props.y + props.height / 2;
-        return (
-          <circle
-            key={i}
-            cx={cx}
-            cy={cy}
-            r={4}
-            fill="rgba(0, 212, 255, 0.9)"
-            stroke="white"
-            strokeWidth="1"
-          />
-        );
-      })}
-    </svg>
-  );
-};
 
 const SCENE_WIDTH = 1920;
 const SCENE_HEIGHT = 1080;
@@ -368,29 +273,6 @@ export const Canvas: React.FC<CanvasProps> = ({
               />
             )}
             {/* Scaled content container */}
-            {/* Trajectory visualization for selected object */}
-            {selectedObjectId && (() => {
-              const selectedObj = objects.find(o => o.id === selectedObjectId);
-              if (selectedObj && selectedObj.keyframes.length >= 2) {
-                return (
-                  <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      transform: `scale(${zoom})`,
-                      transformOrigin: 'top left',
-                      width: SCENE_WIDTH,
-                      height: SCENE_HEIGHT,
-                    }}
-                  >
-                    <TrajectoryPath
-                      object={selectedObj}
-                      getInterpolatedProperties={getInterpolatedProperties}
-                    />
-                  </div>
-                );
-              }
-              return null;
-            })()}
             <div
               className="absolute inset-0"
               style={{

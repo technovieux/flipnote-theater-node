@@ -213,20 +213,19 @@ export const useEditorState = () => {
         objects: prev.objects.map(o => {
           if (o.id !== id) return o;
 
-          // If we're at a keyframe, ONLY update that keyframe (not base properties)
-          // This ensures other keyframes stay in place
+          // Update base properties
+          const newProperties = { ...o.properties, ...properties };
+
+          // Also update keyframe if we're at one
           if (keyframeIndex >= 0) {
             const newKeyframes = [...o.keyframes];
             newKeyframes[keyframeIndex] = {
               ...newKeyframes[keyframeIndex],
               properties: { ...newKeyframes[keyframeIndex].properties, ...properties },
             };
-            return { ...o, keyframes: newKeyframes };
+            return { ...o, properties: newProperties, keyframes: newKeyframes };
           }
 
-          // If no keyframes exist, update base properties
-          // If keyframes exist but we're not at one, update base properties (which offsets the whole animation)
-          const newProperties = { ...o.properties, ...properties };
           return { ...o, properties: newProperties };
         }),
       };
@@ -248,18 +247,17 @@ export const useEditorState = () => {
         objects3D: prev.objects3D.map(o => {
           if (o.id !== id) return o;
 
-          // If we're at a keyframe, ONLY update that keyframe (not base properties)
+          const newProperties = { ...o.properties, ...properties };
+
           if (keyframeIndex >= 0) {
             const newKeyframes = [...o.keyframes];
             newKeyframes[keyframeIndex] = {
               ...newKeyframes[keyframeIndex],
               properties: { ...newKeyframes[keyframeIndex].properties, ...properties },
             };
-            return { ...o, keyframes: newKeyframes };
+            return { ...o, properties: newProperties, keyframes: newKeyframes };
           }
 
-          // If no keyframes or not at one, update base properties
-          const newProperties = { ...o.properties, ...properties };
           return { ...o, properties: newProperties };
         }),
       };
@@ -438,15 +436,9 @@ export const useEditorState = () => {
     
     const interpolate = (a: number, b: number) => a + (b - a) * progress;
     
-    // Calculate base offset from first keyframe to current object properties
-    // This makes animations RELATIVE to the object's current position
-    const firstKf = sortedKeyframes[0];
-    const offsetX = object.properties.x - firstKf.properties.x;
-    const offsetY = object.properties.y - firstKf.properties.y;
-    
     return {
-      x: interpolate(prevKf.properties.x, nextKf.properties.x) + offsetX,
-      y: interpolate(prevKf.properties.y, nextKf.properties.y) + offsetY,
+      x: interpolate(prevKf.properties.x, nextKf.properties.x),
+      y: interpolate(prevKf.properties.y, nextKf.properties.y),
       width: interpolate(prevKf.properties.width, nextKf.properties.width),
       height: interpolate(prevKf.properties.height, nextKf.properties.height),
       rotation: interpolate(prevKf.properties.rotation, nextKf.properties.rotation),
@@ -483,17 +475,10 @@ export const useEditorState = () => {
     const progress = (time - prevKf.time) / (nextKf.time - prevKf.time);
     const interpolate = (a: number, b: number) => a + (b - a) * progress;
     
-    // Calculate base offset from first keyframe to current object properties
-    // This makes animations RELATIVE to the object's current position
-    const firstKf = sortedKeyframes[0];
-    const offsetX = object.properties.x - firstKf.properties.x;
-    const offsetY = object.properties.y - firstKf.properties.y;
-    const offsetZ = object.properties.z - firstKf.properties.z;
-    
     return {
-      x: interpolate(prevKf.properties.x, nextKf.properties.x) + offsetX,
-      y: interpolate(prevKf.properties.y, nextKf.properties.y) + offsetY,
-      z: interpolate(prevKf.properties.z, nextKf.properties.z) + offsetZ,
+      x: interpolate(prevKf.properties.x, nextKf.properties.x),
+      y: interpolate(prevKf.properties.y, nextKf.properties.y),
+      z: interpolate(prevKf.properties.z, nextKf.properties.z),
       width: interpolate(prevKf.properties.width, nextKf.properties.width),
       height: interpolate(prevKf.properties.height, nextKf.properties.height),
       depth: interpolate(prevKf.properties.depth, nextKf.properties.depth),
@@ -574,22 +559,15 @@ export const useEditorState = () => {
 
   const pasteObject = useCallback(() => {
     if (state.mode3D && clipboardObject3D) {
-      // Position offset for the duplicated object
-      const offsetX = 20;
-      const offsetY = 20;
-      
-      // With relative animations, we only offset the base properties
-      // The keyframes stay the same - the animation will be relative to the new position
       const newObject: EditorObject3D = {
         ...JSON.parse(JSON.stringify(clipboardObject3D)),
         id: generateId(),
         name: `${clipboardObject3D.name} (copie)`,
         properties: {
           ...clipboardObject3D.properties,
-          x: clipboardObject3D.properties.x + offsetX,
-          y: clipboardObject3D.properties.y + offsetY,
+          x: clipboardObject3D.properties.x + 20,
+          z: clipboardObject3D.properties.z + 20,
         },
-        // Keep original keyframes - animation is now relative to object.properties
       };
       
       setState(prev => ({
@@ -599,21 +577,15 @@ export const useEditorState = () => {
         hasUnsavedChanges: true,
       }));
     } else if (!state.mode3D && clipboardObject) {
-      // Position offset for the duplicated object
-      const offsetX = 20;
-      const offsetY = 20;
-      
-      // With relative animations, we only offset the base properties
       const newObject: EditorObject = {
         ...JSON.parse(JSON.stringify(clipboardObject)),
         id: generateId(),
         name: `${clipboardObject.name} (copie)`,
         properties: {
           ...clipboardObject.properties,
-          x: clipboardObject.properties.x + offsetX,
-          y: clipboardObject.properties.y + offsetY,
+          x: clipboardObject.properties.x + 20,
+          y: clipboardObject.properties.y + 20,
         },
-        // Keep original keyframes - animation is now relative to object.properties
       };
       
       setState(prev => ({

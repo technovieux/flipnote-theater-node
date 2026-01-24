@@ -5,9 +5,6 @@ import { interpolateColor } from '@/lib/colorUtils';
 const SCENE_WIDTH = 1920;
 const SCENE_HEIGHT = 1080;
 
-// Editor 3D properties are stored in "centi-units" (100 = 1 Three.js unit)
-const EDITOR_UNIT_SCALE = 1 / 100;
-
 // Get interpolated 3D properties at a specific time
 export const getInterpolatedProperties3DAt = (
   object: EditorObject3D,
@@ -41,17 +38,10 @@ export const getInterpolatedProperties3DAt = (
   const progress = (time - prevKf.time) / (nextKf.time - prevKf.time);
   const interpolate = (a: number, b: number) => a + (b - a) * progress;
 
-  // Calculate base offset from first keyframe to current object properties
-  // This makes animations RELATIVE to the object's current position
-  const firstKf = sortedKeyframes[0];
-  const offsetX = object.properties.x - firstKf.properties.x;
-  const offsetY = object.properties.y - firstKf.properties.y;
-  const offsetZ = object.properties.z - firstKf.properties.z;
-
   return {
-    x: interpolate(prevKf.properties.x, nextKf.properties.x) + offsetX,
-    y: interpolate(prevKf.properties.y, nextKf.properties.y) + offsetY,
-    z: interpolate(prevKf.properties.z, nextKf.properties.z) + offsetZ,
+    x: interpolate(prevKf.properties.x, nextKf.properties.x),
+    y: interpolate(prevKf.properties.y, nextKf.properties.y),
+    z: interpolate(prevKf.properties.z, nextKf.properties.z),
     width: interpolate(prevKf.properties.width, nextKf.properties.width),
     height: interpolate(prevKf.properties.height, nextKf.properties.height),
     depth: interpolate(prevKf.properties.depth, nextKf.properties.depth),
@@ -173,11 +163,14 @@ export const render3DSceneToCanvas = async (
     camera.lookAt(cameraPos.target.x, cameraPos.target.y, cameraPos.target.z);
   } else {
     // Default camera position
-    camera.position.set(5, 5, 5);
+    camera.position.set(0, 300, 500);
     camera.lookAt(0, 0, 0);
   }
 
-  // Note: Grid is NOT added to export - only visible in editor
+  // Add grid helper for reference
+  const gridHelper = new THREE.GridHelper(1000, 20, 0x444444, 0x333333);
+  gridHelper.rotation.x = Math.PI / 2; // Z-up
+  scene.add(gridHelper);
 
   // Add 3D objects with interpolated properties
   for (const obj of state.objects3D) {
@@ -238,27 +231,28 @@ export const render3DSceneToCanvas = async (
 // Create 3D mesh based on type and properties
 const create3DMesh = (type: string, props: Object3DProperties): THREE.Mesh | null => {
   let geometry: THREE.BufferGeometry;
-
-  // Match the in-editor R3F geometry+scale approach (unit geometry + scale)
-  const scaleX = props.width * EDITOR_UNIT_SCALE;
-  const scaleY = props.height * EDITOR_UNIT_SCALE;
-  const scaleZ = props.depth * EDITOR_UNIT_SCALE;
+  
+  // Scale factor to convert from editor units
+  const scale = 1;
+  const width = props.width * scale;
+  const height = props.height * scale;
+  const depth = props.depth * scale;
 
   switch (type) {
     case 'cube':
-      geometry = new THREE.BoxGeometry(1, 1, 1);
+      geometry = new THREE.BoxGeometry(width, depth, height); // Swap Y/Z for Z-up
       break;
     case 'sphere':
-      geometry = new THREE.SphereGeometry(0.5, 32, 32);
+      geometry = new THREE.SphereGeometry(Math.max(width, height, depth) / 2, 32, 32);
       break;
     case 'cylinder':
-      geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
+      geometry = new THREE.CylinderGeometry(width / 2, width / 2, height, 32);
       break;
     case 'cone':
-      geometry = new THREE.ConeGeometry(0.5, 1, 32);
+      geometry = new THREE.ConeGeometry(width / 2, height, 32);
       break;
     case 'torus':
-      geometry = new THREE.TorusGeometry(0.35, 0.15, 16, 48);
+      geometry = new THREE.TorusGeometry(width / 2, depth / 4, 16, 48);
       break;
     default:
       return null;
@@ -271,22 +265,15 @@ const create3DMesh = (type: string, props: Object3DProperties): THREE.Mesh | nul
   });
 
   const mesh = new THREE.Mesh(geometry, material);
-
-  // Scale (same mapping as Canvas3D)
-  mesh.scale.set(scaleX, scaleY, scaleZ);
   
-  // Position (standard Y-up coordinate system matching the gizmo)
-  mesh.position.set(
-    props.x * EDITOR_UNIT_SCALE,
-    props.y * EDITOR_UNIT_SCALE,
-    props.z * EDITOR_UNIT_SCALE
-  );
+  // Position (swap Y and Z for Z-up coordinate system)
+  mesh.position.set(props.x, props.z, -props.y);
   
-  // Rotation (in radians, standard Y-up)
+  // Rotation (in radians, also adjusted for Z-up)
   mesh.rotation.set(
     THREE.MathUtils.degToRad(props.rotationX),
-    THREE.MathUtils.degToRad(props.rotationY),
-    THREE.MathUtils.degToRad(props.rotationZ)
+    THREE.MathUtils.degToRad(props.rotationZ),
+    THREE.MathUtils.degToRad(-props.rotationY)
   );
 
   return mesh;
