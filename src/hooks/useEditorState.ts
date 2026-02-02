@@ -12,7 +12,8 @@ import {
   ShapeType, 
   Shape3DType,
   ThemeMode, 
-  AudioTrack 
+  AudioTrack,
+  CustomGeometry,
 } from '@/types/editor';
 import { FlptProject, base64ToFile } from '@/lib/fileOperations';
 import { interpolateColor } from '@/lib/colorUtils';
@@ -266,20 +267,81 @@ export const useEditorState = () => {
     const colors = ['#00d4ff', '#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     
-    const typeNames: Record<Shape3DType, string> = {
+    const typeNames: Partial<Record<Shape3DType, string>> = {
       cube: 'Cube',
       sphere: 'Sphère',
       cylinder: 'Cylindre',
       cone: 'Cône',
       torus: 'Tore',
+      pyramid: 'Pyramide',
+      octahedron: 'Octaèdre',
+      dodecahedron: 'Dodécaèdre',
+      icosahedron: 'Icosaèdre',
+      tetrahedron: 'Tétraèdre',
+      torusknot: 'Tore noué',
+      capsule: 'Capsule',
+      ring: 'Anneau',
+      tube: 'Tube',
+      arch: 'Arche',
+      stairs: 'Escalier',
+      roof: 'Toit',
+      window: 'Fenêtre',
+      door: 'Porte',
+      star: 'Étoile',
+      heart: 'Cœur',
+      arrow: 'Flèche',
+      gear: 'Engrenage',
+      plus: 'Plus',
+      cross: 'Croix',
+      speechbubble: 'Bulle',
+      table: 'Table',
+      chair: 'Chaise',
+      car: 'Voiture',
+      tree: 'Arbre',
+      house: 'Maison',
+      lamp: 'Lampe',
+      bottle: 'Bouteille',
+      cup: 'Tasse',
+      custom: 'Forme',
     };
     
     const newObject: EditorObject3D = {
       id: generateId(),
-      name: `${typeNames[type]} ${state.objects3D.length + 1}`,
+      name: `${typeNames[type] || type} ${state.objects3D.length + 1}`,
       type,
       properties: { ...default3DProperties, color: randomColor },
       keyframes: [],
+    };
+    
+    setState(prev => ({
+      ...prev,
+      objects3D: [newObject, ...prev.objects3D],
+      selectedObjectId: newObject.id,
+      hasUnsavedChanges: true,
+    }));
+  }, [state.objects3D.length]);
+
+  // Add 3D object with custom geometry
+  const addObject3DWithGeometry = useCallback((
+    name: string,
+    type: Shape3DType,
+    customGeometry?: CustomGeometry,
+    defaultScale?: { width: number; height: number; depth: number }
+  ) => {
+    const colors = ['#00d4ff', '#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    
+    const newObject: EditorObject3D = {
+      id: generateId(),
+      name: `${name} ${state.objects3D.length + 1}`,
+      type,
+      properties: {
+        ...default3DProperties,
+        color: randomColor,
+        ...(defaultScale || {}),
+      },
+      keyframes: [],
+      customGeometry,
     };
     
     setState(prev => ({
@@ -752,6 +814,7 @@ export const useEditorState = () => {
     setMode3D,
     addObject,
     addObject3D,
+    addObject3DWithGeometry,
     selectObject,
     updateObjectProperties,
     updateObject3DProperties,

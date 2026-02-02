@@ -10,7 +10,10 @@ import { PropertiesPanel3D } from './PropertiesPanel3D';
 import { Timeline } from './Timeline';
 import { ExportDialog } from './ExportDialog';
 import { WelcomeDialog } from './WelcomeDialog';
+import { ShapeLibraryDialog } from './ShapeLibraryDialog';
+import { CustomShapeEditor } from './CustomShapeEditor';
 import { useEditorState } from '@/hooks/useEditorState';
+import { LibraryShape3D } from '@/data/shape3DLibrary';
 import {
   Dialog,
   DialogContent,
@@ -42,6 +45,7 @@ export const AnimationEditor: React.FC = () => {
     setMode3D,
     addObject,
     addObject3D,
+    addObject3DWithGeometry,
     selectObject,
     updateObjectProperties,
     updateObject3DProperties,
@@ -74,6 +78,8 @@ export const AnimationEditor: React.FC = () => {
   const [selectedKeyframe, setSelectedKeyframe] = useState<{ objectId: string; keyframeIndex: number } | null>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [welcomeDialogOpen, setWelcomeDialogOpen] = useState(true);
+  const [libraryDialogOpen, setLibraryDialogOpen] = useState(false);
+  const [customEditorOpen, setCustomEditorOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   
@@ -366,6 +372,49 @@ export const AnimationEditor: React.FC = () => {
     }
   };
 
+  // Handle shape selection from library
+  const handleSelectShapeFromLibrary = (shape: LibraryShape3D) => {
+    if (shape.customGeometry) {
+      addObject3DWithGeometry(
+        shape.name,
+        shape.type,
+        shape.customGeometry,
+        shape.defaultScale
+      );
+    } else if (shape.defaultScale) {
+      addObject3DWithGeometry(
+        shape.name,
+        shape.type,
+        undefined,
+        shape.defaultScale
+      );
+    } else {
+      addObject3D(shape.type);
+    }
+    toast.success(`${shape.name} ajouté`);
+  };
+
+  // Handle custom shape creation
+  const handleCreateCustomShape = (
+    name: string,
+    points: { x: number; y: number }[],
+    depth: number,
+    bevel: boolean
+  ) => {
+    addObject3DWithGeometry(
+      name,
+      'custom',
+      {
+        points,
+        depth,
+        bevelEnabled: bevel,
+        bevelThickness: bevel ? 0.05 : 0,
+        bevelSize: bevel ? 0.05 : 0,
+      }
+    );
+    toast.success(`${name} créée`);
+  };
+
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Hidden file inputs */}
@@ -404,6 +453,8 @@ export const AnimationEditor: React.FC = () => {
         onShowPropertiesChange={setShowProperties}
         mode3D={state.mode3D}
         hasSelectedObject={!!state.selectedObjectId}
+        onOpenLibrary={() => setLibraryDialogOpen(true)}
+        onOpenCustomEditor={() => setCustomEditorOpen(true)}
       />
       
       <div className="flex-1 p-1 overflow-hidden">
@@ -555,6 +606,18 @@ export const AnimationEditor: React.FC = () => {
       <WelcomeDialog
         open={welcomeDialogOpen}
         onSelectMode={handleSelectMode}
+      />
+
+      <ShapeLibraryDialog
+        open={libraryDialogOpen}
+        onOpenChange={setLibraryDialogOpen}
+        onSelectShape={handleSelectShapeFromLibrary}
+      />
+
+      <CustomShapeEditor
+        open={customEditorOpen}
+        onOpenChange={setCustomEditorOpen}
+        onCreateShape={handleCreateCustomShape}
       />
 
       <AlertDialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>

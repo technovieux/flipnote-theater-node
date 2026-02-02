@@ -1,5 +1,25 @@
 export type ShapeType = 'rectangle' | 'circle' | 'triangle';
-export type Shape3DType = 'cube' | 'sphere' | 'cylinder' | 'cone' | 'torus';
+export type Shape3DType = 
+  | 'cube' | 'sphere' | 'cylinder' | 'cone' | 'torus'
+  // Geometric
+  | 'pyramid' | 'octahedron' | 'dodecahedron' | 'icosahedron' | 'tetrahedron'
+  | 'torusknot' | 'capsule' | 'ring' | 'tube'
+  // Architectural
+  | 'arch' | 'stairs' | 'roof' | 'window' | 'door'
+  // Symbols
+  | 'star' | 'heart' | 'arrow' | 'gear' | 'plus' | 'cross' | 'speechbubble'
+  // Everyday
+  | 'table' | 'chair' | 'car' | 'tree' | 'house' | 'lamp' | 'bottle' | 'cup'
+  // Custom
+  | 'custom';
+
+export interface CustomGeometry {
+  points: { x: number; y: number }[];
+  depth: number;
+  bevelEnabled?: boolean;
+  bevelThickness?: number;
+  bevelSize?: number;
+}
 
 export interface ObjectProperties {
   x: number;
@@ -56,6 +76,7 @@ export interface EditorObject3D {
   type: Shape3DType;
   properties: Object3DProperties;
   keyframes: Keyframe3D[];
+  customGeometry?: CustomGeometry;
 }
 
 export interface Scene {

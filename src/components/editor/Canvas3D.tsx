@@ -1,7 +1,7 @@
-import React, { useRef, useState, Suspense, useEffect } from 'react';
+import React, { useRef, useState, Suspense, useEffect, useMemo } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport } from '@react-three/drei';
-import { EditorObject3D, Object3DProperties, CameraPosition } from '@/types/editor';
+import { EditorObject3D, Object3DProperties, CameraPosition, CustomGeometry } from '@/types/editor';
 import { setCameraPosition } from '@/hooks/useEditorState';
 import { Move, ZoomIn, ZoomOut, RotateCcw, Hand, MousePointer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,118 @@ interface Shape3DProps {
   onUpdateProperties: (properties: Partial<Object3DProperties>) => void;
   isPlaying: boolean;
   controlsRef: React.RefObject<any>;
+  customGeometry?: CustomGeometry;
 }
+
+// Helper to create extruded shape geometry from points
+const createExtrudedGeometry = (customGeom: CustomGeometry): THREE.ExtrudeGeometry => {
+  const shape = new THREE.Shape();
+  const points = customGeom.points;
+  
+  if (points.length > 0) {
+    shape.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      shape.lineTo(points[i].x, points[i].y);
+    }
+    shape.closePath();
+  }
+  
+  const extrudeSettings = {
+    depth: customGeom.depth / 100,
+    bevelEnabled: customGeom.bevelEnabled || false,
+    bevelThickness: customGeom.bevelThickness || 0.02,
+    bevelSize: customGeom.bevelSize || 0.02,
+    bevelSegments: 3,
+  };
+  
+  return new THREE.ExtrudeGeometry(shape, extrudeSettings);
+};
+
+// Create gear geometry
+const createGearGeometry = (): THREE.ExtrudeGeometry => {
+  const shape = new THREE.Shape();
+  const teeth = 8;
+  const outerRadius = 1;
+  const innerRadius = 0.7;
+  const toothWidth = 0.2;
+  
+  for (let i = 0; i < teeth; i++) {
+    const angle = (i / teeth) * Math.PI * 2;
+    const nextAngle = ((i + 1) / teeth) * Math.PI * 2;
+    const midAngle = angle + (nextAngle - angle) * 0.25;
+    const endMidAngle = angle + (nextAngle - angle) * 0.75;
+    
+    if (i === 0) {
+      shape.moveTo(Math.cos(angle) * innerRadius, Math.sin(angle) * innerRadius);
+    }
+    shape.lineTo(Math.cos(midAngle) * innerRadius, Math.sin(midAngle) * innerRadius);
+    shape.lineTo(Math.cos(midAngle) * outerRadius, Math.sin(midAngle) * outerRadius);
+    shape.lineTo(Math.cos(endMidAngle) * outerRadius, Math.sin(endMidAngle) * outerRadius);
+    shape.lineTo(Math.cos(endMidAngle) * innerRadius, Math.sin(endMidAngle) * innerRadius);
+    shape.lineTo(Math.cos(nextAngle) * innerRadius, Math.sin(nextAngle) * innerRadius);
+  }
+  
+  // Add center hole
+  const holePath = new THREE.Path();
+  holePath.absarc(0, 0, 0.2, 0, Math.PI * 2, true);
+  shape.holes.push(holePath);
+  
+  return new THREE.ExtrudeGeometry(shape, { depth: 0.2, bevelEnabled: false });
+};
+
+// Create stairs geometry
+const createStairsGeometry = (): THREE.BufferGeometry => {
+  const group = new THREE.Group();
+  const steps = 5;
+  const stepWidth = 1;
+  const stepHeight = 0.2;
+  const stepDepth = 0.3;
+  
+  const geometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
+  const mergedGeometry = new THREE.BufferGeometry();
+  const geometries: THREE.BufferGeometry[] = [];
+  
+  for (let i = 0; i < steps; i++) {
+    const stepGeom = geometry.clone();
+    stepGeom.translate(0, i * stepHeight + stepHeight / 2, i * stepDepth);
+    geometries.push(stepGeom);
+  }
+  
+  return mergeBufferGeometries(geometries);
+};
+
+// Simple merge for buffer geometries
+const mergeBufferGeometries = (geometries: THREE.BufferGeometry[]): THREE.BufferGeometry => {
+  const merged = new THREE.BufferGeometry();
+  let totalVertices = 0;
+  let totalIndices = 0;
+  
+  geometries.forEach(geom => {
+    totalVertices += geom.attributes.position.count;
+    if (geom.index) totalIndices += geom.index.count;
+  });
+  
+  const positions = new Float32Array(totalVertices * 3);
+  const normals = new Float32Array(totalVertices * 3);
+  let posOffset = 0;
+  
+  geometries.forEach(geom => {
+    const pos = geom.attributes.position.array;
+    const norm = geom.attributes.normal?.array;
+    
+    for (let i = 0; i < pos.length; i++) {
+      positions[posOffset + i] = pos[i];
+      if (norm) normals[posOffset + i] = norm[i];
+    }
+    posOffset += pos.length;
+  });
+  
+  merged.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  merged.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+  merged.computeVertexNormals();
+  
+  return merged;
+};
 
 const Shape3D: React.FC<Shape3DProps> = ({
   object,
@@ -36,6 +147,7 @@ const Shape3D: React.FC<Shape3DProps> = ({
   onUpdateProperties,
   isPlaying,
   controlsRef,
+  customGeometry,
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -113,7 +225,20 @@ const Shape3D: React.FC<Shape3DProps> = ({
     properties.height / 100,
   ];
 
+  // Memoize custom geometry
+  const extrudedGeom = useMemo(() => {
+    if (customGeometry || object.customGeometry) {
+      return createExtrudedGeometry(customGeometry || object.customGeometry!);
+    }
+    return null;
+  }, [customGeometry, object.customGeometry]);
+
   const renderGeometry = () => {
+    // Custom geometry takes priority
+    if (extrudedGeom) {
+      return <primitive object={extrudedGeom} attach="geometry" />;
+    }
+
     switch (object.type) {
       case 'cube':
         return <boxGeometry args={[1, 1, 1]} />;
@@ -125,6 +250,48 @@ const Shape3D: React.FC<Shape3DProps> = ({
         return <coneGeometry args={[0.5, 1, 32]} />;
       case 'torus':
         return <torusGeometry args={[0.35, 0.15, 16, 48]} />;
+      // Geometric shapes
+      case 'pyramid':
+        return <coneGeometry args={[0.5, 1, 4]} />;
+      case 'octahedron':
+        return <octahedronGeometry args={[0.5]} />;
+      case 'dodecahedron':
+        return <dodecahedronGeometry args={[0.5]} />;
+      case 'icosahedron':
+        return <icosahedronGeometry args={[0.5]} />;
+      case 'tetrahedron':
+        return <tetrahedronGeometry args={[0.5]} />;
+      case 'torusknot':
+        return <torusKnotGeometry args={[0.3, 0.1, 100, 16]} />;
+      case 'capsule':
+        return <capsuleGeometry args={[0.3, 0.5, 4, 16]} />;
+      case 'ring':
+        return <ringGeometry args={[0.3, 0.5, 32]} />;
+      case 'tube':
+        return <torusGeometry args={[0.4, 0.1, 8, 32]} />;
+      // Stairs
+      case 'stairs':
+        return <primitive object={createStairsGeometry()} attach="geometry" />;
+      // Gear
+      case 'gear':
+        return <primitive object={createGearGeometry()} attach="geometry" />;
+      // Everyday objects - composed forms
+      case 'table':
+        return <boxGeometry args={[1.5, 0.1, 1]} />; // Simplified as a box
+      case 'chair':
+        return <boxGeometry args={[0.5, 0.8, 0.5]} />; // Simplified
+      case 'tree':
+        return <coneGeometry args={[0.5, 1.5, 8]} />; // Simplified as cone
+      case 'house':
+        return <boxGeometry args={[1, 0.8, 1]} />; // Simplified as box
+      case 'car':
+        return <boxGeometry args={[1, 0.4, 0.5]} />; // Simplified
+      case 'lamp':
+        return <cylinderGeometry args={[0.1, 0.3, 0.6, 16]} />; // Simplified
+      case 'bottle':
+        return <cylinderGeometry args={[0.15, 0.2, 0.8, 16]} />;
+      case 'cup':
+        return <cylinderGeometry args={[0.2, 0.15, 0.3, 16]} />;
       default:
         return <boxGeometry args={[1, 1, 1]} />;
     }
@@ -441,6 +608,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                   onUpdateProperties={(p) => onUpdateProperties(obj.id, p)}
                   isPlaying={isPlaying}
                   controlsRef={controlsRef}
+                  customGeometry={obj.customGeometry}
                 />
               );
             })}
