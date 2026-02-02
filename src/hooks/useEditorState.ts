@@ -34,6 +34,23 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 let clipboardObject: EditorObject | null = null;
 let clipboardObject3D: EditorObject3D | null = null;
 
+// Max history size
+const MAX_HISTORY_SIZE = 50;
+
+// Keys to exclude from history comparison (transient state)
+const TRANSIENT_KEYS: (keyof EditorState)[] = ['currentTime', 'isPlaying'];
+
+// Deep clone state for history (excluding audio file which can't be cloned)
+const cloneStateForHistory = (state: EditorState): EditorState => {
+  return {
+    ...state,
+    objects: JSON.parse(JSON.stringify(state.objects)),
+    objects3D: JSON.parse(JSON.stringify(state.objects3D)),
+    scenes: JSON.parse(JSON.stringify(state.scenes)),
+    audioTrack: state.audioTrack ? { ...state.audioTrack } : null,
+  };
+};
+
 const defaultProperties: ObjectProperties = {
   x: 50,
   y: 50,
@@ -79,6 +96,64 @@ export const useEditorState = () => {
   const [state, setState] = useState<EditorState>(initialState);
   const animationRef = useRef<number>();
   const lastTimeRef = useRef<number>(0);
+  
+  // History for undo/redo
+  const historyRef = useRef<EditorState[]>([cloneStateForHistory(initialState)]);
+  const historyIndexRef = useRef<number>(0);
+  const isUndoRedoRef = useRef<boolean>(false);
+  
+  // Save state to history (called after meaningful changes)
+  const saveToHistory = useCallback((newState: EditorState) => {
+    if (isUndoRedoRef.current) {
+      isUndoRedoRef.current = false;
+      return;
+    }
+    
+    // Remove any future states if we're not at the end
+    const newHistory = historyRef.current.slice(0, historyIndexRef.current + 1);
+    
+    // Add new state
+    newHistory.push(cloneStateForHistory(newState));
+    
+    // Limit history size
+    if (newHistory.length > MAX_HISTORY_SIZE) {
+      newHistory.shift();
+    } else {
+      historyIndexRef.current++;
+    }
+    
+    historyRef.current = newHistory;
+  }, []);
+  
+  // Undo function
+  const undo = useCallback(() => {
+    if (historyIndexRef.current > 0) {
+      historyIndexRef.current--;
+      isUndoRedoRef.current = true;
+      const previousState = historyRef.current[historyIndexRef.current];
+      setState(prev => ({
+        ...cloneStateForHistory(previousState),
+        currentTime: prev.currentTime,
+        isPlaying: prev.isPlaying,
+        theme: prev.theme,
+      }));
+    }
+  }, []);
+  
+  // Redo function
+  const redo = useCallback(() => {
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      historyIndexRef.current++;
+      isUndoRedoRef.current = true;
+      const nextState = historyRef.current[historyIndexRef.current];
+      setState(prev => ({
+        ...cloneStateForHistory(nextState),
+        currentTime: prev.currentTime,
+        isPlaying: prev.isPlaying,
+        theme: prev.theme,
+      }));
+    }
+  }, []);
 
   // Theme management
   useEffect(() => {
@@ -120,6 +195,28 @@ export const useEditorState = () => {
       }
     };
   }, [state.isPlaying]);
+
+  // Save to history when meaningful state changes occur
+  const prevStateRef = useRef<string>('');
+  useEffect(() => {
+    // Skip if this is from undo/redo
+    if (isUndoRedoRef.current) return;
+    
+    // Create a snapshot excluding transient properties
+    const snapshot = JSON.stringify({
+      objects: state.objects,
+      objects3D: state.objects3D,
+      scenes: state.scenes,
+      backgroundImage: state.backgroundImage,
+      selectedObjectId: state.selectedObjectId,
+    });
+    
+    // Only save if something meaningful changed
+    if (snapshot !== prevStateRef.current && prevStateRef.current !== '') {
+      saveToHistory(state);
+    }
+    prevStateRef.current = snapshot;
+  }, [state.objects, state.objects3D, state.scenes, state.backgroundImage, state.selectedObjectId, saveToHistory, state]);
 
   const setTheme = useCallback((theme: ThemeMode) => {
     setState(prev => ({ ...prev, theme }));
@@ -678,5 +775,9 @@ export const useEditorState = () => {
     moveKeyframe,
     deleteKeyframe,
     markAsSaved,
+    undo,
+    redo,
+    canUndo: historyIndexRef.current > 0,
+    canRedo: historyIndexRef.current < historyRef.current.length - 1,
   };
 };
