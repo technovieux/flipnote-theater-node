@@ -65,6 +65,8 @@ export const AnimationEditor: React.FC = () => {
     moveKeyframe,
     deleteKeyframe,
     markAsSaved,
+    undo,
+    redo,
   } = useEditorState();
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -107,7 +109,17 @@ export const AnimationEditor: React.FC = () => {
       
       // Ctrl/Cmd shortcuts
       if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'c' || e.key === 'C') {
+        if (e.key === 'z' || e.key === 'Z') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            redo();
+          } else {
+            undo();
+          }
+        } else if (e.key === 'y' || e.key === 'Y') {
+          e.preventDefault();
+          redo();
+        } else if (e.key === 'c' || e.key === 'C') {
           e.preventDefault();
           copySelectedObject();
         } else if (e.key === 'v' || e.key === 'V') {
@@ -160,7 +172,7 @@ export const AnimationEditor: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectId, selectedKeyframe, play, pause, addKeyframe, deleteObject, deleteKeyframe, state]);
+  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectId, selectedKeyframe, play, pause, addKeyframe, deleteObject, deleteKeyframe, state, undo, redo]);
 
   const handleSave = async () => {
     try {
