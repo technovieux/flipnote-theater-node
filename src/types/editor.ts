@@ -10,8 +10,8 @@ export type Shape3DType =
   | 'star' | 'heart' | 'arrow' | 'gear' | 'plus' | 'cross' | 'speechbubble'
   // Everyday
   | 'table' | 'chair' | 'car' | 'tree' | 'house' | 'lamp' | 'bottle' | 'cup'
-  // Custom
-  | 'custom';
+  // Custom and imported
+  | 'custom' | 'obj';
 
 export interface CustomGeometry {
   points: { x: number; y: number }[];
@@ -19,6 +19,13 @@ export interface CustomGeometry {
   bevelEnabled?: boolean;
   bevelThickness?: number;
   bevelSize?: number;
+}
+
+// Serialized OBJ geometry for storage
+export interface OBJGeometry {
+  positions: number[];
+  normals: number[];
+  indices?: number[];
 }
 
 export interface ObjectProperties {
@@ -77,6 +84,7 @@ export interface EditorObject3D {
   properties: Object3DProperties;
   keyframes: Keyframe3D[];
   customGeometry?: CustomGeometry;
+  objGeometry?: OBJGeometry;
 }
 
 export interface Scene {

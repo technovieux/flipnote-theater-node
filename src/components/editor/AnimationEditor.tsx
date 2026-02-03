@@ -14,6 +14,7 @@ import { ShapeLibraryDialog } from './ShapeLibraryDialog';
 import { CustomShapeEditor } from './CustomShapeEditor';
 import { useEditorState } from '@/hooks/useEditorState';
 import { LibraryShape3D } from '@/data/shape3DLibrary';
+import { ImportedOBJModel } from '@/lib/objImporter';
 import {
   Dialog,
   DialogContent,
@@ -46,6 +47,7 @@ export const AnimationEditor: React.FC = () => {
     addObject,
     addObject3D,
     addObject3DWithGeometry,
+    addObject3DFromOBJ,
     selectObject,
     updateObjectProperties,
     updateObject3DProperties,
@@ -394,6 +396,12 @@ export const AnimationEditor: React.FC = () => {
     toast.success(`${shape.name} ajouté`);
   };
 
+  // Handle OBJ model selection from library
+  const handleSelectOBJModel = (model: ImportedOBJModel) => {
+    addObject3DFromOBJ(model.name, model.geometry);
+    toast.success(`${model.name} ajouté`);
+  };
+
   // Handle custom shape creation
   const handleCreateCustomShape = (
     name: string,
@@ -612,6 +620,7 @@ export const AnimationEditor: React.FC = () => {
         open={libraryDialogOpen}
         onOpenChange={setLibraryDialogOpen}
         onSelectShape={handleSelectShapeFromLibrary}
+        onSelectOBJModel={handleSelectOBJModel}
       />
 
       <CustomShapeEditor

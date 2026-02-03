@@ -1,7 +1,7 @@
 import React, { useRef, useState, Suspense, useEffect, useMemo } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport } from '@react-three/drei';
-import { EditorObject3D, Object3DProperties, CameraPosition, CustomGeometry } from '@/types/editor';
+import { EditorObject3D, Object3DProperties, CameraPosition, CustomGeometry, OBJGeometry } from '@/types/editor';
 import { setCameraPosition } from '@/hooks/useEditorState';
 import { Move, ZoomIn, ZoomOut, RotateCcw, Hand, MousePointer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,33 @@ interface Shape3DProps {
   isPlaying: boolean;
   controlsRef: React.RefObject<any>;
   customGeometry?: CustomGeometry;
+  objGeometry?: OBJGeometry;
 }
+
+// Helper to deserialize OBJ geometry
+const deserializeOBJGeometry = (serialized: OBJGeometry): THREE.BufferGeometry => {
+  const geometry = new THREE.BufferGeometry();
+  
+  geometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(serialized.positions, 3)
+  );
+  
+  if (serialized.normals.length > 0) {
+    geometry.setAttribute(
+      'normal',
+      new THREE.Float32BufferAttribute(serialized.normals, 3)
+    );
+  } else {
+    geometry.computeVertexNormals();
+  }
+  
+  if (serialized.indices) {
+    geometry.setIndex(serialized.indices);
+  }
+  
+  return geometry;
+};
 
 // Helper to create extruded shape geometry from points
 const createExtrudedGeometry = (customGeom: CustomGeometry): THREE.ExtrudeGeometry => {
@@ -148,6 +174,7 @@ const Shape3D: React.FC<Shape3DProps> = ({
   isPlaying,
   controlsRef,
   customGeometry,
+  objGeometry,
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -233,8 +260,21 @@ const Shape3D: React.FC<Shape3DProps> = ({
     return null;
   }, [customGeometry, object.customGeometry]);
 
+  // Memoize OBJ geometry
+  const objGeom = useMemo(() => {
+    if (objGeometry || object.objGeometry) {
+      return deserializeOBJGeometry(objGeometry || object.objGeometry!);
+    }
+    return null;
+  }, [objGeometry, object.objGeometry]);
+
   const renderGeometry = () => {
-    // Custom geometry takes priority
+    // OBJ geometry takes priority
+    if (objGeom) {
+      return <primitive object={objGeom} attach="geometry" />;
+    }
+
+    // Custom geometry second priority
     if (extrudedGeom) {
       return <primitive object={extrudedGeom} attach="geometry" />;
     }
@@ -292,6 +332,9 @@ const Shape3D: React.FC<Shape3DProps> = ({
         return <cylinderGeometry args={[0.15, 0.2, 0.8, 16]} />;
       case 'cup':
         return <cylinderGeometry args={[0.2, 0.15, 0.3, 16]} />;
+      case 'obj':
+        // Fallback for OBJ without geometry
+        return <boxGeometry args={[1, 1, 1]} />;
       default:
         return <boxGeometry args={[1, 1, 1]} />;
     }
@@ -609,6 +652,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                   isPlaying={isPlaying}
                   controlsRef={controlsRef}
                   customGeometry={obj.customGeometry}
+                  objGeometry={obj.objGeometry}
                 />
               );
             })}

@@ -14,6 +14,7 @@ import {
   ThemeMode, 
   AudioTrack,
   CustomGeometry,
+  OBJGeometry,
 } from '@/types/editor';
 import { FlptProject, base64ToFile } from '@/lib/fileOperations';
 import { interpolateColor } from '@/lib/colorUtils';
@@ -342,6 +343,34 @@ export const useEditorState = () => {
       },
       keyframes: [],
       customGeometry,
+    };
+    
+    setState(prev => ({
+      ...prev,
+      objects3D: [newObject, ...prev.objects3D],
+      selectedObjectId: newObject.id,
+      hasUnsavedChanges: true,
+    }));
+  }, [state.objects3D.length]);
+
+  // Add 3D object from imported OBJ file
+  const addObject3DFromOBJ = useCallback((
+    name: string,
+    objGeometry: OBJGeometry
+  ) => {
+    const colors = ['#00d4ff', '#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    
+    const newObject: EditorObject3D = {
+      id: generateId(),
+      name: `${name} ${state.objects3D.length + 1}`,
+      type: 'obj',
+      properties: {
+        ...default3DProperties,
+        color: randomColor,
+      },
+      keyframes: [],
+      objGeometry,
     };
     
     setState(prev => ({
@@ -815,6 +844,7 @@ export const useEditorState = () => {
     addObject,
     addObject3D,
     addObject3DWithGeometry,
+    addObject3DFromOBJ,
     selectObject,
     updateObjectProperties,
     updateObject3DProperties,
