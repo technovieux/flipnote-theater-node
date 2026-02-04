@@ -1,4 +1,12 @@
-import { EditorState, EditorObject, EditorObject3D, Scene, AudioTrack } from '@/types/editor';
+import { EditorState, EditorObject, EditorObject3D, Scene, AudioTrack, OBJGeometry } from '@/types/editor';
+
+// Embedded OBJ model for portable project files
+export interface EmbeddedOBJModel {
+  id: string;
+  name: string;
+  fileName: string;
+  geometry: OBJGeometry;
+}
 
 export interface FlptProject {
   version: string;
@@ -14,6 +22,8 @@ export interface FlptProject {
   } | null;
   duration: number;
   mode3D?: boolean;
+  // Embedded OBJ models for portability
+  embeddedOBJModels?: EmbeddedOBJModel[];
 }
 
 let currentFileHandle: FileSystemFileHandle | null = null;
@@ -38,8 +48,28 @@ export const serializeProject = async (state: EditorState): Promise<FlptProject>
     };
   }
 
+  // Extract unique OBJ geometries from 3D objects
+  const embeddedOBJModels: EmbeddedOBJModel[] = [];
+  const seenIds = new Set<string>();
+  
+  for (const obj of state.objects3D) {
+    if (obj.type === 'obj' && obj.objGeometry) {
+      // Use a hash of the geometry as ID to avoid duplicates
+      const geometryKey = `${obj.name}_${obj.objGeometry.positions.length}`;
+      if (!seenIds.has(geometryKey)) {
+        seenIds.add(geometryKey);
+        embeddedOBJModels.push({
+          id: obj.id,
+          name: obj.name,
+          fileName: `${obj.name}.obj`,
+          geometry: obj.objGeometry,
+        });
+      }
+    }
+  }
+
   return {
-    version: '1.1',
+    version: '1.2',
     objects: state.objects,
     objects3D: state.objects3D,
     scenes: state.scenes,
@@ -47,6 +77,7 @@ export const serializeProject = async (state: EditorState): Promise<FlptProject>
     audioTrack: audioData,
     duration: state.duration,
     mode3D: state.mode3D,
+    embeddedOBJModels: embeddedOBJModels.length > 0 ? embeddedOBJModels : undefined,
   };
 };
 
