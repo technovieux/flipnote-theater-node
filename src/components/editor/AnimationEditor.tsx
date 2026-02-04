@@ -15,6 +15,7 @@ import { CustomShapeEditor } from './CustomShapeEditor';
 import { useEditorState } from '@/hooks/useEditorState';
 import { LibraryShape3D } from '@/data/shape3DLibrary';
 import { ImportedOBJModel } from '@/lib/objImporter';
+import { saveModels, modelExistsByFileName } from '@/lib/objLibraryStorage';
 import {
   Dialog,
   DialogContent,
@@ -35,7 +36,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { saveProject, saveProjectAs, openProject, clearCurrentFile } from '@/lib/fileOperations';
+import { saveProject, saveProjectAs, openProject, clearCurrentFile, FlptProject, EmbeddedOBJModel } from '@/lib/fileOperations';
 
 export const AnimationEditor: React.FC = () => {
   const {
@@ -91,6 +92,10 @@ export const AnimationEditor: React.FC = () => {
   
   // Exit confirmation dialog state
   const [exitDialogOpen, setExitDialogOpen] = useState(false);
+  
+  // OBJ import dialog state
+  const [objImportDialogOpen, setObjImportDialogOpen] = useState(false);
+  const [pendingOBJModels, setPendingOBJModels] = useState<EmbeddedOBJModel[]>([]);
 
   const selectedObject = state.objects.find(obj => obj.id === state.selectedObjectId) || null;
   const selectedObject3D = state.objects3D.find(obj => obj.id === state.selectedObjectId) || null;
@@ -226,11 +231,57 @@ export const AnimationEditor: React.FC = () => {
         loadProject(project);
         setWelcomeDialogOpen(false); // Close welcome dialog when loading a project
         toast.success('Projet chargé avec succès');
+        
+        // Check for embedded OBJ models
+        if (project.embeddedOBJModels && project.embeddedOBJModels.length > 0) {
+          setPendingOBJModels(project.embeddedOBJModels);
+          setObjImportDialogOpen(true);
+        }
       }
     } catch (error) {
       toast.error('Erreur lors du chargement du projet');
       console.error(error);
     }
+  };
+  
+  const handleImportOBJModelsToLibrary = async () => {
+    try {
+      let importedCount = 0;
+      let skippedCount = 0;
+      
+      for (const model of pendingOBJModels) {
+        // Check if model already exists
+        const exists = await modelExistsByFileName(model.fileName);
+        if (!exists) {
+          await saveModels([{
+            name: model.name,
+            fileName: model.fileName,
+            geometry: model.geometry,
+          }]);
+          importedCount++;
+        } else {
+          skippedCount++;
+        }
+      }
+      
+      if (importedCount > 0) {
+        toast.success(`${importedCount} modèle(s) importé(s) dans la bibliothèque`);
+      }
+      if (skippedCount > 0) {
+        toast.info(`${skippedCount} modèle(s) déjà présent(s)`);
+      }
+    } catch (error) {
+      toast.error("Erreur lors de l'import des modèles");
+      console.error(error);
+    }
+    
+    setObjImportDialogOpen(false);
+    setPendingOBJModels([]);
+  };
+  
+  const handleSkipOBJImport = () => {
+    setObjImportDialogOpen(false);
+    setPendingOBJModels([]);
   };
 
   const handleNewProject = () => {
@@ -643,6 +694,36 @@ export const AnimationEditor: React.FC = () => {
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleSaveAndExit}>
               Bonne idée, je vais sauvegarder
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={objImportDialogOpen} onOpenChange={setObjImportDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Modèles 3D détectés</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ce projet contient {pendingOBJModels.length} fichier(s) 3D (.obj).
+              Voulez-vous les importer dans votre bibliothèque locale pour pouvoir les réutiliser dans d'autres projets ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="my-4 max-h-32 overflow-y-auto">
+            <ul className="text-sm text-muted-foreground space-y-1">
+              {pendingOBJModels.map((model, idx) => (
+                <li key={idx} className="flex items-center gap-2">
+                  <span className="text-primary">📦</span>
+                  {model.name}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleSkipOBJImport}>
+              Non merci
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleImportOBJModelsToLibrary}>
+              Oui, importer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
