@@ -10,8 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { shape3DLibrary, shapeCategories, LibraryShape3D } from '@/data/shape3DLibrary';
 import { cn } from '@/lib/utils';
-import { ImportedOBJModel } from '@/lib/objImporter';
+import { ImportedOBJModel, parseOBJContent } from '@/lib/objImporter';
 import { parseOBJFilesFromDirectory } from '@/lib/objImporter';
+import { defaultModels, defaultModelCategories, DefaultModel } from '@/data/defaultModels';
 import { getAllModels, saveModels, deleteModel } from '@/lib/objLibraryStorage';
 import { FolderOpen, Trash2, Upload, Loader2, Package, Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,7 @@ export const ShapeLibraryDialog: React.FC<ShapeLibraryDialogProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [importedModels, setImportedModels] = useState<ImportedOBJModel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingDefaultId, setLoadingDefaultId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
@@ -85,6 +87,13 @@ export const ShapeLibraryDialog: React.FC<ShapeLibraryDialogProps> = ({
       )
     : [];
 
+  const searchFilteredDefaults = isSearching
+    ? defaultModels.filter(model =>
+        normalizeSearch(model.name).includes(searchNormalized) ||
+        normalizeSearch(model.category).includes(searchNormalized)
+      )
+    : [];
+
   const filteredShapes = shape3DLibrary.filter(shape => shape.category === selectedCategory);
 
   const handleSelectShape = (shape: LibraryShape3D) => {
@@ -96,6 +105,35 @@ export const ShapeLibraryDialog: React.FC<ShapeLibraryDialogProps> = ({
     if (onSelectOBJModel) {
       onSelectOBJModel(model);
       onOpenChange(false);
+    }
+  };
+
+  const handleSelectDefaultModel = async (model: DefaultModel) => {
+    if (!onSelectOBJModel) return;
+    setLoadingDefaultId(model.id);
+    try {
+      const response = await fetch(model.path);
+      if (!response.ok) throw new Error('Failed to fetch model');
+      const content = await response.text();
+      const geometry = parseOBJContent(content);
+      if (!geometry) {
+        toast.error('Impossible de charger ce modèle');
+        return;
+      }
+      const importedModel: ImportedOBJModel = {
+        id: `default-${model.id}-${Date.now()}`,
+        name: model.name,
+        fileName: model.fileName,
+        geometry,
+        createdAt: Date.now(),
+      };
+      onSelectOBJModel(importedModel);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error loading default model:', error);
+      toast.error('Erreur lors du chargement du modèle');
+    } finally {
+      setLoadingDefaultId(null);
     }
   };
 
@@ -122,7 +160,6 @@ export const ShapeLibraryDialog: React.FC<ShapeLibraryDialogProps> = ({
       toast.error("Erreur lors de l'import des fichiers");
     } finally {
       setIsLoading(false);
-      // Reset input
       if (folderInputRef.current) {
         folderInputRef.current.value = '';
       }
@@ -142,6 +179,7 @@ export const ShapeLibraryDialog: React.FC<ShapeLibraryDialogProps> = ({
 
   const allCategories = {
     ...shapeCategories,
+    defaults: { name: 'Modèles inclus', icon: '📦' },
     imported: { name: 'Mes modèles', icon: '📁' },
   };
 
@@ -178,7 +216,7 @@ export const ShapeLibraryDialog: React.FC<ShapeLibraryDialogProps> = ({
           {isSearching ? (
             <div className="mt-2">
               <ScrollArea className="h-[420px] pr-4">
-                {searchFilteredShapes.length === 0 && searchFilteredModels.length === 0 ? (
+                {searchFilteredShapes.length === 0 && searchFilteredModels.length === 0 && searchFilteredDefaults.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-12">
                     <Search className="h-12 w-12 mb-4 opacity-50" />
                     <p className="text-sm">Aucun résultat pour "{searchQuery}"</p>
@@ -187,17 +225,18 @@ export const ShapeLibraryDialog: React.FC<ShapeLibraryDialogProps> = ({
                   <>
                     {/* Group search results by category */}
                     {Object.entries(allCategories).map(([catKey, { name, icon }]) => {
-                      const catShapes = catKey === 'imported'
-                        ? []
-                        : searchFilteredShapes.filter(s => s.category === catKey);
+                      const catShapes = (catKey !== 'imported' && catKey !== 'defaults')
+                        ? searchFilteredShapes.filter(s => s.category === catKey)
+                        : [];
                       const catModels = catKey === 'imported' ? searchFilteredModels : [];
-                      if (catShapes.length === 0 && catModels.length === 0) return null;
+                      const catDefaults = catKey === 'defaults' ? searchFilteredDefaults : [];
+                      if (catShapes.length === 0 && catModels.length === 0 && catDefaults.length === 0) return null;
 
                       return (
                         <div key={catKey} className="mb-4">
                           <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
                             <span>{icon}</span> {name}
-                            <span className="text-[10px] ml-1">({catShapes.length + catModels.length})</span>
+                            <span className="text-[10px] ml-1">({catShapes.length + catModels.length + catDefaults.length})</span>
                           </h3>
                           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                             {catShapes.map((shape) => (
@@ -215,6 +254,24 @@ export const ShapeLibraryDialog: React.FC<ShapeLibraryDialogProps> = ({
                               >
                                 <span className="text-3xl mb-2">{shape.icon}</span>
                                 <span className="text-xs text-center font-medium">{shape.name}</span>
+                              </button>
+                            ))}
+                            {catDefaults.map((dm) => (
+                              <button
+                                key={dm.id}
+                                onClick={() => handleSelectDefaultModel(dm)}
+                                disabled={loadingDefaultId === dm.id}
+                                onMouseEnter={() => setHoveredShape(dm.id)}
+                                onMouseLeave={() => setHoveredShape(null)}
+                                className={cn(
+                                  "flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all",
+                                  "hover:border-primary hover:bg-accent/50",
+                                  "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                                  hoveredShape === dm.id ? "border-primary bg-accent/30" : "border-border"
+                                )}
+                              >
+                                <span className="text-3xl mb-2">{loadingDefaultId === dm.id ? '⏳' : dm.icon}</span>
+                                <span className="text-xs text-center font-medium">{dm.name}</span>
                               </button>
                             ))}
                             {catModels.map((model) => (
@@ -245,7 +302,7 @@ export const ShapeLibraryDialog: React.FC<ShapeLibraryDialogProps> = ({
               </ScrollArea>
               <div className="flex justify-between items-center pt-4 border-t">
                 <p className="text-xs text-muted-foreground">
-                  {searchFilteredShapes.length + searchFilteredModels.length} résultat(s)
+                  {searchFilteredShapes.length + searchFilteredModels.length + searchFilteredDefaults.length} résultat(s)
                 </p>
                 <Button variant="outline" onClick={() => onOpenChange(false)}>
                   Fermer
@@ -256,7 +313,7 @@ export const ShapeLibraryDialog: React.FC<ShapeLibraryDialogProps> = ({
             /* Normal tabs mode */
             <>
               <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className="grid w-full grid-cols-6">
                   {Object.entries(allCategories).map(([key, { name, icon }]) => (
                     <TabsTrigger key={key} value={key} className="text-xs relative">
                       <span className="mr-1">{icon}</span>
@@ -298,6 +355,43 @@ export const ShapeLibraryDialog: React.FC<ShapeLibraryDialogProps> = ({
                     </ScrollArea>
                   </TabsContent>
                 ))}
+
+                {/* Default models tab */}
+                <TabsContent value="defaults" className="mt-4">
+                  <ScrollArea className="h-[400px] pr-4">
+                    {Object.entries(defaultModelCategories).map(([catKey, { name, icon }]) => {
+                      const models = defaultModels.filter(m => m.category === catKey);
+                      if (models.length === 0) return null;
+                      return (
+                        <div key={catKey} className="mb-4">
+                          <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+                            <span>{icon}</span> {name}
+                          </h3>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                            {models.map((dm) => (
+                              <button
+                                key={dm.id}
+                                onClick={() => handleSelectDefaultModel(dm)}
+                                disabled={loadingDefaultId === dm.id}
+                                onMouseEnter={() => setHoveredShape(dm.id)}
+                                onMouseLeave={() => setHoveredShape(null)}
+                                className={cn(
+                                  "flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all",
+                                  "hover:border-primary hover:bg-accent/50",
+                                  "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                                  hoveredShape === dm.id ? "border-primary bg-accent/30" : "border-border"
+                                )}
+                              >
+                                <span className="text-3xl mb-2">{loadingDefaultId === dm.id ? '⏳' : dm.icon}</span>
+                                <span className="text-xs text-center font-medium">{dm.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </ScrollArea>
+                </TabsContent>
 
                 {/* Imported models tab */}
                 <TabsContent value="imported" className="mt-4">
