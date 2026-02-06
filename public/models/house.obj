@@ -1,0 +1,77 @@
+# Low-poly House with gabled roof
+# License: CC0 / Public Domain
+o House
+
+# Walls
+v -1.0  0.0  -0.8
+v  1.0  0.0  -0.8
+v  1.0  1.2  -0.8
+v -1.0  1.2  -0.8
+v -1.0  0.0   0.8
+v  1.0  0.0   0.8
+v  1.0  1.2   0.8
+v -1.0  1.2   0.8
+
+# Roof ridge
+v  0.0  1.8  -0.8
+v  0.0  1.8   0.8
+
+# Door (inset on front wall)
+v -0.2  0.0  -0.81
+v  0.2  0.0  -0.81
+v  0.2  0.6  -0.81
+v -0.2  0.6  -0.81
+
+# Window (inset on front wall)
+v  0.4  0.5  -0.81
+v  0.7  0.5  -0.81
+v  0.7  0.9  -0.81
+v  0.4  0.9  -0.81
+
+# Front wall
+f 1 2 3 4
+
+# Back wall
+f 6 5 8 7
+
+# Left side (pentagon with gable)
+f 1 4 9
+f 1 9 10 5
+f 4 8 10 9
+
+# Right side (pentagon with gable)
+f 2 6 10
+f 2 10 9 3
+f 6 7 10
+
+# Wait, let me redo the sides properly
+# Left side: vertices 1, 5, 8, 4 + gable 9 (front), 10 (back)
+# Actually the gable peaks are at x=0, so left and right walls are rectangles
+# The gable triangles are on front and back
+
+# Front gable triangle
+f 4 3 9
+
+# Back gable triangle
+f 7 8 10
+
+# Front roof slope
+f 9 3 7 10
+
+# Back roof slope
+f 4 9 10 8
+
+# Left wall
+f 5 1 4 8
+
+# Right wall
+f 2 6 7 3
+
+# Floor
+f 1 5 6 2
+
+# Door face
+f 11 12 13 14
+
+# Window face
+f 15 16 17 18

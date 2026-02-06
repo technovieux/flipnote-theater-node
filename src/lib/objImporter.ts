@@ -15,6 +15,49 @@ export interface SerializedGeometry {
   indices?: number[];
 }
 
+// Parse OBJ content from a string (for bundled/fetched models)
+export const parseOBJContent = (content: string): SerializedGeometry | null => {
+  try {
+    const loader = new OBJLoader();
+    const object = loader.parse(content);
+
+    let geometry: THREE.BufferGeometry | null = null;
+    object.traverse((child) => {
+      if (child instanceof THREE.Mesh && !geometry) {
+        geometry = child.geometry as THREE.BufferGeometry;
+      }
+    });
+
+    if (!geometry) return null;
+
+    geometry.computeBoundingBox();
+    const box = geometry.boundingBox!;
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale = 1 / maxDim;
+
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    geometry.translate(-center.x, -center.y, -center.z);
+    geometry.scale(scale, scale, scale);
+
+    const positions = Array.from(geometry.attributes.position.array);
+    const normals = geometry.attributes.normal
+      ? Array.from(geometry.attributes.normal.array)
+      : [];
+    const indices = geometry.index
+      ? Array.from(geometry.index.array)
+      : undefined;
+
+    return { positions, normals, indices };
+  } catch (error) {
+    console.error('Error parsing OBJ content:', error);
+    return null;
+  }
+};
+
 // Parse OBJ file content and extract geometry
 export const parseOBJFile = async (file: File): Promise<SerializedGeometry | null> => {
   return new Promise((resolve, reject) => {
