@@ -52,8 +52,11 @@ export const AnimationEditor: React.FC = () => {
     selectObject,
     updateObjectProperties,
     updateObject3DProperties,
+    updateSelectedObjectsProperties,
+    updateSelectedObjects3DProperties,
     renameObject,
     deleteObject,
+    deleteSelectedObjects,
     reorderObjects,
     addKeyframe,
     addScene,
@@ -97,8 +100,9 @@ export const AnimationEditor: React.FC = () => {
   const [objImportDialogOpen, setObjImportDialogOpen] = useState(false);
   const [pendingOBJModels, setPendingOBJModels] = useState<EmbeddedOBJModel[]>([]);
 
-  const selectedObject = state.objects.find(obj => obj.id === state.selectedObjectId) || null;
-  const selectedObject3D = state.objects3D.find(obj => obj.id === state.selectedObjectId) || null;
+  // Derived: selected objects arrays
+  const selectedObjects = state.objects.filter(obj => state.selectedObjectIds.includes(obj.id));
+  const selectedObjects3D = state.objects3D.filter(obj => state.selectedObjectIds.includes(obj.id));
 
   // Handle beforeunload event
   useEffect(() => {
@@ -147,6 +151,17 @@ export const AnimationEditor: React.FC = () => {
         } else if (e.key === 'n' || e.key === 'N') {
           e.preventDefault();
           handleNewProject();
+        } else if (e.key === 'a' || e.key === 'A') {
+          // Ctrl+A: select all
+          e.preventDefault();
+          const allObjects = state.mode3D ? state.objects3D : state.objects;
+          allObjects.forEach((obj, idx) => {
+            if (idx === 0) {
+              selectObject(obj.id);
+            } else {
+              selectObject(obj.id, { ctrlKey: true });
+            }
+          });
         }
         return;
       }
@@ -176,8 +191,8 @@ export const AnimationEditor: React.FC = () => {
         if (selectedKeyframe) {
           deleteKeyframe(selectedKeyframe.objectId, selectedKeyframe.keyframeIndex);
           setSelectedKeyframe(null);
-        } else if (state.selectedObjectId) {
-          deleteObject(state.selectedObjectId);
+        } else if (state.selectedObjectIds.length > 0) {
+          deleteSelectedObjects();
         }
         return;
       }
@@ -185,7 +200,7 @@ export const AnimationEditor: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectId, selectedKeyframe, play, pause, addKeyframe, deleteObject, deleteKeyframe, state, undo, redo]);
+  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectIds, selectedKeyframe, play, pause, addKeyframe, deleteSelectedObjects, deleteKeyframe, state, undo, redo, selectObject, state.mode3D, state.objects, state.objects3D]);
 
   const handleSave = async () => {
     try {
@@ -229,7 +244,7 @@ export const AnimationEditor: React.FC = () => {
       const project = await openProject();
       if (project) {
         loadProject(project);
-        setWelcomeDialogOpen(false); // Close welcome dialog when loading a project
+        setWelcomeDialogOpen(false);
         toast.success('Projet chargé avec succès');
         
         // Check for embedded OBJ models
@@ -250,7 +265,6 @@ export const AnimationEditor: React.FC = () => {
       let skippedCount = 0;
       
       for (const model of pendingOBJModels) {
-        // Check if model already exists
         const exists = await modelExistsByFileName(model.fileName);
         if (!exists) {
           await saveModels([{
@@ -321,7 +335,6 @@ export const AnimationEditor: React.FC = () => {
         const arrayBuffer = e.target?.result as ArrayBuffer;
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         
-        // Generate simple waveform data
         const rawData = audioBuffer.getChannelData(0);
         const samples = 200;
         const blockSize = Math.floor(rawData.length / samples);
@@ -368,7 +381,6 @@ export const AnimationEditor: React.FC = () => {
       return;
     }
     
-    // Check if we need confirmation
     if (isAudio && state.audioTrack) {
       setPendingImport({ type: 'audio', file });
       setConfirmDialogOpen(true);
@@ -376,7 +388,6 @@ export const AnimationEditor: React.FC = () => {
       setPendingImport({ type: 'image', file });
       setConfirmDialogOpen(true);
     } else {
-      // No existing content, import directly
       if (isAudio) {
         processAudioFile(file);
       } else {
@@ -405,23 +416,28 @@ export const AnimationEditor: React.FC = () => {
   };
 
   const handleRename = () => {
-    if (selectedObject && newName.trim()) {
-      renameObject(selectedObject.id, newName.trim());
+    if (selectedObjects.length === 1 && newName.trim()) {
+      renameObject(selectedObjects[0].id, newName.trim());
+      setRenameDialogOpen(false);
+      setNewName('');
+    } else if (selectedObjects3D.length === 1 && newName.trim()) {
+      renameObject(selectedObjects3D[0].id, newName.trim());
       setRenameDialogOpen(false);
       setNewName('');
     }
   };
 
   const openRenameDialog = () => {
-    if (selectedObject) {
-      setNewName(selectedObject.name);
+    const firstSelected = selectedObjects[0] || selectedObjects3D[0];
+    if (firstSelected) {
+      setNewName(firstSelected.name);
       setRenameDialogOpen(true);
     }
   };
 
   const handleDelete = () => {
-    if (state.selectedObjectId) {
-      deleteObject(state.selectedObjectId);
+    if (state.selectedObjectIds.length > 0) {
+      deleteSelectedObjects();
     }
   };
 
@@ -511,7 +527,7 @@ export const AnimationEditor: React.FC = () => {
         showProperties={state.showProperties}
         onShowPropertiesChange={setShowProperties}
         mode3D={state.mode3D}
-        hasSelectedObject={!!state.selectedObjectId}
+        hasSelectedObject={state.selectedObjectIds.length > 0}
         onOpenLibrary={() => setLibraryDialogOpen(true)}
         onOpenCustomEditor={() => setCustomEditorOpen(true)}
       />
@@ -524,7 +540,7 @@ export const AnimationEditor: React.FC = () => {
                 {state.mode3D ? (
                   <ObjectsList3D
                     objects={state.objects3D}
-                    selectedObjectId={state.selectedObjectId}
+                    selectedObjectIds={state.selectedObjectIds}
                     onSelect={selectObject}
                     onReorder={reorderObjects}
                     onDelete={deleteObject}
@@ -533,7 +549,7 @@ export const AnimationEditor: React.FC = () => {
                 ) : (
                   <ObjectsList
                     objects={state.objects}
-                    selectedObjectId={state.selectedObjectId}
+                    selectedObjectIds={state.selectedObjectIds}
                     onSelect={selectObject}
                     onReorder={reorderObjects}
                     onDelete={deleteObject}
@@ -546,7 +562,7 @@ export const AnimationEditor: React.FC = () => {
                 {state.mode3D ? (
                   <Canvas3D
                     objects={state.objects3D}
-                    selectedObjectId={state.selectedObjectId}
+                    selectedObjectIds={state.selectedObjectIds}
                     onSelect={selectObject}
                     onUpdateProperties={updateObject3DProperties}
                     getInterpolatedProperties={getInterpolatedProperties3D}
@@ -556,7 +572,7 @@ export const AnimationEditor: React.FC = () => {
                 ) : (
                   <Canvas
                     objects={state.objects}
-                    selectedObjectId={state.selectedObjectId}
+                    selectedObjectIds={state.selectedObjectIds}
                     onSelect={selectObject}
                     onUpdateProperties={updateObjectProperties}
                     getInterpolatedProperties={getInterpolatedProperties}
@@ -576,14 +592,16 @@ export const AnimationEditor: React.FC = () => {
                   <ResizablePanel defaultSize={30} minSize={20}>
                     {state.mode3D ? (
                       <PropertiesPanel3D
-                        selectedObject={selectedObject3D}
+                        selectedObjects={selectedObjects3D}
                         onUpdateProperties={updateObject3DProperties}
+                        onUpdateAllSelected={updateSelectedObjects3DProperties}
                         onAddKeyframe={addKeyframe}
                       />
                     ) : (
                       <PropertiesPanel
-                        selectedObject={selectedObject}
+                        selectedObjects={selectedObjects}
                         onUpdateProperties={updateObjectProperties}
+                        onUpdateAllSelected={updateSelectedObjectsProperties}
                         onAddKeyframe={addKeyframe}
                       />
                     )}
@@ -598,7 +616,7 @@ export const AnimationEditor: React.FC = () => {
                   mode3D={state.mode3D}
                   scenes={state.scenes}
                   audioTrack={state.audioTrack}
-                  selectedObjectId={state.selectedObjectId}
+                  selectedObjectIds={state.selectedObjectIds}
                   selectedKeyframe={selectedKeyframe}
                   currentTime={state.currentTime}
                   duration={state.duration}
@@ -608,7 +626,7 @@ export const AnimationEditor: React.FC = () => {
                   onStop={stop}
                   onSeek={setCurrentTime}
                   onAddScene={addScene}
-                  onSelectObject={selectObject}
+                  onSelectObject={(id) => selectObject(id)}
                   onSelectKeyframe={(objectId, keyframeIndex) => setSelectedKeyframe({ objectId, keyframeIndex })}
                   onMoveKeyframe={moveKeyframe}
                 />

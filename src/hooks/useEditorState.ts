@@ -80,7 +80,7 @@ const default3DProperties: Object3DProperties = {
 const initialState: EditorState = {
   objects: [],
   objects3D: [],
-  selectedObjectId: null,
+  selectedObjectIds: [],
   scenes: [],
   audioTrack: null,
   backgroundImage: null,
@@ -210,7 +210,7 @@ export const useEditorState = () => {
       objects3D: state.objects3D,
       scenes: state.scenes,
       backgroundImage: state.backgroundImage,
-      selectedObjectId: state.selectedObjectId,
+      selectedObjectIds: state.selectedObjectIds,
     });
     
     // Only save if something meaningful changed
@@ -218,7 +218,7 @@ export const useEditorState = () => {
       saveToHistory(state);
     }
     prevStateRef.current = snapshot;
-  }, [state.objects, state.objects3D, state.scenes, state.backgroundImage, state.selectedObjectId, saveToHistory, state]);
+  }, [state.objects, state.objects3D, state.scenes, state.backgroundImage, state.selectedObjectIds, saveToHistory, state]);
 
   const setTheme = useCallback((theme: ThemeMode) => {
     setState(prev => ({ ...prev, theme }));
@@ -233,7 +233,7 @@ export const useEditorState = () => {
   }, []);
 
   const setMode3D = useCallback((mode3D: boolean) => {
-    setState(prev => ({ ...prev, mode3D, selectedObjectId: null }));
+    setState(prev => ({ ...prev, mode3D, selectedObjectIds: [] }));
   }, []);
 
   const markAsChanged = useCallback(() => {
@@ -259,7 +259,7 @@ export const useEditorState = () => {
     setState(prev => ({
       ...prev,
       objects: [newObject, ...prev.objects],
-      selectedObjectId: newObject.id,
+      selectedObjectIds: [newObject.id],
       hasUnsavedChanges: true,
     }));
   }, [state.objects.length]);
@@ -317,7 +317,7 @@ export const useEditorState = () => {
     setState(prev => ({
       ...prev,
       objects3D: [newObject, ...prev.objects3D],
-      selectedObjectId: newObject.id,
+      selectedObjectIds: [newObject.id],
       hasUnsavedChanges: true,
     }));
   }, [state.objects3D.length]);
@@ -348,7 +348,7 @@ export const useEditorState = () => {
     setState(prev => ({
       ...prev,
       objects3D: [newObject, ...prev.objects3D],
-      selectedObjectId: newObject.id,
+      selectedObjectIds: [newObject.id],
       hasUnsavedChanges: true,
     }));
   }, [state.objects3D.length]);
@@ -376,13 +376,51 @@ export const useEditorState = () => {
     setState(prev => ({
       ...prev,
       objects3D: [newObject, ...prev.objects3D],
-      selectedObjectId: newObject.id,
+      selectedObjectIds: [newObject.id],
       hasUnsavedChanges: true,
     }));
   }, [state.objects3D.length]);
 
-  const selectObject = useCallback((id: string | null) => {
-    setState(prev => ({ ...prev, selectedObjectId: id }));
+  // Select object: supports single select, toggle (ctrl/cmd), and range (shift)
+  const selectObject = useCallback((id: string | null, options?: { ctrlKey?: boolean; shiftKey?: boolean }) => {
+    setState(prev => {
+      if (id === null) {
+        return { ...prev, selectedObjectIds: [] };
+      }
+      
+      const { ctrlKey = false, shiftKey = false } = options || {};
+      
+      if (ctrlKey) {
+        // Toggle selection
+        const isSelected = prev.selectedObjectIds.includes(id);
+        return {
+          ...prev,
+          selectedObjectIds: isSelected
+            ? prev.selectedObjectIds.filter(sid => sid !== id)
+            : [...prev.selectedObjectIds, id],
+        };
+      }
+      
+      if (shiftKey && prev.selectedObjectIds.length > 0) {
+        // Range selection
+        const allObjects = prev.mode3D ? prev.objects3D : prev.objects;
+        const lastSelectedId = prev.selectedObjectIds[prev.selectedObjectIds.length - 1];
+        const lastIndex = allObjects.findIndex(o => o.id === lastSelectedId);
+        const currentIndex = allObjects.findIndex(o => o.id === id);
+        
+        if (lastIndex >= 0 && currentIndex >= 0) {
+          const start = Math.min(lastIndex, currentIndex);
+          const end = Math.max(lastIndex, currentIndex);
+          const rangeIds = allObjects.slice(start, end + 1).map(o => o.id);
+          // Merge with existing selection
+          const merged = new Set([...prev.selectedObjectIds, ...rangeIds]);
+          return { ...prev, selectedObjectIds: Array.from(merged) };
+        }
+      }
+      
+      // Simple select (replace)
+      return { ...prev, selectedObjectIds: [id] };
+    });
   }, []);
 
   const updateObjectProperties = useCallback((id: string, properties: Partial<ObjectProperties>) => {
@@ -405,6 +443,36 @@ export const useEditorState = () => {
           const newProperties = { ...o.properties, ...properties };
 
           // Also update keyframe if we're at one
+          if (keyframeIndex >= 0) {
+            const newKeyframes = [...o.keyframes];
+            newKeyframes[keyframeIndex] = {
+              ...newKeyframes[keyframeIndex],
+              properties: { ...newKeyframes[keyframeIndex].properties, ...properties },
+            };
+            return { ...o, properties: newProperties, keyframes: newKeyframes };
+          }
+
+          return { ...o, properties: newProperties };
+        }),
+      };
+    });
+  }, []);
+
+  // Batch update: apply property changes to all selected objects
+  const updateSelectedObjectsProperties = useCallback((properties: Partial<ObjectProperties>) => {
+    setState(prev => {
+      return {
+        ...prev,
+        hasUnsavedChanges: true,
+        objects: prev.objects.map(o => {
+          if (!prev.selectedObjectIds.includes(o.id)) return o;
+
+          const keyframeIndex = o.keyframes.findIndex(
+            kf => Math.abs(kf.time - prev.currentTime) < 100
+          );
+
+          const newProperties = { ...o.properties, ...properties };
+
           if (keyframeIndex >= 0) {
             const newKeyframes = [...o.keyframes];
             newKeyframes[keyframeIndex] = {
@@ -452,6 +520,36 @@ export const useEditorState = () => {
     });
   }, []);
 
+  // Batch update for 3D objects
+  const updateSelectedObjects3DProperties = useCallback((properties: Partial<Object3DProperties>) => {
+    setState(prev => {
+      return {
+        ...prev,
+        hasUnsavedChanges: true,
+        objects3D: prev.objects3D.map(o => {
+          if (!prev.selectedObjectIds.includes(o.id)) return o;
+
+          const keyframeIndex = o.keyframes.findIndex(
+            kf => Math.abs(kf.time - prev.currentTime) < 100
+          );
+
+          const newProperties = { ...o.properties, ...properties };
+
+          if (keyframeIndex >= 0) {
+            const newKeyframes = [...o.keyframes];
+            newKeyframes[keyframeIndex] = {
+              ...newKeyframes[keyframeIndex],
+              properties: { ...newKeyframes[keyframeIndex].properties, ...properties },
+            };
+            return { ...o, properties: newProperties, keyframes: newKeyframes };
+          }
+
+          return { ...o, properties: newProperties };
+        }),
+      };
+    });
+  }, []);
+
   const renameObject = useCallback((id: string, name: string) => {
     setState(prev => ({
       ...prev,
@@ -471,7 +569,18 @@ export const useEditorState = () => {
       hasUnsavedChanges: true,
       objects: prev.objects.filter(obj => obj.id !== id),
       objects3D: prev.objects3D.filter(obj => obj.id !== id),
-      selectedObjectId: prev.selectedObjectId === id ? null : prev.selectedObjectId,
+      selectedObjectIds: prev.selectedObjectIds.filter(sid => sid !== id),
+    }));
+  }, []);
+
+  // Delete all selected objects
+  const deleteSelectedObjects = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      hasUnsavedChanges: true,
+      objects: prev.objects.filter(obj => !prev.selectedObjectIds.includes(obj.id)),
+      objects3D: prev.objects3D.filter(obj => !prev.selectedObjectIds.includes(obj.id)),
+      selectedObjectIds: [],
     }));
   }, []);
 
@@ -492,28 +601,25 @@ export const useEditorState = () => {
   }, []);
 
   const addKeyframe = useCallback(() => {
-    if (!state.selectedObjectId) return;
+    if (state.selectedObjectIds.length === 0) return;
     
     setState(prev => {
       if (prev.mode3D) {
-        const selectedObject = prev.objects3D.find(obj => obj.id === prev.selectedObjectId);
-        if (!selectedObject) return prev;
-        
-        const existingIndex = selectedObject.keyframes.findIndex(
-          kf => Math.abs(kf.time - prev.currentTime) < 100
-        );
-        
-        const newKeyframe: Keyframe3D = {
-          time: prev.currentTime,
-          properties: { ...selectedObject.properties },
-          camera: currentCameraPosition || undefined,
-        };
-        
         return {
           ...prev,
           hasUnsavedChanges: true,
           objects3D: prev.objects3D.map(obj => {
-            if (obj.id !== prev.selectedObjectId) return obj;
+            if (!prev.selectedObjectIds.includes(obj.id)) return obj;
+            
+            const existingIndex = obj.keyframes.findIndex(
+              kf => Math.abs(kf.time - prev.currentTime) < 100
+            );
+            
+            const newKeyframe: Keyframe3D = {
+              time: prev.currentTime,
+              properties: { ...obj.properties },
+              camera: currentCameraPosition || undefined,
+            };
             
             let newKeyframes = [...obj.keyframes];
             if (existingIndex >= 0) {
@@ -527,23 +633,20 @@ export const useEditorState = () => {
           }),
         };
       } else {
-        const selectedObject = prev.objects.find(obj => obj.id === prev.selectedObjectId);
-        if (!selectedObject) return prev;
-        
-        const existingIndex = selectedObject.keyframes.findIndex(
-          kf => Math.abs(kf.time - prev.currentTime) < 100
-        );
-        
-        const newKeyframe: Keyframe = {
-          time: prev.currentTime,
-          properties: { ...selectedObject.properties },
-        };
-        
         return {
           ...prev,
           hasUnsavedChanges: true,
           objects: prev.objects.map(obj => {
-            if (obj.id !== prev.selectedObjectId) return obj;
+            if (!prev.selectedObjectIds.includes(obj.id)) return obj;
+            
+            const existingIndex = obj.keyframes.findIndex(
+              kf => Math.abs(kf.time - prev.currentTime) < 100
+            );
+            
+            const newKeyframe: Keyframe = {
+              time: prev.currentTime,
+              properties: { ...obj.properties },
+            };
             
             let newKeyframes = [...obj.keyframes];
             if (existingIndex >= 0) {
@@ -558,7 +661,7 @@ export const useEditorState = () => {
         };
       }
     });
-  }, [state.selectedObjectId]);
+  }, [state.selectedObjectIds]);
 
   const addScene = useCallback((name: string) => {
     setState(prev => {
@@ -728,22 +831,25 @@ export const useEditorState = () => {
   }, []);
 
   const copySelectedObject = useCallback(() => {
-    if (!state.selectedObjectId) return;
+    if (state.selectedObjectIds.length === 0) return;
+    
+    // Copy first selected object (for single copy/paste)
+    const firstId = state.selectedObjectIds[0];
     
     if (state.mode3D) {
-      const obj = state.objects3D.find(o => o.id === state.selectedObjectId);
+      const obj = state.objects3D.find(o => o.id === firstId);
       if (obj) {
         clipboardObject3D = JSON.parse(JSON.stringify(obj));
         clipboardObject = null;
       }
     } else {
-      const obj = state.objects.find(o => o.id === state.selectedObjectId);
+      const obj = state.objects.find(o => o.id === firstId);
       if (obj) {
         clipboardObject = JSON.parse(JSON.stringify(obj));
         clipboardObject3D = null;
       }
     }
-  }, [state.selectedObjectId, state.objects, state.objects3D, state.mode3D]);
+  }, [state.selectedObjectIds, state.objects, state.objects3D, state.mode3D]);
 
   const pasteObject = useCallback(() => {
     if (state.mode3D && clipboardObject3D) {
@@ -761,7 +867,7 @@ export const useEditorState = () => {
       setState(prev => ({
         ...prev,
         objects3D: [newObject, ...prev.objects3D],
-        selectedObjectId: newObject.id,
+        selectedObjectIds: [newObject.id],
         hasUnsavedChanges: true,
       }));
     } else if (!state.mode3D && clipboardObject) {
@@ -779,7 +885,7 @@ export const useEditorState = () => {
       setState(prev => ({
         ...prev,
         objects: [newObject, ...prev.objects],
-        selectedObjectId: newObject.id,
+        selectedObjectIds: [newObject.id],
         hasUnsavedChanges: true,
       }));
     }
@@ -848,8 +954,11 @@ export const useEditorState = () => {
     selectObject,
     updateObjectProperties,
     updateObject3DProperties,
+    updateSelectedObjectsProperties,
+    updateSelectedObjects3DProperties,
     renameObject,
     deleteObject,
+    deleteSelectedObjects,
     reorderObjects,
     addKeyframe,
     addScene,

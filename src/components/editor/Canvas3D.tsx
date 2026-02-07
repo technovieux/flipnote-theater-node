@@ -10,8 +10,8 @@ import * as THREE from 'three';
 
 interface Canvas3DProps {
   objects: EditorObject3D[];
-  selectedObjectId: string | null;
-  onSelect: (id: string | null) => void;
+  selectedObjectIds: string[];
+  onSelect: (id: string | null, options?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
   onUpdateProperties: (id: string, properties: Partial<Object3DProperties>) => void;
   getInterpolatedProperties: (object: EditorObject3D, time: number) => Object3DProperties;
   currentTime: number;
@@ -657,7 +657,7 @@ const CameraController: React.FC<CameraControllerProps> = ({ controlsRef, mode }
 
 export const Canvas3D: React.FC<Canvas3DProps> = ({
   objects,
-  selectedObjectId,
+  selectedObjectIds,
   onSelect,
   onUpdateProperties,
   getInterpolatedProperties,
@@ -669,14 +669,14 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
   const [transformMode, setTransformMode] = useState<TransformMode>(null);
   const [cameraState, setCameraState] = useState({ zoom: 1 });
   
-  const selectedObject = objects.find(obj => obj.id === selectedObjectId);
+  const selectedObject = objects.find(obj => selectedObjectIds.includes(obj.id));
 
   // Reset transform mode when selection changes
   useEffect(() => {
-    if (!selectedObjectId) {
+    if (selectedObjectIds.length === 0) {
       setTransformMode(null);
     }
-  }, [selectedObjectId]);
+  }, [selectedObjectIds]);
 
   const handleBackgroundClick = () => {
     onSelect(null);
@@ -748,7 +748,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (!selectedObjectId) return;
+      if (selectedObjectIds.length === 0) return;
       
       switch (e.key.toLowerCase()) {
         case 'g':
@@ -768,7 +768,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedObjectId]);
+  }, [selectedObjectIds]);
 
   return (
     <div className="panel h-full flex flex-col">
@@ -788,7 +788,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
           onModeChange={setNavMode}
           transformMode={transformMode}
           onTransformModeChange={setTransformMode}
-          hasSelection={!!selectedObjectId}
+          hasSelection={selectedObjectIds.length > 0}
         />
         <Canvas
           camera={{ position: [5, 5, 5], fov: 50, up: [0, 1, 0] }}
@@ -822,14 +822,14 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
             {objects.map((obj) => {
               const props = isPlaying
                 ? getInterpolatedProperties(obj, currentTime)
-                : (selectedObjectId === obj.id ? obj.properties : getInterpolatedProperties(obj, currentTime));
+                : (selectedObjectIds.includes(obj.id) ? obj.properties : getInterpolatedProperties(obj, currentTime));
               
               return (
                 <Shape3D
                   key={obj.id}
                   object={obj}
                   properties={props}
-                  isSelected={selectedObjectId === obj.id}
+                  isSelected={selectedObjectIds.includes(obj.id)}
                   onSelect={() => onSelect(obj.id)}
                   onUpdateProperties={(p) => onUpdateProperties(obj.id, p)}
                   isPlaying={isPlaying}
