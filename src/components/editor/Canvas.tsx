@@ -3,8 +3,8 @@ import { EditorObject, ObjectProperties } from '@/types/editor';
 
 interface CanvasProps {
   objects: EditorObject[];
-  selectedObjectId: string | null;
-  onSelect: (id: string | null) => void;
+  selectedObjectIds: string[];
+  onSelect: (id: string | null, options?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
   onUpdateProperties: (id: string, properties: Partial<ObjectProperties>) => void;
   getInterpolatedProperties: (object: EditorObject, time: number) => ObjectProperties;
   currentTime: number;
@@ -17,7 +17,7 @@ const SCENE_HEIGHT = 1080;
 
 export const Canvas: React.FC<CanvasProps> = ({
   objects,
-  selectedObjectId,
+  selectedObjectIds,
   onSelect,
   onUpdateProperties,
   getInterpolatedProperties,
@@ -30,6 +30,8 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [dragging, setDragging] = useState<string | null>(null);
   const [resizing, setResizing] = useState<{ id: string; handle: string } | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, objX: 0, objY: 0, objW: 0, objH: 0 });
+  // Store initial positions of all selected objects for multi-drag
+  const [dragInitialPositions, setDragInitialPositions] = useState<Map<string, { x: number; y: number }>>(new Map());
   
   // Zoom state
   const [zoom, setZoom] = useState(0.5);
@@ -45,7 +47,25 @@ export const Canvas: React.FC<CanvasProps> = ({
 
   const handleMouseDown = (e: React.MouseEvent, objId: string, handle?: string) => {
     e.stopPropagation();
-    onSelect(objId);
+    
+    const isAlreadySelected = selectedObjectIds.includes(objId);
+    
+    // If ctrl/cmd is held, toggle selection
+    if (e.ctrlKey || e.metaKey) {
+      onSelect(objId, { ctrlKey: true });
+      return;
+    }
+    
+    // If shift is held, range select
+    if (e.shiftKey) {
+      onSelect(objId, { shiftKey: true });
+      return;
+    }
+    
+    // If clicking on unselected object without modifier, select only it
+    if (!isAlreadySelected) {
+      onSelect(objId);
+    }
     
     const obj = objects.find(o => o.id === objId);
     if (!obj) return;
@@ -54,18 +74,37 @@ export const Canvas: React.FC<CanvasProps> = ({
     
     if (handle) {
       setResizing({ id: objId, handle });
+      setDragStart({
+        x: e.clientX,
+        y: e.clientY,
+        objX: props.x,
+        objY: props.y,
+        objW: props.width,
+        objH: props.height,
+      });
     } else {
       setDragging(objId);
+      setDragStart({
+        x: e.clientX,
+        y: e.clientY,
+        objX: props.x,
+        objY: props.y,
+        objW: props.width,
+        objH: props.height,
+      });
+      
+      // Store initial positions of all selected objects for multi-drag
+      const activeIds = isAlreadySelected ? selectedObjectIds : [objId];
+      const positions = new Map<string, { x: number; y: number }>();
+      activeIds.forEach(id => {
+        const o = objects.find(ob => ob.id === id);
+        if (o) {
+          const p = getInterpolatedProperties(o, currentTime);
+          positions.set(id, { x: p.x, y: p.y });
+        }
+      });
+      setDragInitialPositions(positions);
     }
-    
-    setDragStart({
-      x: e.clientX,
-      y: e.clientY,
-      objX: props.x,
-      objY: props.y,
-      objW: props.width,
-      objH: props.height,
-    });
   };
 
   const handleContainerClick = (e: React.MouseEvent) => {
@@ -79,9 +118,12 @@ export const Canvas: React.FC<CanvasProps> = ({
       const deltaX = (e.clientX - dragStart.x) / zoom;
       const deltaY = (e.clientY - dragStart.y) / zoom;
       
-      onUpdateProperties(dragging, {
-        x: dragStart.objX + deltaX,
-        y: dragStart.objY + deltaY,
+      // Move all selected objects together
+      dragInitialPositions.forEach((initPos, id) => {
+        onUpdateProperties(id, {
+          x: initPos.x + deltaX,
+          y: initPos.y + deltaY,
+        });
       });
     } else if (resizing) {
       const deltaX = (e.clientX - dragStart.x) / zoom;
@@ -127,14 +169,15 @@ export const Canvas: React.FC<CanvasProps> = ({
   const handleMouseUp = () => {
     setDragging(null);
     setResizing(null);
+    setDragInitialPositions(new Map());
   };
 
   const renderShape = (obj: EditorObject) => {
     // When playing, use interpolated. When not playing, use object.properties directly for immediate feedback
     const props = isPlaying 
       ? getInterpolatedProperties(obj, currentTime)
-      : (selectedObjectId === obj.id ? obj.properties : getInterpolatedProperties(obj, currentTime));
-    const isSelected = selectedObjectId === obj.id;
+      : (selectedObjectIds.includes(obj.id) ? obj.properties : getInterpolatedProperties(obj, currentTime));
+    const isSelected = selectedObjectIds.includes(obj.id);
     
     const shapeStyle: React.CSSProperties = {
       position: 'absolute',
@@ -185,23 +228,27 @@ export const Canvas: React.FC<CanvasProps> = ({
               className="absolute inset-0 border-2 border-dashed border-primary pointer-events-none"
               style={{ borderColor: 'hsl(var(--primary))' }}
             />
-            {/* Resize handles */}
-            <div
-              className="resize-handle -top-1.5 -left-1.5 cursor-nw-resize pointer-events-auto"
-              onMouseDown={(e) => handleMouseDown(e, obj.id, 'nw')}
-            />
-            <div
-              className="resize-handle -top-1.5 -right-1.5 cursor-ne-resize pointer-events-auto"
-              onMouseDown={(e) => handleMouseDown(e, obj.id, 'ne')}
-            />
-            <div
-              className="resize-handle -bottom-1.5 -left-1.5 cursor-sw-resize pointer-events-auto"
-              onMouseDown={(e) => handleMouseDown(e, obj.id, 'sw')}
-            />
-            <div
-              className="resize-handle -bottom-1.5 -right-1.5 cursor-se-resize pointer-events-auto"
-              onMouseDown={(e) => handleMouseDown(e, obj.id, 'se')}
-            />
+            {/* Resize handles - only show for single selection */}
+            {selectedObjectIds.length === 1 && (
+              <>
+                <div
+                  className="resize-handle -top-1.5 -left-1.5 cursor-nw-resize pointer-events-auto"
+                  onMouseDown={(e) => handleMouseDown(e, obj.id, 'nw')}
+                />
+                <div
+                  className="resize-handle -top-1.5 -right-1.5 cursor-ne-resize pointer-events-auto"
+                  onMouseDown={(e) => handleMouseDown(e, obj.id, 'ne')}
+                />
+                <div
+                  className="resize-handle -bottom-1.5 -left-1.5 cursor-sw-resize pointer-events-auto"
+                  onMouseDown={(e) => handleMouseDown(e, obj.id, 'sw')}
+                />
+                <div
+                  className="resize-handle -bottom-1.5 -right-1.5 cursor-se-resize pointer-events-auto"
+                  onMouseDown={(e) => handleMouseDown(e, obj.id, 'se')}
+                />
+              </>
+            )}
           </div>
         )}
       </React.Fragment>

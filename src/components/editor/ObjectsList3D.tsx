@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 
 interface ObjectsList3DProps {
   objects: EditorObject3D[];
-  selectedObjectId: string | null;
-  onSelect: (id: string) => void;
+  selectedObjectIds: string[];
+  onSelect: (id: string, options?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
   onDelete: (id: string) => void;
   onRename?: (id: string, name: string) => void;
@@ -15,7 +15,7 @@ interface ObjectsList3DProps {
 
 export const ObjectsList3D: React.FC<ObjectsList3DProps> = ({
   objects,
-  selectedObjectId,
+  selectedObjectIds,
   onSelect,
   onReorder,
   onDelete,
@@ -62,9 +62,18 @@ export const ObjectsList3D: React.FC<ObjectsList3DProps> = ({
     setDragOverIndex(null);
   };
 
+  const handleClick = (e: React.MouseEvent, objId: string) => {
+    onSelect(objId, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey });
+  };
+
   return (
     <div className="panel h-full">
-      <div className="panel-header">Objets 3D</div>
+      <div className="panel-header">
+        Objets 3D
+        {selectedObjectIds.length > 1 && (
+          <span className="ml-2 text-xs text-primary">({selectedObjectIds.length} sélectionnés)</span>
+        )}
+      </div>
       <div className="panel-content">
         {objects.length === 0 ? (
           <div className="p-4 text-center text-muted-foreground text-sm">
@@ -80,10 +89,10 @@ export const ObjectsList3D: React.FC<ObjectsList3DProps> = ({
               onDragLeave={() => setDragOverIndex(null)}
               onDrop={(e) => handleDrop(e, index)}
               onDragEnd={() => { setDraggedIndex(null); setDragOverIndex(null); }}
-              className={`object-item ${selectedObjectId === obj.id ? 'selected' : ''} ${
+              className={`object-item ${selectedObjectIds.includes(obj.id) ? 'selected' : ''} ${
                 dragOverIndex === index ? 'border-t-2 border-primary' : ''
               } ${draggedIndex === index ? 'opacity-50' : ''}`}
-              onClick={() => onSelect(obj.id)}
+              onClick={(e) => handleClick(e, obj.id)}
             >
               <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab flex-shrink-0" />
               <div className="w-4 h-4 rounded-sm flex-shrink-0" style={{ backgroundColor: obj.properties.color }} />

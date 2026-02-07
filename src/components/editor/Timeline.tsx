@@ -22,7 +22,7 @@ interface TimelineProps {
   mode3D: boolean;
   scenes: Scene[];
   audioTrack: AudioTrack | null;
-  selectedObjectId: string | null;
+  selectedObjectIds: string[];
   selectedKeyframe: { objectId: string; keyframeIndex: number } | null;
   currentTime: number;
   duration: number;
@@ -57,7 +57,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   mode3D,
   scenes,
   audioTrack,
-  selectedObjectId,
+  selectedObjectIds,
   selectedKeyframe,
   currentTime,
   duration,
@@ -361,7 +361,7 @@ export const Timeline: React.FC<TimelineProps> = ({
               <div
                 key={obj.id}
                 className={`flex border-b border-panel-border cursor-pointer ${
-                  selectedObjectId === obj.id ? 'bg-primary/10' : ''
+                  selectedObjectIds.includes(obj.id) ? 'bg-primary/10' : ''
                 }`}
                 onClick={() => onSelectObject(obj.id)}
               >
@@ -443,7 +443,7 @@ export const Timeline: React.FC<TimelineProps> = ({
               <div
                 key={obj.id}
                 className={`flex border-b border-panel-border cursor-pointer ${
-                  selectedObjectId === obj.id ? 'bg-primary/10' : ''
+                  selectedObjectIds.includes(obj.id) ? 'bg-primary/10' : ''
                 }`}
                 onClick={() => onSelectObject(obj.id)}
               >

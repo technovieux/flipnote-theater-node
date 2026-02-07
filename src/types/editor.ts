@@ -107,7 +107,7 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 export interface EditorState {
   objects: EditorObject[];
   objects3D: EditorObject3D[];
-  selectedObjectId: string | null;
+  selectedObjectIds: string[];
   scenes: Scene[];
   audioTrack: AudioTrack | null;
   backgroundImage: string | null; // URL or data URI
