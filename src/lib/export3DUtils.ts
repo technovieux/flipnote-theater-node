@@ -162,14 +162,13 @@ export const render3DSceneToCanvas = async (
     camera.position.set(cameraPos.position.x, cameraPos.position.y, cameraPos.position.z);
     camera.lookAt(cameraPos.target.x, cameraPos.target.y, cameraPos.target.z);
   } else {
-    // Default camera position
-    camera.position.set(0, 300, 500);
+    // Default camera position matching Canvas3D default
+    camera.position.set(5, 5, 5);
     camera.lookAt(0, 0, 0);
   }
 
-  // Add grid helper for reference
-  const gridHelper = new THREE.GridHelper(1000, 20, 0x444444, 0x333333);
-  gridHelper.rotation.x = Math.PI / 2; // Z-up
+  // Add grid helper for reference (matching Canvas3D scale)
+  const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x333333);
   scene.add(gridHelper);
 
   // Add 3D objects with interpolated properties
@@ -231,31 +230,78 @@ export const render3DSceneToCanvas = async (
 // Create 3D mesh based on type and properties
 const create3DMesh = (type: string, props: Object3DProperties): THREE.Mesh | null => {
   let geometry: THREE.BufferGeometry;
-  
-  // Scale factor to convert from editor units
-  const scale = 1;
-  const width = props.width * scale;
-  const height = props.height * scale;
-  const depth = props.depth * scale;
 
+  // Use unit geometries + scale, matching Canvas3D (which divides by 100)
   switch (type) {
     case 'cube':
-      geometry = new THREE.BoxGeometry(width, depth, height); // Swap Y/Z for Z-up
+      geometry = new THREE.BoxGeometry(1, 1, 1);
       break;
     case 'sphere':
-      geometry = new THREE.SphereGeometry(Math.max(width, height, depth) / 2, 32, 32);
+      geometry = new THREE.SphereGeometry(0.5, 32, 32);
       break;
     case 'cylinder':
-      geometry = new THREE.CylinderGeometry(width / 2, width / 2, height, 32);
+      geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
       break;
     case 'cone':
-      geometry = new THREE.ConeGeometry(width / 2, height, 32);
+      geometry = new THREE.ConeGeometry(0.5, 1, 32);
       break;
     case 'torus':
-      geometry = new THREE.TorusGeometry(width / 2, depth / 4, 16, 48);
+      geometry = new THREE.TorusGeometry(0.35, 0.15, 16, 48);
+      break;
+    case 'pyramid':
+      geometry = new THREE.ConeGeometry(0.5, 1, 4);
+      break;
+    case 'octahedron':
+      geometry = new THREE.OctahedronGeometry(0.5);
+      break;
+    case 'dodecahedron':
+      geometry = new THREE.DodecahedronGeometry(0.5);
+      break;
+    case 'icosahedron':
+      geometry = new THREE.IcosahedronGeometry(0.5);
+      break;
+    case 'tetrahedron':
+      geometry = new THREE.TetrahedronGeometry(0.5);
+      break;
+    case 'torusknot':
+      geometry = new THREE.TorusKnotGeometry(0.3, 0.1, 100, 16);
+      break;
+    case 'capsule':
+      geometry = new THREE.CapsuleGeometry(0.3, 0.5, 4, 16);
+      break;
+    case 'ring':
+      geometry = new THREE.RingGeometry(0.3, 0.5, 32);
+      break;
+    case 'tube':
+      geometry = new THREE.TorusGeometry(0.4, 0.1, 8, 32);
+      break;
+    case 'table':
+      geometry = new THREE.BoxGeometry(1.5, 0.1, 1);
+      break;
+    case 'chair':
+      geometry = new THREE.BoxGeometry(0.5, 0.8, 0.5);
+      break;
+    case 'tree':
+      geometry = new THREE.ConeGeometry(0.5, 1.5, 8);
+      break;
+    case 'house':
+      geometry = new THREE.BoxGeometry(1, 0.8, 1);
+      break;
+    case 'car':
+      geometry = new THREE.BoxGeometry(1, 0.4, 0.5);
+      break;
+    case 'lamp':
+      geometry = new THREE.CylinderGeometry(0.1, 0.3, 0.6, 16);
+      break;
+    case 'bottle':
+      geometry = new THREE.CylinderGeometry(0.15, 0.2, 0.8, 16);
+      break;
+    case 'cup':
+      geometry = new THREE.CylinderGeometry(0.2, 0.15, 0.3, 16);
       break;
     default:
-      return null;
+      geometry = new THREE.BoxGeometry(1, 1, 1);
+      break;
   }
 
   const material = new THREE.MeshStandardMaterial({
@@ -266,10 +312,21 @@ const create3DMesh = (type: string, props: Object3DProperties): THREE.Mesh | nul
 
   const mesh = new THREE.Mesh(geometry, material);
   
-  // Position (swap Y and Z for Z-up coordinate system)
-  mesh.position.set(props.x, props.z, -props.y);
+  // Position: match Canvas3D coordinate system (divide by 100, Z-up swap)
+  mesh.position.set(
+    props.x / 100,
+    props.z / 100,    // Z becomes Y (up)
+    -props.y / 100    // Y becomes -Z (forward)
+  );
   
-  // Rotation (in radians, also adjusted for Z-up)
+  // Scale: match Canvas3D (divide by 100)
+  mesh.scale.set(
+    props.width / 100,
+    props.depth / 100,
+    props.height / 100
+  );
+  
+  // Rotation (in radians, matching Canvas3D swap)
   mesh.rotation.set(
     THREE.MathUtils.degToRad(props.rotationX),
     THREE.MathUtils.degToRad(props.rotationZ),

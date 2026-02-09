@@ -429,15 +429,19 @@ const Shape3D: React.FC<Shape3DProps> = ({
 };
 
 // Component to track camera position
-const CameraTracker: React.FC = () => {
+const CameraTracker: React.FC<{ controlsRef: React.RefObject<any> }> = ({ controlsRef }) => {
   const { camera } = useThree();
   
   useEffect(() => {
     const updateCameraPosition = () => {
-      const target = new THREE.Vector3(0, 0, 0);
+      // Get the actual OrbitControls target instead of hardcoding (0,0,0)
+      const target = controlsRef.current?.target 
+        ? { x: controlsRef.current.target.x, y: controlsRef.current.target.y, z: controlsRef.current.target.z }
+        : { x: 0, y: 0, z: 0 };
+      
       setCameraPosition({
         position: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
-        target: { x: target.x, y: target.y, z: target.z },
+        target,
         fov: (camera as THREE.PerspectiveCamera).fov || 50,
       });
     };
@@ -446,7 +450,7 @@ const CameraTracker: React.FC = () => {
     const interval = setInterval(updateCameraPosition, 100);
     
     return () => clearInterval(interval);
-  }, [camera]);
+  }, [camera, controlsRef]);
   
   return null;
 };
@@ -795,7 +799,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
           onPointerMissed={handleBackgroundClick}
         >
           <Suspense fallback={null}>
-            <CameraTracker />
+            <CameraTracker controlsRef={controlsRef} />
             <CameraController controlsRef={controlsRef} mode={navMode} />
             <ambientLight intensity={0.5} />
             <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
