@@ -96,58 +96,62 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         </MenubarContent>
       </MenubarMenu>
 
-      <MenubarMenu>
-        <MenubarTrigger className="text-sm">Édition</MenubarTrigger>
-        <MenubarContent>
-          <MenubarItem onClick={onDelete} disabled={!hasSelectedObject}>
-            Supprimer <MenubarShortcut>Suppr</MenubarShortcut>
-          </MenubarItem>
-          <MenubarSeparator />
-          <MenubarItem onClick={onAddKeyframe} disabled={!hasSelectedObject}>
-            Ajouter Keyframe <MenubarShortcut>K</MenubarShortcut>
-          </MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
+      {!renderMode && (
+        <MenubarMenu>
+          <MenubarTrigger className="text-sm">Édition</MenubarTrigger>
+          <MenubarContent>
+            <MenubarItem onClick={onDelete} disabled={!hasSelectedObject}>
+              Supprimer <MenubarShortcut>Suppr</MenubarShortcut>
+            </MenubarItem>
+            <MenubarSeparator />
+            <MenubarItem onClick={onAddKeyframe} disabled={!hasSelectedObject}>
+              Ajouter Keyframe <MenubarShortcut>K</MenubarShortcut>
+            </MenubarItem>
+          </MenubarContent>
+        </MenubarMenu>
+      )}
 
-      <MenubarMenu>
-        <MenubarTrigger className="text-sm">Objet</MenubarTrigger>
-        <MenubarContent>
-          {!mode3D ? (
-            <MenubarSub>
-              <MenubarSubTrigger>Ajouter 2D</MenubarSubTrigger>
-              <MenubarSubContent>
-                <MenubarItem onClick={() => onAddObject('rectangle')}>Rectangle</MenubarItem>
-                <MenubarItem onClick={() => onAddObject('circle')}>Cercle</MenubarItem>
-                <MenubarItem onClick={() => onAddObject('triangle')}>Triangle</MenubarItem>
-              </MenubarSubContent>
-            </MenubarSub>
-          ) : (
-            <>
+      {!renderMode && (
+        <MenubarMenu>
+          <MenubarTrigger className="text-sm">Objet</MenubarTrigger>
+          <MenubarContent>
+            {!mode3D ? (
               <MenubarSub>
-                <MenubarSubTrigger>Formes de base</MenubarSubTrigger>
+                <MenubarSubTrigger>Ajouter 2D</MenubarSubTrigger>
                 <MenubarSubContent>
-                  <MenubarItem onClick={() => onAddObject3D('cube')}>Cube</MenubarItem>
-                  <MenubarItem onClick={() => onAddObject3D('sphere')}>Sphère</MenubarItem>
-                  <MenubarItem onClick={() => onAddObject3D('cylinder')}>Cylindre</MenubarItem>
-                  <MenubarItem onClick={() => onAddObject3D('cone')}>Cône</MenubarItem>
-                  <MenubarItem onClick={() => onAddObject3D('torus')}>Tore</MenubarItem>
+                  <MenubarItem onClick={() => onAddObject('rectangle')}>Rectangle</MenubarItem>
+                  <MenubarItem onClick={() => onAddObject('circle')}>Cercle</MenubarItem>
+                  <MenubarItem onClick={() => onAddObject('triangle')}>Triangle</MenubarItem>
                 </MenubarSubContent>
               </MenubarSub>
-              <MenubarSeparator />
-              <MenubarItem onClick={onOpenLibrary}>
-                📦 Bibliothèque d'objets...
-              </MenubarItem>
-              <MenubarItem onClick={onOpenCustomEditor}>
-                ✏️ Créer une forme personnalisée...
-              </MenubarItem>
-            </>
-          )}
-          <MenubarSeparator />
-          <MenubarItem onClick={onRename} disabled={!hasSelectedObject}>
-            Renommer <MenubarShortcut>F2</MenubarShortcut>
-          </MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
+            ) : (
+              <>
+                <MenubarSub>
+                  <MenubarSubTrigger>Formes de base</MenubarSubTrigger>
+                  <MenubarSubContent>
+                    <MenubarItem onClick={() => onAddObject3D('cube')}>Cube</MenubarItem>
+                    <MenubarItem onClick={() => onAddObject3D('sphere')}>Sphère</MenubarItem>
+                    <MenubarItem onClick={() => onAddObject3D('cylinder')}>Cylindre</MenubarItem>
+                    <MenubarItem onClick={() => onAddObject3D('cone')}>Cône</MenubarItem>
+                    <MenubarItem onClick={() => onAddObject3D('torus')}>Tore</MenubarItem>
+                  </MenubarSubContent>
+                </MenubarSub>
+                <MenubarSeparator />
+                <MenubarItem onClick={onOpenLibrary}>
+                  📦 Bibliothèque d'objets...
+                </MenubarItem>
+                <MenubarItem onClick={onOpenCustomEditor}>
+                  ✏️ Créer une forme personnalisée...
+                </MenubarItem>
+              </>
+            )}
+            <MenubarSeparator />
+            <MenubarItem onClick={onRename} disabled={!hasSelectedObject}>
+              Renommer <MenubarShortcut>F2</MenubarShortcut>
+            </MenubarItem>
+          </MenubarContent>
+        </MenubarMenu>
+      )}
 
       <MenubarMenu>
         <MenubarTrigger className="text-sm">Préférences</MenubarTrigger>
