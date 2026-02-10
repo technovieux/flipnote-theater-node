@@ -86,6 +86,7 @@ export const AnimationEditor: React.FC = () => {
   const [welcomeDialogOpen, setWelcomeDialogOpen] = useState(true);
   const [libraryDialogOpen, setLibraryDialogOpen] = useState(false);
   const [customEditorOpen, setCustomEditorOpen] = useState(false);
+  const [renderMode, setRenderMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   
@@ -530,41 +531,47 @@ export const AnimationEditor: React.FC = () => {
         hasSelectedObject={state.selectedObjectIds.length > 0}
         onOpenLibrary={() => setLibraryDialogOpen(true)}
         onOpenCustomEditor={() => setCustomEditorOpen(true)}
+        renderMode={renderMode}
+        onToggleRenderMode={() => setRenderMode(!renderMode)}
       />
       
       <div className="flex-1 p-1 overflow-hidden">
         <ResizablePanelGroup direction="vertical" className="h-full">
           <ResizablePanel defaultSize={60} minSize={30}>
-            <ResizablePanelGroup direction="horizontal">
-              <ResizablePanel defaultSize={25} minSize={15}>
-                {state.mode3D ? (
-                  <ObjectsList3D
-                    objects={state.objects3D}
-                    selectedObjectIds={state.selectedObjectIds}
-                    onSelect={selectObject}
-                    onReorder={reorderObjects}
-                    onDelete={deleteObject}
-                    onRename={renameObject}
-                  />
-                ) : (
-                  <ObjectsList
-                    objects={state.objects}
-                    selectedObjectIds={state.selectedObjectIds}
-                    onSelect={selectObject}
-                    onReorder={reorderObjects}
-                    onDelete={deleteObject}
-                    onRename={renameObject}
-                  />
-                )}
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={75} minSize={30}>
+           <ResizablePanelGroup direction="horizontal">
+              {!renderMode && (
+                <>
+                  <ResizablePanel defaultSize={25} minSize={15}>
+                    {state.mode3D ? (
+                      <ObjectsList3D
+                        objects={state.objects3D}
+                        selectedObjectIds={state.selectedObjectIds}
+                        onSelect={selectObject}
+                        onReorder={reorderObjects}
+                        onDelete={deleteObject}
+                        onRename={renameObject}
+                      />
+                    ) : (
+                      <ObjectsList
+                        objects={state.objects}
+                        selectedObjectIds={state.selectedObjectIds}
+                        onSelect={selectObject}
+                        onReorder={reorderObjects}
+                        onDelete={deleteObject}
+                        onRename={renameObject}
+                      />
+                    )}
+                  </ResizablePanel>
+                  <ResizableHandle withHandle />
+                </>
+              )}
+              <ResizablePanel defaultSize={renderMode ? 100 : 75} minSize={30}>
                 {state.mode3D ? (
                   <Canvas3D
                     objects={state.objects3D}
-                    selectedObjectIds={state.selectedObjectIds}
-                    onSelect={selectObject}
-                    onUpdateProperties={updateObject3DProperties}
+                    selectedObjectIds={renderMode ? [] : state.selectedObjectIds}
+                    onSelect={renderMode ? () => {} : selectObject}
+                    onUpdateProperties={renderMode ? () => {} : updateObject3DProperties}
                     getInterpolatedProperties={getInterpolatedProperties3D}
                     currentTime={state.currentTime}
                     isPlaying={state.isPlaying}
@@ -572,9 +579,9 @@ export const AnimationEditor: React.FC = () => {
                 ) : (
                   <Canvas
                     objects={state.objects}
-                    selectedObjectIds={state.selectedObjectIds}
-                    onSelect={selectObject}
-                    onUpdateProperties={updateObjectProperties}
+                    selectedObjectIds={renderMode ? [] : state.selectedObjectIds}
+                    onSelect={renderMode ? () => {} : selectObject}
+                    onUpdateProperties={renderMode ? () => {} : updateObjectProperties}
                     getInterpolatedProperties={getInterpolatedProperties}
                     currentTime={state.currentTime}
                     backgroundImage={state.backgroundImage}
@@ -587,7 +594,7 @@ export const AnimationEditor: React.FC = () => {
           <ResizableHandle withHandle />
           <ResizablePanel defaultSize={40} minSize={20}>
             <ResizablePanelGroup direction="horizontal">
-              {state.showProperties && (
+              {state.showProperties && !renderMode && (
                 <>
                   <ResizablePanel defaultSize={30} minSize={20}>
                     {state.mode3D ? (
@@ -609,7 +616,7 @@ export const AnimationEditor: React.FC = () => {
                   <ResizableHandle withHandle />
                 </>
               )}
-              <ResizablePanel defaultSize={state.showProperties ? 70 : 100} minSize={40}>
+              <ResizablePanel defaultSize={state.showProperties && !renderMode ? 70 : 100} minSize={40}>
                 <Timeline
                   objects={state.objects}
                   objects3D={state.objects3D}
@@ -629,6 +636,7 @@ export const AnimationEditor: React.FC = () => {
                   onSelectObject={(id) => selectObject(id)}
                   onSelectKeyframe={(objectId, keyframeIndex) => setSelectedKeyframe({ objectId, keyframeIndex })}
                   onMoveKeyframe={moveKeyframe}
+                  renderMode={renderMode}
                 />
               </ResizablePanel>
             </ResizablePanelGroup>

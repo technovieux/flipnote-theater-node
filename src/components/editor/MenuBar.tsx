@@ -36,6 +36,8 @@ interface MenuBarProps {
   hasSelectedObject: boolean;
   onOpenLibrary: () => void;
   onOpenCustomEditor: () => void;
+  renderMode: boolean;
+  onToggleRenderMode: () => void;
 }
 
 export const MenuBar: React.FC<MenuBarProps> = ({
@@ -60,6 +62,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   hasSelectedObject,
   onOpenLibrary,
   onOpenCustomEditor,
+  renderMode,
+  onToggleRenderMode,
 }) => {
   return (
     <Menubar className="border-b border-panel-border rounded-none bg-card px-2">
@@ -177,6 +181,13 @@ export const MenuBar: React.FC<MenuBarProps> = ({
           </MenubarCheckboxItem>
         </MenubarContent>
       </MenubarMenu>
+      <div className="flex-1" />
+      <button
+        onClick={onToggleRenderMode}
+        className="px-3 py-1.5 text-sm font-medium rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+      >
+        {renderMode ? '🛠️ Éditeur' : '🎬 Rendu'}
+      </button>
     </Menubar>
   );
 };

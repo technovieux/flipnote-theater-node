@@ -35,6 +35,7 @@ interface TimelineProps {
   onSelectObject: (id: string) => void;
   onSelectKeyframe: (objectId: string, keyframeIndex: number) => void;
   onMoveKeyframe?: (objectId: string, keyframeIndex: number, newTime: number) => void;
+  renderMode?: boolean;
 }
 
 const formatTime = (ms: number): string => {
@@ -70,6 +71,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   onSelectObject,
   onSelectKeyframe,
   onMoveKeyframe,
+  renderMode = false,
 }) => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -357,7 +359,7 @@ export const Timeline: React.FC<TimelineProps> = ({
             </div>
 
             {/* Object tracks - 2D */}
-            {!mode3D && objects.map((obj) => (
+            {!renderMode && !mode3D && objects.map((obj) => (
               <div
                 key={obj.id}
                 className={`flex border-b border-panel-border cursor-pointer ${
@@ -439,7 +441,7 @@ export const Timeline: React.FC<TimelineProps> = ({
             ))}
 
             {/* Object tracks - 3D */}
-            {mode3D && objects3D.map((obj) => (
+            {!renderMode && mode3D && objects3D.map((obj) => (
               <div
                 key={obj.id}
                 className={`flex border-b border-panel-border cursor-pointer ${
