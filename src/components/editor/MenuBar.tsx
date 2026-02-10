@@ -100,11 +100,11 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         <MenubarMenu>
           <MenubarTrigger className="text-sm">Édition</MenubarTrigger>
           <MenubarContent>
-            <MenubarItem onClick={onDelete} disabled={!hasSelectedObject}>
+            <MenubarItem onClick={onDelete} disabled={!hasSelectedObject && renderMode}>
               Supprimer <MenubarShortcut>Suppr</MenubarShortcut>
             </MenubarItem>
             <MenubarSeparator />
-            <MenubarItem onClick={onAddKeyframe} disabled={!hasSelectedObject}>
+            <MenubarItem onClick={onAddKeyframe} disabled={!hasSelectedObject && renderMode}>
               Ajouter Keyframe <MenubarShortcut>K</MenubarShortcut>
             </MenubarItem>
           </MenubarContent>
@@ -146,7 +146,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
               </>
             )}
             <MenubarSeparator />
-            <MenubarItem onClick={onRename} disabled={!hasSelectedObject}>
+            <MenubarItem onClick={onRename} disabled={!hasSelectedObject && renderMode}>
               Renommer <MenubarShortcut>F2</MenubarShortcut>
             </MenubarItem>
           </MenubarContent>
