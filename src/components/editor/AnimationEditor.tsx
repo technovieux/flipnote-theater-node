@@ -178,22 +178,26 @@ export const AnimationEditor: React.FC = () => {
         return;
       }
       
-      // K for keyframe
+      // K for keyframe (disabled in render mode)
       if (e.key === 'k' || e.key === 'K') {
-        e.preventDefault();
-        addKeyframe();
+        if (!renderMode) {
+          e.preventDefault();
+          addKeyframe();
+        }
         return;
       }
       
-      // Delete or Backspace to delete selected object or keyframe
+      // Delete or Backspace to delete selected object or keyframe (disabled in render mode)
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        e.preventDefault();
-        // Prioritize keyframe deletion if one is selected
-        if (selectedKeyframe) {
-          deleteKeyframe(selectedKeyframe.objectId, selectedKeyframe.keyframeIndex);
-          setSelectedKeyframe(null);
-        } else if (state.selectedObjectIds.length > 0) {
-          deleteSelectedObjects();
+        if (!renderMode) {
+          e.preventDefault();
+          // Prioritize keyframe deletion if one is selected
+          if (selectedKeyframe) {
+            deleteKeyframe(selectedKeyframe.objectId, selectedKeyframe.keyframeIndex);
+            setSelectedKeyframe(null);
+          } else if (state.selectedObjectIds.length > 0) {
+            deleteSelectedObjects();
+          }
         }
         return;
       }
@@ -201,7 +205,7 @@ export const AnimationEditor: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectIds, selectedKeyframe, play, pause, addKeyframe, deleteSelectedObjects, deleteKeyframe, state, undo, redo, selectObject, state.mode3D, state.objects, state.objects3D]);
+  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectIds, selectedKeyframe, play, pause, addKeyframe, deleteSelectedObjects, deleteKeyframe, state, undo, redo, selectObject, state.mode3D, state.objects, state.objects3D, renderMode]);
 
   const handleSave = async () => {
     try {
