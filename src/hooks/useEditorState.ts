@@ -387,7 +387,33 @@ export const useEditorState = () => {
     }));
   }, [state.objects3D.length]);
 
-  // Select object: supports single select, toggle (ctrl/cmd), and range (shift)
+  // Add firework object
+  const addFireworkObject = useCallback((product: FireworkProduct, category: FireworkCategory) => {
+    const newObject: EditorObject3D = {
+      id: generateId(),
+      name: `${product.name}`,
+      type: 'firework',
+      properties: {
+        ...default3DProperties,
+        color: product.effects[0]?.colors[0] || '#FF4400',
+        width: Math.max(20, product.caliber / 2),
+        height: Math.max(20, product.caliber / 2),
+        depth: Math.max(20, product.caliber / 2),
+      },
+      keyframes: [],
+      fireworkProduct: product,
+      fireworkCategory: category,
+    };
+    
+    setState(prev => ({
+      ...prev,
+      objects3D: [newObject, ...prev.objects3D],
+      selectedObjectIds: [newObject.id],
+      hasUnsavedChanges: true,
+    }));
+  }, []);
+
+
   const selectObject = useCallback((id: string | null, options?: { ctrlKey?: boolean; shiftKey?: boolean }) => {
     setState(prev => {
       if (id === null) {
