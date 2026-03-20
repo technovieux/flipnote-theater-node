@@ -78,6 +78,7 @@ export const serializeProject = async (state: EditorState): Promise<FlptProject>
     audioTrack: audioData,
     duration: state.duration,
     mode3D: state.mode3D,
+    modeFireworks: state.modeFireworks,
     embeddedOBJModels: embeddedOBJModels.length > 0 ? embeddedOBJModels : undefined,
   };
 };
