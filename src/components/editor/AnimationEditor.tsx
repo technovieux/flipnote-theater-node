@@ -722,6 +722,15 @@ export const AnimationEditor: React.FC = () => {
         onCreateShape={handleCreateCustomShape}
       />
 
+      <FireworkLibraryDialog
+        open={fireworkLibraryOpen}
+        onOpenChange={setFireworkLibraryOpen}
+        onSelectFirework={(product, category) => {
+          addFireworkObject(product, category);
+          toast.success(`${product.name} ajouté au projet`);
+        }}
+      />
+
       <AlertDialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
