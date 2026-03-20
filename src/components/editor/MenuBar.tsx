@@ -119,7 +119,13 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         <MenubarMenu>
           <MenubarTrigger className="text-sm">Objet</MenubarTrigger>
           <MenubarContent>
-            {!mode3D ? (
+            {modeFireworks ? (
+              <>
+                <MenubarItem onClick={onOpenFireworkLibrary}>
+                  🎆 Ajouter un feu d'artifice...
+                </MenubarItem>
+              </>
+            ) : !mode3D ? (
               <MenubarSub>
                 <MenubarSubTrigger>Ajouter 2D</MenubarSubTrigger>
                 <MenubarSubContent>
