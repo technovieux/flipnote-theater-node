@@ -1,0 +1,114 @@
+[
+  {
+    "id": "eu-001",
+    "name": "Berliner Blitz",
+    "manufacturer": "Weco Feuerwerk",
+    "type": "battery",
+    "caliber": 30,
+    "effects": [
+      { "name": "Étoiles crépitantes", "hasParticles": true, "colors": ["#FFD700", "#FFFFFF"], "duration": 10000, "height": 45, "spread": 25 }
+    ],
+    "totalDuration": 10000,
+    "maxHeight": 45,
+    "shotCount": 36,
+    "weight": 800,
+    "safetyDistance": 15,
+    "description": "Batterie allemande 36 tirs crépitants"
+  },
+  {
+    "id": "eu-002",
+    "name": "Roma Fuoco",
+    "manufacturer": "Pirotecnica Italiana",
+    "type": "cake",
+    "caliber": 25,
+    "effects": [
+      { "name": "Étoiles tricolores", "hasParticles": true, "colors": ["#00A651", "#FFFFFF", "#FF0000"], "duration": 12000, "height": 40, "spread": 30 }
+    ],
+    "totalDuration": 12000,
+    "maxHeight": 40,
+    "shotCount": 49,
+    "weight": 1200,
+    "safetyDistance": 15,
+    "description": "Compact italien 49 tirs tricolores"
+  },
+  {
+    "id": "eu-003",
+    "name": "Nordic Aurora",
+    "manufacturer": "Scandinavian Pyro",
+    "type": "shell",
+    "caliber": 75,
+    "effects": [
+      { "name": "Aurore boréale", "hasParticles": true, "colors": ["#00FF88", "#00CCFF", "#8800FF", "#FF00FF"], "duration": 5000, "height": 100, "spread": 55 }
+    ],
+    "totalDuration": 5000,
+    "maxHeight": 100,
+    "shotCount": 1,
+    "weight": 1500,
+    "safetyDistance": 75,
+    "description": "Bombe 75mm effet aurore boréale"
+  },
+  {
+    "id": "eu-004",
+    "name": "Amsterdam Star",
+    "manufacturer": "Holland Vuurwerk",
+    "type": "roman_candle",
+    "caliber": 30,
+    "effects": [
+      { "name": "Comètes oranges", "hasParticles": true, "colors": ["#FF6600", "#FF8800", "#FFAA00"], "duration": 8000, "height": 50, "spread": 10 }
+    ],
+    "totalDuration": 8000,
+    "maxHeight": 50,
+    "shotCount": 10,
+    "weight": 300,
+    "safetyDistance": 15,
+    "description": "Chandelle romaine hollandaise 10 tirs"
+  },
+  {
+    "id": "eu-005",
+    "name": "Barcelona Fiesta",
+    "manufacturer": "Pirotecnia Española",
+    "type": "battery",
+    "caliber": 20,
+    "effects": [
+      { "name": "Éventail coloré", "hasParticles": true, "colors": ["#FF0000", "#FFD700", "#FF4444"], "duration": 15000, "height": 35, "spread": 40 }
+    ],
+    "totalDuration": 15000,
+    "maxHeight": 35,
+    "shotCount": 100,
+    "weight": 2000,
+    "safetyDistance": 15,
+    "description": "Batterie espagnole éventail 100 tirs"
+  },
+  {
+    "id": "eu-006",
+    "name": "Paris Lumière",
+    "manufacturer": "Ruggieri",
+    "type": "shell",
+    "caliber": 100,
+    "effects": [
+      { "name": "Pivoine bleue scintillante", "hasParticles": true, "colors": ["#0044FF", "#0088FF", "#FFFFFF"], "duration": 5000, "height": 130, "spread": 60 }
+    ],
+    "totalDuration": 5000,
+    "maxHeight": 130,
+    "shotCount": 1,
+    "weight": 3000,
+    "safetyDistance": 100,
+    "description": "Bombe 100mm pivoine bleue Ruggieri"
+  },
+  {
+    "id": "eu-007",
+    "name": "Wien Walzer",
+    "manufacturer": "Weco Feuerwerk",
+    "type": "fountain",
+    "caliber": 50,
+    "effects": [
+      { "name": "Fontaine argentée avec crépitements", "hasParticles": false, "colors": ["#C0C0C0", "#FFFFFF", "#FFD700"], "duration": 10000, "height": 6, "spread": 50 }
+    ],
+    "totalDuration": 10000,
+    "maxHeight": 6,
+    "shotCount": 1,
+    "weight": 500,
+    "safetyDistance": 8,
+    "description": "Fontaine autrichienne argentée et crépitante"
+  }
+]
