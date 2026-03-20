@@ -14,6 +14,7 @@ import { ExportDialog } from './ExportDialog';
 import { WelcomeDialog } from './WelcomeDialog';
 import { ShapeLibraryDialog } from './ShapeLibraryDialog';
 import { CustomShapeEditor } from './CustomShapeEditor';
+import { FireworkLibraryDialog } from './FireworkLibraryDialog';
 import { useEditorState } from '@/hooks/useEditorState';
 import { LibraryShape3D } from '@/data/shape3DLibrary';
 import { ImportedOBJModel } from '@/lib/objImporter';
