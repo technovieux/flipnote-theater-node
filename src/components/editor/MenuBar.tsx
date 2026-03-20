@@ -61,9 +61,11 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   showProperties,
   onShowPropertiesChange,
   mode3D,
+  modeFireworks,
   hasSelectedObject,
   onOpenLibrary,
   onOpenCustomEditor,
+  onOpenFireworkLibrary,
   renderMode,
   onToggleRenderMode,
 }) => {
