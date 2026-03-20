@@ -313,8 +313,12 @@ export const AnimationEditor: React.FC = () => {
     toast.info('Nouveau projet créé');
   };
 
-  const handleSelectMode = (mode3D: boolean) => {
-    setMode3D(mode3D);
+  const handleSelectMode = (mode: EditorMode) => {
+    if (mode === 'fireworks') {
+      setModeFireworks(true);
+    } else {
+      setMode3D(mode === '3d');
+    }
     setWelcomeDialogOpen(false);
   };
 
