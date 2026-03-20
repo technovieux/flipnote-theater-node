@@ -988,6 +988,7 @@ export const useEditorState = () => {
     setTheme,
     setShowProperties,
     setAnimatedMode,
+    setMode3D,
     setModeFireworks,
     addFireworkObject,
     addObject,
