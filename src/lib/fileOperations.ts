@@ -22,6 +22,7 @@ export interface FlptProject {
   } | null;
   duration: number;
   mode3D?: boolean;
+  modeFireworks?: boolean;
   // Embedded OBJ models for portability
   embeddedOBJModels?: EmbeddedOBJModel[];
 }
