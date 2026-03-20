@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { EditorMode } from '@/types/editor';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { MenuBar } from './MenuBar';
 import { ObjectsList } from './ObjectsList';
 import { ObjectsList3D } from './ObjectsList3D';
