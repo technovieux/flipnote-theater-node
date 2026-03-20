@@ -33,9 +33,11 @@ interface MenuBarProps {
   showProperties: boolean;
   onShowPropertiesChange: (show: boolean) => void;
   mode3D: boolean;
+  modeFireworks?: boolean;
   hasSelectedObject: boolean;
   onOpenLibrary: () => void;
   onOpenCustomEditor: () => void;
+  onOpenFireworkLibrary?: () => void;
   renderMode: boolean;
   onToggleRenderMode: () => void;
 }
