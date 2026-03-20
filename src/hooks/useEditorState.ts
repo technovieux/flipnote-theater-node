@@ -849,7 +849,8 @@ export const useEditorState = () => {
       backgroundImage: project.backgroundImage,
       audioTrack,
       duration: project.duration,
-      mode3D: project.mode3D || false,
+      mode3D: project.mode3D || project.modeFireworks || false,
+      modeFireworks: project.modeFireworks || false,
       hasUnsavedChanges: false,
     });
   }, []);
