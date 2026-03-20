@@ -16,6 +16,7 @@ import {
   CustomGeometry,
   OBJGeometry,
 } from '@/types/editor';
+import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
 import { FlptProject, base64ToFile } from '@/lib/fileOperations';
 import { interpolateColor } from '@/lib/colorUtils';
 
