@@ -91,6 +91,7 @@ const initialState: EditorState = {
   animatedMode: true,
   theme: 'dark',
   mode3D: false,
+  modeFireworks: false,
   hasUnsavedChanges: false,
 };
 
