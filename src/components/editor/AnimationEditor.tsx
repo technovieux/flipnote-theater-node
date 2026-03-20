@@ -92,6 +92,7 @@ export const AnimationEditor: React.FC = () => {
   const [libraryDialogOpen, setLibraryDialogOpen] = useState(false);
   const [customEditorOpen, setCustomEditorOpen] = useState(false);
   const [renderMode, setRenderMode] = useState(false);
+  const [fireworkLibraryOpen, setFireworkLibraryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   
