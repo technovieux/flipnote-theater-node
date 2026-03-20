@@ -643,6 +643,16 @@ export const useEditorState = () => {
           objects3D: prev.objects3D.map(obj => {
             if (!prev.selectedObjectIds.includes(obj.id)) return obj;
             
+            // Firework objects can only have 1 keyframe (the launch time)
+            if (obj.type === 'firework') {
+              const launchKeyframe: Keyframe3D = {
+                time: prev.currentTime,
+                properties: { ...obj.properties },
+                camera: currentCameraPosition || undefined,
+              };
+              return { ...obj, keyframes: [launchKeyframe] };
+            }
+            
             const existingIndex = obj.keyframes.findIndex(
               kf => Math.abs(kf.time - prev.currentTime) < 100
             );
