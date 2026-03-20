@@ -45,6 +45,8 @@ export const AnimationEditor: React.FC = () => {
     setShowProperties,
     setAnimatedMode,
     setMode3D,
+    setModeFireworks,
+    addFireworkObject,
     addObject,
     addObject3D,
     addObject3DWithGeometry,
