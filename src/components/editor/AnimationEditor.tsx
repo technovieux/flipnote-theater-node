@@ -542,9 +542,11 @@ export const AnimationEditor: React.FC = () => {
         showProperties={state.showProperties}
         onShowPropertiesChange={setShowProperties}
         mode3D={state.mode3D}
+        modeFireworks={state.modeFireworks}
         hasSelectedObject={state.selectedObjectIds.length > 0}
         onOpenLibrary={() => setLibraryDialogOpen(true)}
         onOpenCustomEditor={() => setCustomEditorOpen(true)}
+        onOpenFireworkLibrary={() => setFireworkLibraryOpen(true)}
         renderMode={renderMode}
         onToggleRenderMode={() => setRenderMode(!renderMode)}
       />
