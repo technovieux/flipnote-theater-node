@@ -16,6 +16,7 @@ import {
   CustomGeometry,
   OBJGeometry,
 } from '@/types/editor';
+import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
 import { FlptProject, base64ToFile } from '@/lib/fileOperations';
 import { interpolateColor } from '@/lib/colorUtils';
 
@@ -91,6 +92,7 @@ const initialState: EditorState = {
   animatedMode: true,
   theme: 'dark',
   mode3D: false,
+  modeFireworks: false,
   hasUnsavedChanges: false,
 };
 
@@ -233,7 +235,11 @@ export const useEditorState = () => {
   }, []);
 
   const setMode3D = useCallback((mode3D: boolean) => {
-    setState(prev => ({ ...prev, mode3D, selectedObjectIds: [] }));
+    setState(prev => ({ ...prev, mode3D, modeFireworks: false, selectedObjectIds: [] }));
+  }, []);
+
+  const setModeFireworks = useCallback((modeFireworks: boolean) => {
+    setState(prev => ({ ...prev, modeFireworks, mode3D: modeFireworks, selectedObjectIds: [] }));
   }, []);
 
   const markAsChanged = useCallback(() => {
@@ -381,7 +387,33 @@ export const useEditorState = () => {
     }));
   }, [state.objects3D.length]);
 
-  // Select object: supports single select, toggle (ctrl/cmd), and range (shift)
+  // Add firework object
+  const addFireworkObject = useCallback((product: FireworkProduct, category: FireworkCategory) => {
+    const newObject: EditorObject3D = {
+      id: generateId(),
+      name: `${product.name}`,
+      type: 'firework',
+      properties: {
+        ...default3DProperties,
+        color: product.effects[0]?.colors[0] || '#FF4400',
+        width: Math.max(20, product.caliber / 2),
+        height: Math.max(20, product.caliber / 2),
+        depth: Math.max(20, product.caliber / 2),
+      },
+      keyframes: [],
+      fireworkProduct: product,
+      fireworkCategory: category,
+    };
+    
+    setState(prev => ({
+      ...prev,
+      objects3D: [newObject, ...prev.objects3D],
+      selectedObjectIds: [newObject.id],
+      hasUnsavedChanges: true,
+    }));
+  }, []);
+
+
   const selectObject = useCallback((id: string | null, options?: { ctrlKey?: boolean; shiftKey?: boolean }) => {
     setState(prev => {
       if (id === null) {
@@ -611,6 +643,16 @@ export const useEditorState = () => {
           objects3D: prev.objects3D.map(obj => {
             if (!prev.selectedObjectIds.includes(obj.id)) return obj;
             
+            // Firework objects can only have 1 keyframe (the launch time)
+            if (obj.type === 'firework') {
+              const launchKeyframe: Keyframe3D = {
+                time: prev.currentTime,
+                properties: { ...obj.properties },
+                camera: currentCameraPosition || undefined,
+              };
+              return { ...obj, keyframes: [launchKeyframe] };
+            }
+            
             const existingIndex = obj.keyframes.findIndex(
               kf => Math.abs(kf.time - prev.currentTime) < 100
             );
@@ -807,7 +849,8 @@ export const useEditorState = () => {
       backgroundImage: project.backgroundImage,
       audioTrack,
       duration: project.duration,
-      mode3D: project.mode3D || false,
+      mode3D: project.mode3D || project.modeFireworks || false,
+      modeFireworks: project.modeFireworks || false,
       hasUnsavedChanges: false,
     });
   }, []);
@@ -947,6 +990,8 @@ export const useEditorState = () => {
     setShowProperties,
     setAnimatedMode,
     setMode3D,
+    setModeFireworks,
+    addFireworkObject,
     addObject,
     addObject3D,
     addObject3DWithGeometry,

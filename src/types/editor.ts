@@ -1,3 +1,5 @@
+import { FireworkProduct, FireworkCategory } from './fireworks';
+
 export type ShapeType = 'rectangle' | 'circle' | 'triangle';
 export type Shape3DType = 
   | 'cube' | 'sphere' | 'cylinder' | 'cone' | 'torus'
@@ -11,7 +13,11 @@ export type Shape3DType =
   // Everyday
   | 'table' | 'chair' | 'car' | 'tree' | 'house' | 'lamp' | 'bottle' | 'cup'
   // Custom and imported
-  | 'custom' | 'obj';
+  | 'custom' | 'obj'
+  // Fireworks
+  | 'firework';
+
+export type EditorMode = '2d' | '3d' | 'fireworks';
 
 export interface CustomGeometry {
   points: { x: number; y: number }[];
@@ -85,6 +91,8 @@ export interface EditorObject3D {
   keyframes: Keyframe3D[];
   customGeometry?: CustomGeometry;
   objGeometry?: OBJGeometry;
+  fireworkProduct?: FireworkProduct;
+  fireworkCategory?: FireworkCategory;
 }
 
 export interface Scene {
@@ -118,5 +126,6 @@ export interface EditorState {
   animatedMode: boolean;
   theme: ThemeMode;
   mode3D: boolean;
+  modeFireworks: boolean;
   hasUnsavedChanges: boolean;
 }

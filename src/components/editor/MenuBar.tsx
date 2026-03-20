@@ -33,9 +33,11 @@ interface MenuBarProps {
   showProperties: boolean;
   onShowPropertiesChange: (show: boolean) => void;
   mode3D: boolean;
+  modeFireworks?: boolean;
   hasSelectedObject: boolean;
   onOpenLibrary: () => void;
   onOpenCustomEditor: () => void;
+  onOpenFireworkLibrary?: () => void;
   renderMode: boolean;
   onToggleRenderMode: () => void;
 }
@@ -59,9 +61,11 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   showProperties,
   onShowPropertiesChange,
   mode3D,
+  modeFireworks,
   hasSelectedObject,
   onOpenLibrary,
   onOpenCustomEditor,
+  onOpenFireworkLibrary,
   renderMode,
   onToggleRenderMode,
 }) => {
@@ -115,7 +119,13 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         <MenubarMenu>
           <MenubarTrigger className="text-sm">Objet</MenubarTrigger>
           <MenubarContent>
-            {!mode3D ? (
+            {modeFireworks ? (
+              <>
+                <MenubarItem onClick={onOpenFireworkLibrary}>
+                  🎆 Ajouter un feu d'artifice...
+                </MenubarItem>
+              </>
+            ) : !mode3D ? (
               <MenubarSub>
                 <MenubarSubTrigger>Ajouter 2D</MenubarSubTrigger>
                 <MenubarSubContent>

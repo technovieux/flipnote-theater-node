@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { EditorMode } from '@/types/editor';
+import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { MenuBar } from './MenuBar';
 import { ObjectsList } from './ObjectsList';
@@ -12,6 +14,7 @@ import { ExportDialog } from './ExportDialog';
 import { WelcomeDialog } from './WelcomeDialog';
 import { ShapeLibraryDialog } from './ShapeLibraryDialog';
 import { CustomShapeEditor } from './CustomShapeEditor';
+import { FireworkLibraryDialog } from './FireworkLibraryDialog';
 import { useEditorState } from '@/hooks/useEditorState';
 import { LibraryShape3D } from '@/data/shape3DLibrary';
 import { ImportedOBJModel } from '@/lib/objImporter';
@@ -45,6 +48,8 @@ export const AnimationEditor: React.FC = () => {
     setShowProperties,
     setAnimatedMode,
     setMode3D,
+    setModeFireworks,
+    addFireworkObject,
     addObject,
     addObject3D,
     addObject3DWithGeometry,
@@ -87,6 +92,7 @@ export const AnimationEditor: React.FC = () => {
   const [libraryDialogOpen, setLibraryDialogOpen] = useState(false);
   const [customEditorOpen, setCustomEditorOpen] = useState(false);
   const [renderMode, setRenderMode] = useState(false);
+  const [fireworkLibraryOpen, setFireworkLibraryOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   
@@ -310,8 +316,12 @@ export const AnimationEditor: React.FC = () => {
     toast.info('Nouveau projet créé');
   };
 
-  const handleSelectMode = (mode3D: boolean) => {
-    setMode3D(mode3D);
+  const handleSelectMode = (mode: EditorMode) => {
+    if (mode === 'fireworks') {
+      setModeFireworks(true);
+    } else {
+      setMode3D(mode === '3d');
+    }
     setWelcomeDialogOpen(false);
   };
 
@@ -532,9 +542,11 @@ export const AnimationEditor: React.FC = () => {
         showProperties={state.showProperties}
         onShowPropertiesChange={setShowProperties}
         mode3D={state.mode3D}
+        modeFireworks={state.modeFireworks}
         hasSelectedObject={state.selectedObjectIds.length > 0}
         onOpenLibrary={() => setLibraryDialogOpen(true)}
         onOpenCustomEditor={() => setCustomEditorOpen(true)}
+        onOpenFireworkLibrary={() => setFireworkLibraryOpen(true)}
         renderMode={renderMode}
         onToggleRenderMode={() => setRenderMode(!renderMode)}
       />
@@ -708,6 +720,15 @@ export const AnimationEditor: React.FC = () => {
         open={customEditorOpen}
         onOpenChange={setCustomEditorOpen}
         onCreateShape={handleCreateCustomShape}
+      />
+
+      <FireworkLibraryDialog
+        open={fireworkLibraryOpen}
+        onOpenChange={setFireworkLibraryOpen}
+        onSelectFirework={(product, category) => {
+          addFireworkObject(product, category);
+          toast.success(`${product.name} ajouté au projet`);
+        }}
       />
 
       <AlertDialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
