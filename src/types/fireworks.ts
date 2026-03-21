@@ -1,34 +1,18 @@
 export type FireworkCategory = 'consumer' | 'professional' | 'european';
 
-export type FireworkType = 
-  | 'shell' | 'battery' | 'roman_candle' | 'fountain' 
-  | 'mine' | 'cake' | 'rocket' | 'sparkler' | 'firecracker'
-  | 'crossette' | 'comet' | 'waterfall' | 'wheel';
-
 export type FireworkSortBy = 'name' | 'manufacturer' | 'type';
 
-export interface FireworkEffect {
-  name: string;
-  hasParticles: boolean;
-  colors: string[];
-  duration: number; // ms
-  height: number; // meters
-  spread: number; // degrees
-}
-
 export interface FireworkProduct {
-  id: string;
   name: string;
+  reference: string;
   manufacturer: string;
-  type: FireworkType;
-  caliber: number; // mm
-  effects: FireworkEffect[];
-  totalDuration: number; // ms
-  maxHeight: number; // meters
-  shotCount: number;
-  weight: number; // grams
-  safetyDistance: number; // meters
-  description?: string;
+  effectType: string;
+  duration: string; // seconds as string
+  shots: string; // number as string or "N/A"
+  caliber: string; // mm as string
+  firingPattern: string;
+  category: string; // product category label
+  colors: string[];
 }
 
 export interface FireworkObject3D {
