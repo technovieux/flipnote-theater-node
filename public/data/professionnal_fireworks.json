@@ -1,130 +1,98 @@
 [
   {
-    "id": "pro-001",
     "name": "Chrysanthème Royal",
+    "reference": "PTP-001",
     "manufacturer": "PyroTech Pro",
-    "type": "shell",
-    "caliber": 100,
-    "effects": [
-      { "name": "Chrysanthème doré", "hasParticles": true, "colors": ["#FFD700", "#FFAA00"], "duration": 5000, "height": 150, "spread": 60 }
-    ],
-    "totalDuration": 5000,
-    "maxHeight": 150,
-    "shotCount": 1,
-    "weight": 2500,
-    "safetyDistance": 100,
-    "description": "Bombe 100mm chrysanthème doré professionnel"
+    "effectType": "Shell",
+    "duration": "5",
+    "shots": "1",
+    "caliber": "100",
+    "firingPattern": "Straight",
+    "category": "Shell",
+    "colors": ["#FFD700", "#FFAA00"]
   },
   {
-    "id": "pro-002",
     "name": "Pivoine Triple",
+    "reference": "AF-001",
     "manufacturer": "ArtFire",
-    "type": "shell",
-    "caliber": 150,
-    "effects": [
-      { "name": "Pivoine rouge triple couche", "hasParticles": true, "colors": ["#FF0000", "#FF4444", "#FFFFFF"], "duration": 6000, "height": 200, "spread": 70 }
-    ],
-    "totalDuration": 6000,
-    "maxHeight": 200,
-    "shotCount": 1,
-    "weight": 5000,
-    "safetyDistance": 150,
-    "description": "Bombe 150mm pivoine triple couche"
+    "effectType": "Shell",
+    "duration": "6",
+    "shots": "1",
+    "caliber": "150",
+    "firingPattern": "Straight",
+    "category": "Shell",
+    "colors": ["#FF0000", "#FF4444", "#FFFFFF"]
   },
   {
-    "id": "pro-003",
     "name": "Cascade Niagara",
+    "reference": "PTP-002",
     "manufacturer": "PyroTech Pro",
-    "type": "waterfall",
-    "caliber": 50,
-    "effects": [
-      { "name": "Cascade argentée", "hasParticles": false, "colors": ["#C0C0C0", "#FFFFFF"], "duration": 15000, "height": 10, "spread": 90 }
-    ],
-    "totalDuration": 15000,
-    "maxHeight": 10,
-    "shotCount": 1,
-    "weight": 3000,
-    "safetyDistance": 20,
-    "description": "Cascade argentée de 15 secondes"
+    "effectType": "Waterfall",
+    "duration": "15",
+    "shots": "1",
+    "caliber": "50",
+    "firingPattern": "Straight",
+    "category": "Waterfall",
+    "colors": ["#C0C0C0", "#FFFFFF"]
   },
   {
-    "id": "pro-004",
     "name": "Batterie Z-200",
+    "reference": "FMR-001",
     "manufacturer": "FireMaster",
-    "type": "battery",
-    "caliber": 75,
-    "effects": [
-      { "name": "Séquence multicolore", "hasParticles": true, "colors": ["#FF0000", "#00FF00", "#0000FF", "#FFD700", "#FF00FF"], "duration": 20000, "height": 120, "spread": 45 }
-    ],
-    "totalDuration": 20000,
-    "maxHeight": 120,
-    "shotCount": 200,
-    "weight": 15000,
-    "safetyDistance": 75,
-    "description": "Batterie pro 200 tirs séquence multicolore"
+    "effectType": "Battery",
+    "duration": "20",
+    "shots": "200",
+    "caliber": "75",
+    "firingPattern": "Fan",
+    "category": "Battery",
+    "colors": ["#FF0000", "#00FF00", "#0000FF", "#FFD700", "#FF00FF"]
   },
   {
-    "id": "pro-005",
     "name": "Crossette Diamant",
+    "reference": "AF-002",
     "manufacturer": "ArtFire",
-    "type": "crossette",
-    "caliber": 75,
-    "effects": [
-      { "name": "Crossette argentée", "hasParticles": true, "colors": ["#FFFFFF", "#C0C0C0", "#E0E0E0"], "duration": 4000, "height": 100, "spread": 50 }
-    ],
-    "totalDuration": 4000,
-    "maxHeight": 100,
-    "shotCount": 1,
-    "weight": 2000,
-    "safetyDistance": 75,
-    "description": "Bombe crossette diamant argentée"
+    "effectType": "Shell",
+    "duration": "4",
+    "shots": "1",
+    "caliber": "75",
+    "firingPattern": "Straight",
+    "category": "Shell",
+    "colors": ["#FFFFFF", "#C0C0C0", "#E0E0E0"]
   },
   {
-    "id": "pro-006",
     "name": "Comète Géante",
+    "reference": "FMR-002",
     "manufacturer": "FireMaster",
-    "type": "comet",
-    "caliber": 100,
-    "effects": [
-      { "name": "Comète verte montante", "hasParticles": true, "colors": ["#00FF00", "#00CC00"], "duration": 3000, "height": 180, "spread": 5 }
-    ],
-    "totalDuration": 3000,
-    "maxHeight": 180,
-    "shotCount": 1,
-    "weight": 1800,
-    "safetyDistance": 100,
-    "description": "Comète géante verte 100mm"
+    "effectType": "Comet",
+    "duration": "3",
+    "shots": "1",
+    "caliber": "100",
+    "firingPattern": "Straight",
+    "category": "Comet",
+    "colors": ["#00FF00", "#00CC00"]
   },
   {
-    "id": "pro-007",
     "name": "Mine Titanium",
+    "reference": "PTP-003",
     "manufacturer": "PyroTech Pro",
-    "type": "mine",
-    "caliber": 100,
-    "effects": [
-      { "name": "Mine salve titane", "hasParticles": true, "colors": ["#FFFFFF", "#FFD700", "#FF6600"], "duration": 2000, "height": 50, "spread": 60 }
-    ],
-    "totalDuration": 2000,
-    "maxHeight": 50,
-    "shotCount": 1,
-    "weight": 2500,
-    "safetyDistance": 50,
-    "description": "Mine professionnelle salve titane"
+    "effectType": "Mine",
+    "duration": "2",
+    "shots": "1",
+    "caliber": "100",
+    "firingPattern": "Straight",
+    "category": "Mine",
+    "colors": ["#FFFFFF", "#FFD700", "#FF6600"]
   },
   {
-    "id": "pro-008",
     "name": "Roue Infernale",
+    "reference": "AF-003",
     "manufacturer": "ArtFire",
-    "type": "wheel",
-    "caliber": 60,
-    "effects": [
-      { "name": "Roue multicolore", "hasParticles": true, "colors": ["#FF0000", "#FFD700", "#00FF00", "#0000FF"], "duration": 12000, "height": 3, "spread": 360 }
-    ],
-    "totalDuration": 12000,
-    "maxHeight": 3,
-    "shotCount": 1,
-    "weight": 4000,
-    "safetyDistance": 15,
-    "description": "Roue rotative multicolore professionnelle"
+    "effectType": "Wheel",
+    "duration": "12",
+    "shots": "1",
+    "caliber": "60",
+    "firingPattern": "N/A",
+    "category": "Wheel",
+    "colors": ["#FF0000", "#FFD700", "#00FF00", "#0000FF"]
   }
 ]

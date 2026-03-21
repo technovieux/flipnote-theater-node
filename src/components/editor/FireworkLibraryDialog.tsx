@@ -38,22 +38,6 @@ const CATEGORY_FILES: Record<FireworkCategory, string> = {
   european: '/data/european_fireworks.json',
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  shell: 'Bombe',
-  battery: 'Batterie',
-  roman_candle: 'Chandelle romaine',
-  fountain: 'Fontaine',
-  mine: 'Mine',
-  cake: 'Compact',
-  rocket: 'Fusée',
-  sparkler: 'Cierge magique',
-  firecracker: 'Pétard',
-  crossette: 'Crossette',
-  comet: 'Comète',
-  waterfall: 'Cascade',
-  wheel: 'Roue',
-};
-
 export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
   open,
   onOpenChange,
@@ -69,12 +53,11 @@ export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
   const [sortBy, setSortBy] = useState<FireworkSortBy>('name');
   const [loading, setLoading] = useState(false);
 
-  // Load products for a category
   useEffect(() => {
     if (!open) return;
     
     const loadCategory = async (cat: FireworkCategory) => {
-      if (products[cat].length > 0) return; // already loaded
+      if (products[cat].length > 0) return;
       setLoading(true);
       try {
         const res = await fetch(CATEGORY_FILES[cat]);
@@ -101,7 +84,8 @@ export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
       items = items.filter(p =>
         normalizeSearch(p.name).includes(q) ||
         normalizeSearch(p.manufacturer).includes(q) ||
-        normalizeSearch(TYPE_LABELS[p.type] || p.type).includes(q)
+        normalizeSearch(p.effectType).includes(q) ||
+        normalizeSearch(p.reference).includes(q)
       );
     }
     
@@ -109,20 +93,19 @@ export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
       switch (sortBy) {
         case 'name': return a.name.localeCompare(b.name);
         case 'manufacturer': return a.manufacturer.localeCompare(b.manufacturer);
-        case 'type': return a.type.localeCompare(b.type);
+        case 'type': return a.effectType.localeCompare(b.effectType);
         default: return 0;
       }
     });
   }, [products, activeCategory, searchQuery, sortBy]);
 
-  // Group items by sort field
   const grouped = useMemo(() => {
     const groups: Record<string, FireworkProduct[]> = {};
     for (const item of filteredAndSorted) {
       let key: string;
       switch (sortBy) {
         case 'manufacturer': key = item.manufacturer; break;
-        case 'type': key = TYPE_LABELS[item.type] || item.type; break;
+        case 'type': key = item.effectType; break;
         default: key = item.name[0]?.toUpperCase() || '?'; break;
       }
       if (!groups[key]) groups[key] = [];
@@ -146,7 +129,6 @@ export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Category tabs */}
         <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as FireworkCategory)}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="consumer">{CATEGORY_LABELS.consumer}</TabsTrigger>
@@ -154,7 +136,6 @@ export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
             <TabsTrigger value="european">{CATEGORY_LABELS.european}</TabsTrigger>
           </TabsList>
 
-          {/* Search + Sort bar */}
           <div className="flex gap-2 mt-3">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -200,15 +181,14 @@ export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
                       <div className="space-y-1">
                         {items.map(product => (
                           <Button
-                            key={product.id}
+                            key={product.reference}
                             variant="ghost"
                             className="w-full justify-start h-auto py-2.5 px-3 hover:bg-accent/10"
                             onClick={() => handleSelect(product)}
                           >
                             <div className="flex items-center gap-3 w-full">
-                              {/* Color preview */}
                               <div className="flex -space-x-1">
-                                {product.effects[0]?.colors.slice(0, 3).map((color, i) => (
+                                {product.colors.slice(0, 3).map((color, i) => (
                                   <div
                                     key={i}
                                     className="w-4 h-4 rounded-full border border-background"
@@ -216,16 +196,14 @@ export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
                                   />
                                 ))}
                               </div>
-                              {/* Info */}
                               <div className="flex-1 text-left min-w-0">
                                 <div className="font-medium text-sm truncate">{product.name}</div>
                                 <div className="text-xs text-muted-foreground truncate">
-                                  {product.manufacturer} · {product.caliber}mm · {product.shotCount} tir{product.shotCount > 1 ? 's' : ''}
+                                  {product.manufacturer} · {product.caliber}mm · {product.shots !== 'N/A' ? `${product.shots} tir${parseInt(product.shots) > 1 ? 's' : ''}` : 'N/A'} · {product.duration}s
                                 </div>
                               </div>
-                              {/* Type badge */}
                               <Badge variant="secondary" className="text-xs shrink-0">
-                                {TYPE_LABELS[product.type] || product.type}
+                                {product.effectType}
                               </Badge>
                             </div>
                           </Button>
