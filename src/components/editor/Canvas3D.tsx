@@ -2,6 +2,7 @@ import React, { useRef, useState, Suspense, useEffect, useMemo } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport, TransformControls } from '@react-three/drei';
 import { EditorObject3D, Object3DProperties, CameraPosition, CustomGeometry, OBJGeometry } from '@/types/editor';
+import { FireworkSimulation } from './FireworkSimulation';
 import { setCameraPosition } from '@/hooks/useEditorState';
 import { Move, ZoomIn, ZoomOut, RotateCcw, Hand, MousePointer, Move3d, RotateCw, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -845,6 +846,13 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                 />
               );
             })}
+            
+            {/* Firework simulations */}
+            <FireworkSimulation
+              objects={objects}
+              currentTime={currentTime}
+              isPlaying={isPlaying}
+            />
             
             <OrbitControls
               ref={controlsRef}
