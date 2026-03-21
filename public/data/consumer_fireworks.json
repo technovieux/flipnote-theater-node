@@ -1,114 +1,86 @@
 [
   {
-    "id": "cons-001",
     "name": "Étoile Magique",
+    "reference": "PF-001",
     "manufacturer": "PyroFête",
-    "type": "battery",
-    "caliber": 20,
-    "effects": [
-      { "name": "Étoiles dorées", "hasParticles": true, "colors": ["#FFD700", "#FFA500"], "duration": 3000, "height": 30, "spread": 20 }
-    ],
-    "totalDuration": 3000,
-    "maxHeight": 30,
-    "shotCount": 16,
-    "weight": 250,
-    "safetyDistance": 8,
-    "description": "Batterie de 16 tirs avec étoiles dorées"
+    "effectType": "Battery",
+    "duration": "3",
+    "shots": "16",
+    "caliber": "20",
+    "firingPattern": "Straight",
+    "category": "Battery",
+    "colors": ["#FFD700", "#FFA500"]
   },
   {
-    "id": "cons-002",
     "name": "Cascade d'Or",
+    "reference": "PF-002",
     "manufacturer": "PyroFête",
-    "type": "fountain",
-    "caliber": 30,
-    "effects": [
-      { "name": "Cascade dorée", "hasParticles": false, "colors": ["#FFD700"], "duration": 5000, "height": 5, "spread": 45 }
-    ],
-    "totalDuration": 5000,
-    "maxHeight": 5,
-    "shotCount": 1,
-    "weight": 180,
-    "safetyDistance": 5,
-    "description": "Fontaine à cascade dorée"
+    "effectType": "Fountain / Gerb",
+    "duration": "5",
+    "shots": "1",
+    "caliber": "30",
+    "firingPattern": "Straight",
+    "category": "Fountain / Gerb",
+    "colors": ["#FFD700"]
   },
   {
-    "id": "cons-003",
     "name": "Bouquet Final",
+    "reference": "FM-001",
     "manufacturer": "FeuMagic",
-    "type": "cake",
-    "caliber": 25,
-    "effects": [
-      { "name": "Étoiles multicolores", "hasParticles": true, "colors": ["#FF0000", "#00FF00", "#0000FF", "#FFD700"], "duration": 8000, "height": 40, "spread": 30 }
-    ],
-    "totalDuration": 8000,
-    "maxHeight": 40,
-    "shotCount": 25,
-    "weight": 500,
-    "safetyDistance": 8,
-    "description": "Compact 25 tirs multicolores pour bouquet final"
+    "effectType": "Battery",
+    "duration": "8",
+    "shots": "25",
+    "caliber": "25",
+    "firingPattern": "Fan",
+    "category": "Battery",
+    "colors": ["#FF0000", "#00FF00", "#0000FF", "#FFD700"]
   },
   {
-    "id": "cons-004",
     "name": "Comète Bleue",
+    "reference": "SL-001",
     "manufacturer": "StarLight",
-    "type": "roman_candle",
-    "caliber": 18,
-    "effects": [
-      { "name": "Comètes bleues", "hasParticles": true, "colors": ["#0066FF", "#00CCFF"], "duration": 6000, "height": 25, "spread": 10 }
-    ],
-    "totalDuration": 6000,
-    "maxHeight": 25,
-    "shotCount": 8,
-    "weight": 120,
-    "safetyDistance": 8,
-    "description": "Chandelle romaine 8 comètes bleues"
+    "effectType": "Roman Candle",
+    "duration": "6",
+    "shots": "8",
+    "caliber": "18",
+    "firingPattern": "Straight",
+    "category": "Roman Candle",
+    "colors": ["#0066FF", "#00CCFF"]
   },
   {
-    "id": "cons-005",
     "name": "Fontaine Arc-en-Ciel",
+    "reference": "FM-002",
     "manufacturer": "FeuMagic",
-    "type": "fountain",
-    "caliber": 40,
-    "effects": [
-      { "name": "Fontaine multicolore", "hasParticles": false, "colors": ["#FF0000", "#FF8800", "#FFFF00", "#00FF00", "#0000FF", "#8800FF"], "duration": 7000, "height": 4, "spread": 60 }
-    ],
-    "totalDuration": 7000,
-    "maxHeight": 4,
-    "shotCount": 1,
-    "weight": 220,
-    "safetyDistance": 5,
-    "description": "Fontaine avec changement de couleurs arc-en-ciel"
+    "effectType": "Fountain / Gerb",
+    "duration": "7",
+    "shots": "1",
+    "caliber": "40",
+    "firingPattern": "Straight",
+    "category": "Fountain / Gerb",
+    "colors": ["#FF0000", "#FF8800", "#FFFF00", "#00FF00", "#0000FF", "#8800FF"]
   },
   {
-    "id": "cons-006",
     "name": "Fusée Tonnerre",
+    "reference": "SL-002",
     "manufacturer": "StarLight",
-    "type": "rocket",
-    "caliber": 15,
-    "effects": [
-      { "name": "Explosion crépitante", "hasParticles": true, "colors": ["#FFFFFF", "#FFD700"], "duration": 2000, "height": 35, "spread": 25 }
-    ],
-    "totalDuration": 2000,
-    "maxHeight": 35,
-    "shotCount": 1,
-    "weight": 80,
-    "safetyDistance": 15,
-    "description": "Fusée avec finale crépitante"
+    "effectType": "Rocket",
+    "duration": "2",
+    "shots": "1",
+    "caliber": "15",
+    "firingPattern": "Straight",
+    "category": "Rocket",
+    "colors": ["#FFFFFF", "#FFD700"]
   },
   {
-    "id": "cons-007",
     "name": "Mine Surprise",
+    "reference": "PF-003",
     "manufacturer": "PyroFête",
-    "type": "mine",
-    "caliber": 35,
-    "effects": [
-      { "name": "Mine étoiles rouges", "hasParticles": true, "colors": ["#FF0000", "#FF4444"], "duration": 1500, "height": 20, "spread": 40 }
-    ],
-    "totalDuration": 1500,
-    "maxHeight": 20,
-    "shotCount": 1,
-    "weight": 150,
-    "safetyDistance": 8,
-    "description": "Mine à étoiles rouges instantanée"
+    "effectType": "Mine",
+    "duration": "1.5",
+    "shots": "1",
+    "caliber": "35",
+    "firingPattern": "Straight",
+    "category": "Mine",
+    "colors": ["#FF0000", "#FF4444"]
   }
 ]

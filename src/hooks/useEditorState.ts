@@ -389,16 +389,17 @@ export const useEditorState = () => {
 
   // Add firework object
   const addFireworkObject = useCallback((product: FireworkProduct, category: FireworkCategory) => {
+    const cal = parseInt(product.caliber) || 20;
     const newObject: EditorObject3D = {
       id: generateId(),
       name: `${product.name}`,
       type: 'firework',
       properties: {
         ...default3DProperties,
-        color: product.effects[0]?.colors[0] || '#FF4400',
-        width: Math.max(20, product.caliber / 2),
-        height: Math.max(20, product.caliber / 2),
-        depth: Math.max(20, product.caliber / 2),
+        color: product.colors[0] || '#FF4400',
+        width: Math.max(20, cal / 2),
+        height: Math.max(20, cal / 2),
+        depth: Math.max(20, cal / 2),
       },
       keyframes: [],
       fireworkProduct: product,
