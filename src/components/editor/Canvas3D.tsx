@@ -847,6 +847,13 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
               );
             })}
             
+            {/* Firework simulations */}
+            <FireworkSimulation
+              objects={objects}
+              currentTime={currentTime}
+              isPlaying={isPlaying}
+            />
+            
             <OrbitControls
               ref={controlsRef}
               enablePan={true}
