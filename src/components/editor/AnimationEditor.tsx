@@ -65,6 +65,8 @@ export const AnimationEditor: React.FC = () => {
     reorderObjects,
     addKeyframe,
     addScene,
+    moveScene,
+    deleteScene,
     play,
     pause,
     stop,
