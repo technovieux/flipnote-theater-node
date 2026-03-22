@@ -397,10 +397,15 @@ export const Timeline: React.FC<TimelineProps> = ({
                         <div
                           className={`keyframe-diamond bg-keyframe-scene cursor-grab ${
                             isDragging ? 'ring-2 ring-white scale-125' : ''
-                          }`}
+                          } ${selectedSceneId === scene.id ? 'ring-2 ring-primary scale-110' : ''}`}
                           style={{ left: (scene.time / 1000) * pixelsPerSecond - 6 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectScene?.(scene.id);
+                          }}
                           onMouseDown={(e) => {
                             e.stopPropagation();
+                            onSelectScene?.(scene.id);
                             setDraggingScene({
                               sceneId: scene.id,
                               startX: e.clientX,
