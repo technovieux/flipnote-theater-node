@@ -656,6 +656,8 @@ export const AnimationEditor: React.FC = () => {
                   onAddScene={addScene}
                   onMoveScene={moveScene}
                   onDeleteScene={deleteScene}
+                  selectedSceneId={selectedSceneId}
+                  onSelectScene={setSelectedSceneId}
                   onSelectObject={(id) => selectObject(id)}
                   onSelectKeyframe={(objectId, keyframeIndex) => setSelectedKeyframe({ objectId, keyframeIndex })}
                   onMoveKeyframe={moveKeyframe}
