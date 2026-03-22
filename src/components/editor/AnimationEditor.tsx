@@ -216,7 +216,7 @@ export const AnimationEditor: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectIds, selectedKeyframe, play, pause, addKeyframe, deleteSelectedObjects, deleteKeyframe, state, undo, redo, selectObject, state.mode3D, state.objects, state.objects3D, renderMode]);
+  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectIds, selectedKeyframe, selectedSceneId, play, pause, addKeyframe, deleteSelectedObjects, deleteKeyframe, deleteScene, state, undo, redo, selectObject, state.mode3D, state.objects, state.objects3D, renderMode]);
 
   const handleSave = async () => {
     try {
