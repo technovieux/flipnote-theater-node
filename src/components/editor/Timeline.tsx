@@ -70,6 +70,8 @@ export const Timeline: React.FC<TimelineProps> = ({
   onStop,
   onSeek,
   onAddScene,
+  onMoveScene,
+  onDeleteScene,
   onSelectObject,
   onSelectKeyframe,
   onMoveKeyframe,
