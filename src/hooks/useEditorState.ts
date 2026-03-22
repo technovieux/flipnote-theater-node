@@ -723,6 +723,24 @@ export const useEditorState = () => {
     });
   }, []);
 
+  const moveScene = useCallback((sceneId: string, newTime: number) => {
+    setState(prev => {
+      const newScenes = prev.scenes.map(s =>
+        s.id === sceneId ? { ...s, time: Math.max(0, Math.min(newTime, prev.duration)) } : s
+      ).sort((a, b) => a.time - b.time);
+      newScenes.forEach((s, i) => s.number = i + 1);
+      return { ...prev, scenes: newScenes, hasUnsavedChanges: true };
+    });
+  }, []);
+
+  const deleteScene = useCallback((sceneId: string) => {
+    setState(prev => {
+      const newScenes = prev.scenes.filter(s => s.id !== sceneId);
+      newScenes.forEach((s, i) => s.number = i + 1);
+      return { ...prev, scenes: newScenes, hasUnsavedChanges: true };
+    });
+  }, []);
+
   const play = useCallback(() => {
     setState(prev => ({ ...prev, isPlaying: true }));
   }, []);
