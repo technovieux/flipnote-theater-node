@@ -37,6 +37,7 @@ interface TimelineProps {
   onSelectObject: (id: string) => void;
   onSelectKeyframe: (objectId: string, keyframeIndex: number) => void;
   onMoveKeyframe?: (objectId: string, keyframeIndex: number, newTime: number) => void;
+  onDeleteKeyframe?: (objectId: string, keyframeIndex: number) => void;
   renderMode?: boolean;
 }
 
