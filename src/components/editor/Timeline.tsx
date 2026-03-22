@@ -383,14 +383,54 @@ export const Timeline: React.FC<TimelineProps> = ({
                 className="flex-1 timeline-track bg-timeline-bg relative overflow-x-auto"
                 style={{ width: totalWidth }}
               >
-                {scenes.map((scene) => (
-                  <div
-                    key={scene.id}
-                    className="keyframe-diamond bg-keyframe-scene"
-                    style={{ left: (scene.time / 1000) * pixelsPerSecond - 6 }}
-                    title={`${scene.number}. ${scene.name}`}
-                  />
-                ))}
+                {scenes.map((scene) => {
+                  const isDragging = draggingScene?.sceneId === scene.id;
+                  return (
+                    <HoverCard key={scene.id} openDelay={300} closeDelay={100}>
+                      <HoverCardTrigger asChild>
+                        <div
+                          className={`keyframe-diamond bg-keyframe-scene cursor-grab ${
+                            isDragging ? 'ring-2 ring-white scale-125' : ''
+                          }`}
+                          style={{ left: (scene.time / 1000) * pixelsPerSecond - 6 }}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setDraggingScene({
+                              sceneId: scene.id,
+                              startX: e.clientX,
+                              startTime: scene.time,
+                            });
+                          }}
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            onSeek(scene.time);
+                          }}
+                        />
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-52 p-2 text-xs" side="top">
+                        <div className="font-semibold mb-1">Scène {scene.number}</div>
+                        <div className="text-foreground mb-1">{scene.name}</div>
+                        <div className="text-muted-foreground mb-2">{formatTime(scene.time)}</div>
+                        <div className="flex items-center justify-between pt-2 border-t border-border">
+                          <span className="text-muted-foreground text-[10px]">Double-clic pour aller à • Glisser pour déplacer</span>
+                          {onDeleteScene && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-5 w-5 p-0 text-destructive hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteScene(scene.id);
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
+                  );
+                })}
               </div>
             </div>
 
