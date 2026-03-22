@@ -34,9 +34,12 @@ interface TimelineProps {
   onAddScene: (name: string) => void;
   onMoveScene?: (sceneId: string, newTime: number) => void;
   onDeleteScene?: (sceneId: string) => void;
+  selectedSceneId?: string | null;
+  onSelectScene?: (sceneId: string | null) => void;
   onSelectObject: (id: string) => void;
   onSelectKeyframe: (objectId: string, keyframeIndex: number) => void;
   onMoveKeyframe?: (objectId: string, keyframeIndex: number, newTime: number) => void;
+  onDeleteKeyframe?: (objectId: string, keyframeIndex: number) => void;
   renderMode?: boolean;
 }
 
@@ -72,9 +75,12 @@ export const Timeline: React.FC<TimelineProps> = ({
   onAddScene,
   onMoveScene,
   onDeleteScene,
+  selectedSceneId,
+  onSelectScene,
   onSelectObject,
   onSelectKeyframe,
   onMoveKeyframe,
+  onDeleteKeyframe,
   renderMode = false,
 }) => {
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -391,10 +397,15 @@ export const Timeline: React.FC<TimelineProps> = ({
                         <div
                           className={`keyframe-diamond bg-keyframe-scene cursor-grab ${
                             isDragging ? 'ring-2 ring-white scale-125' : ''
-                          }`}
+                          } ${selectedSceneId === scene.id ? 'ring-2 ring-primary scale-110' : ''}`}
                           style={{ left: (scene.time / 1000) * pixelsPerSecond - 6 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectScene?.(scene.id);
+                          }}
                           onMouseDown={(e) => {
                             e.stopPropagation();
+                            onSelectScene?.(scene.id);
                             setDraggingScene({
                               sceneId: scene.id,
                               startX: e.clientX,
@@ -505,8 +516,21 @@ export const Timeline: React.FC<TimelineProps> = ({
                               </div>
                             </div>
                           </div>
-                          <div className="mt-2 pt-2 border-t border-border text-muted-foreground text-[10px]">
-                            Double-clic pour éditer • Suppr pour effacer
+                          <div className="mt-2 pt-2 border-t border-border flex items-center justify-between">
+                            <span className="text-muted-foreground text-[10px]">Double-clic pour éditer</span>
+                            {onDeleteKeyframe && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-5 w-5 p-0 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteKeyframe(obj.id, idx);
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
                           </div>
                         </HoverCardContent>
                       </HoverCard>
@@ -593,8 +617,21 @@ export const Timeline: React.FC<TimelineProps> = ({
                               </div>
                             </div>
                           </div>
-                          <div className="mt-2 pt-2 border-t border-border text-muted-foreground text-[10px]">
-                            Double-clic pour éditer • Suppr pour effacer
+                          <div className="mt-2 pt-2 border-t border-border flex items-center justify-between">
+                            <span className="text-muted-foreground text-[10px]">Double-clic pour éditer</span>
+                            {onDeleteKeyframe && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-5 w-5 p-0 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteKeyframe(obj.id, idx);
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
                           </div>
                         </HoverCardContent>
                       </HoverCard>

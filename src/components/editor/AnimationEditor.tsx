@@ -95,6 +95,7 @@ export const AnimationEditor: React.FC = () => {
   const [customEditorOpen, setCustomEditorOpen] = useState(false);
   const [renderMode, setRenderMode] = useState(false);
   const [fireworkLibraryOpen, setFireworkLibraryOpen] = useState(false);
+  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   
@@ -199,10 +200,12 @@ export const AnimationEditor: React.FC = () => {
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (!renderMode) {
           e.preventDefault();
-          // Prioritize keyframe deletion if one is selected
           if (selectedKeyframe) {
             deleteKeyframe(selectedKeyframe.objectId, selectedKeyframe.keyframeIndex);
             setSelectedKeyframe(null);
+          } else if (selectedSceneId) {
+            deleteScene(selectedSceneId);
+            setSelectedSceneId(null);
           } else if (state.selectedObjectIds.length > 0) {
             deleteSelectedObjects();
           }
@@ -213,7 +216,7 @@ export const AnimationEditor: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectIds, selectedKeyframe, play, pause, addKeyframe, deleteSelectedObjects, deleteKeyframe, state, undo, redo, selectObject, state.mode3D, state.objects, state.objects3D, renderMode]);
+  }, [copySelectedObject, pasteObject, state.isPlaying, state.selectedObjectIds, selectedKeyframe, selectedSceneId, play, pause, addKeyframe, deleteSelectedObjects, deleteKeyframe, deleteScene, state, undo, redo, selectObject, state.mode3D, state.objects, state.objects3D, renderMode]);
 
   const handleSave = async () => {
     try {
@@ -653,9 +656,15 @@ export const AnimationEditor: React.FC = () => {
                   onAddScene={addScene}
                   onMoveScene={moveScene}
                   onDeleteScene={deleteScene}
+                  selectedSceneId={selectedSceneId}
+                  onSelectScene={setSelectedSceneId}
                   onSelectObject={(id) => selectObject(id)}
                   onSelectKeyframe={(objectId, keyframeIndex) => setSelectedKeyframe({ objectId, keyframeIndex })}
                   onMoveKeyframe={moveKeyframe}
+                  onDeleteKeyframe={(objectId, keyframeIndex) => {
+                    deleteKeyframe(objectId, keyframeIndex);
+                    setSelectedKeyframe(null);
+                  }}
                   renderMode={renderMode}
                 />
               </ResizablePanel>
