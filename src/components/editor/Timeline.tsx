@@ -245,6 +245,33 @@ export const Timeline: React.FC<TimelineProps> = ({
     };
   }, [draggingKeyframe, pixelsPerSecond, duration, onMoveKeyframe]);
 
+  // Scene drag effect
+  useEffect(() => {
+    if (!draggingScene) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!draggingScene) return;
+      const deltaX = e.clientX - draggingScene.startX;
+      const deltaTime = (deltaX / pixelsPerSecond) * 1000;
+      const newTime = Math.max(0, Math.min(duration, draggingScene.startTime + deltaTime));
+      if (onMoveScene) {
+        onMoveScene(draggingScene.sceneId, newTime);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setDraggingScene(null);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [draggingScene, pixelsPerSecond, duration, onMoveScene]);
+
   const cursorPosition = (currentTime / 1000) * pixelsPerSecond;
 
   // Generate time markers based on zoom level
