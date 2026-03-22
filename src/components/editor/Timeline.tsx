@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { EditorObject, EditorObject3D, Scene, AudioTrack } from '@/types/editor';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, Square, RotateCcw, Plus, ZoomIn, ZoomOut } from 'lucide-react';
+import { Play, Pause, Square, RotateCcw, Plus, ZoomIn, ZoomOut, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
