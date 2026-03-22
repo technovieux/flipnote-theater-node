@@ -32,6 +32,8 @@ interface TimelineProps {
   onStop: () => void;
   onSeek: (time: number) => void;
   onAddScene: (name: string) => void;
+  onMoveScene?: (sceneId: string, newTime: number) => void;
+  onDeleteScene?: (sceneId: string) => void;
   onSelectObject: (id: string) => void;
   onSelectKeyframe: (objectId: string, keyframeIndex: number) => void;
   onMoveKeyframe?: (objectId: string, keyframeIndex: number, newTime: number) => void;
