@@ -200,10 +200,12 @@ export const AnimationEditor: React.FC = () => {
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (!renderMode) {
           e.preventDefault();
-          // Prioritize keyframe deletion if one is selected
           if (selectedKeyframe) {
             deleteKeyframe(selectedKeyframe.objectId, selectedKeyframe.keyframeIndex);
             setSelectedKeyframe(null);
+          } else if (selectedSceneId) {
+            deleteScene(selectedSceneId);
+            setSelectedSceneId(null);
           } else if (state.selectedObjectIds.length > 0) {
             deleteSelectedObjects();
           }
