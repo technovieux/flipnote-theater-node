@@ -76,6 +76,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   onSelectObject,
   onSelectKeyframe,
   onMoveKeyframe,
+  onDeleteKeyframe,
   renderMode = false,
 }) => {
   const timelineRef = useRef<HTMLDivElement>(null);
