@@ -656,6 +656,10 @@ export const AnimationEditor: React.FC = () => {
                   onSelectObject={(id) => selectObject(id)}
                   onSelectKeyframe={(objectId, keyframeIndex) => setSelectedKeyframe({ objectId, keyframeIndex })}
                   onMoveKeyframe={moveKeyframe}
+                  onDeleteKeyframe={(objectId, keyframeIndex) => {
+                    deleteKeyframe(objectId, keyframeIndex);
+                    setSelectedKeyframe(null);
+                  }}
                   renderMode={renderMode}
                 />
               </ResizablePanel>
