@@ -607,8 +607,21 @@ export const Timeline: React.FC<TimelineProps> = ({
                               </div>
                             </div>
                           </div>
-                          <div className="mt-2 pt-2 border-t border-border text-muted-foreground text-[10px]">
-                            Double-clic pour éditer • Suppr pour effacer
+                          <div className="mt-2 pt-2 border-t border-border flex items-center justify-between">
+                            <span className="text-muted-foreground text-[10px]">Double-clic pour éditer</span>
+                            {onDeleteKeyframe && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-5 w-5 p-0 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteKeyframe(obj.id, idx);
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
                           </div>
                         </HoverCardContent>
                       </HoverCard>
