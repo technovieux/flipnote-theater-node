@@ -1026,6 +1026,8 @@ export const useEditorState = () => {
     reorderObjects,
     addKeyframe,
     addScene,
+    moveScene,
+    deleteScene,
     play,
     pause,
     stop,
