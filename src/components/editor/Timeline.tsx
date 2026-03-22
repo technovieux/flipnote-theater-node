@@ -89,6 +89,11 @@ export const Timeline: React.FC<TimelineProps> = ({
     startX: number;
     startTime: number;
   } | null>(null);
+  const [draggingScene, setDraggingScene] = useState<{
+    sceneId: string;
+    startX: number;
+    startTime: number;
+  } | null>(null);
 
   // Create audio element when audioTrack changes
   useEffect(() => {
