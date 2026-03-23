@@ -892,6 +892,14 @@ export const useEditorState = () => {
     }));
   }, []);
 
+  const removeAudioTrack = useCallback(() => {
+    setState(prev => {
+      const newState = { ...prev, audioTrack: null, hasUnsavedChanges: true };
+      saveToHistory(newState);
+      return newState;
+    });
+  }, []);
+
   const copySelectedObject = useCallback(() => {
     if (state.selectedObjectIds.length === 0) return;
     
