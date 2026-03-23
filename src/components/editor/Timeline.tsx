@@ -40,6 +40,8 @@ interface TimelineProps {
   onSelectKeyframe: (objectId: string, keyframeIndex: number) => void;
   onMoveKeyframe?: (objectId: string, keyframeIndex: number, newTime: number) => void;
   onDeleteKeyframe?: (objectId: string, keyframeIndex: number) => void;
+  onAddAudio?: () => void;
+  onRemoveAudio?: () => void;
   renderMode?: boolean;
 }
 
