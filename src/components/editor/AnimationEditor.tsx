@@ -77,6 +77,7 @@ export const AnimationEditor: React.FC = () => {
     loadProject,
     setBackgroundImage,
     setAudioTrack,
+    removeAudioTrack,
     copySelectedObject,
     pasteObject,
     moveKeyframe,
@@ -98,6 +99,7 @@ export const AnimationEditor: React.FC = () => {
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
   
   // Confirmation dialog state
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -527,6 +529,17 @@ export const AnimationEditor: React.FC = () => {
         className="hidden"
         accept="image/*,audio/*"
       />
+      <input
+        type="file"
+        ref={audioInputRef}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) processAudioFile(file);
+          e.target.value = '';
+        }}
+        className="hidden"
+        accept="audio/*"
+      />
       
       <MenuBar
         onNewProject={handleNewProject}
@@ -665,6 +678,8 @@ export const AnimationEditor: React.FC = () => {
                     deleteKeyframe(objectId, keyframeIndex);
                     setSelectedKeyframe(null);
                   }}
+                  onAddAudio={() => audioInputRef.current?.click()}
+                  onRemoveAudio={removeAudioTrack}
                   renderMode={renderMode}
                 />
               </ResizablePanel>

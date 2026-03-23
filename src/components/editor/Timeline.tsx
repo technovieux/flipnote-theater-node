@@ -40,6 +40,8 @@ interface TimelineProps {
   onSelectKeyframe: (objectId: string, keyframeIndex: number) => void;
   onMoveKeyframe?: (objectId: string, keyframeIndex: number, newTime: number) => void;
   onDeleteKeyframe?: (objectId: string, keyframeIndex: number) => void;
+  onAddAudio?: () => void;
+  onRemoveAudio?: () => void;
   renderMode?: boolean;
 }
 
@@ -81,9 +83,12 @@ export const Timeline: React.FC<TimelineProps> = ({
   onSelectKeyframe,
   onMoveKeyframe,
   onDeleteKeyframe,
+  onAddAudio,
+  onRemoveAudio,
   renderMode = false,
 }) => {
   const timelineRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
   const [sceneDialogOpen, setSceneDialogOpen] = useState(false);
@@ -344,15 +349,14 @@ export const Timeline: React.FC<TimelineProps> = ({
       </div>
       
       <div className="flex-1 flex flex-col overflow-hidden" onWheel={handleWheel}>
-        {/* Track labels */}
+        {/* Ruler row */}
         <div className="flex border-b border-panel-border">
           <div className="w-32 flex-shrink-0 border-r border-panel-border" />
           <div
             ref={timelineRef}
-            className="flex-1 timeline-scroll relative overflow-x-auto"
-            onClick={handleTimelineClick}
+            className="flex-1 relative overflow-hidden"
           >
-            {/* Time ruler */}
+            {/* Time ruler - scrolled by the main container */}
             <div className="h-6 relative bg-timeline-bg" style={{ width: totalWidth }}>
               {markers.map((t) => (
                 <div
@@ -377,18 +381,96 @@ export const Timeline: React.FC<TimelineProps> = ({
           </div>
         </div>
 
-        {/* Tracks */}
-        <div className="flex-1 overflow-auto">
-          <div className="flex flex-col">
-            {/* Scenes track */}
-            <div className="flex border-b border-panel-border">
-              <div className="w-32 flex-shrink-0 px-2 py-1 text-sm bg-keyframe-scene/20 border-r border-panel-border font-medium">
-                Scènes
-              </div>
+        {/* All tracks in a single synchronized scroll container */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Track labels column */}
+          <div className="w-32 flex-shrink-0 flex flex-col overflow-y-auto border-r border-panel-border">
+            {/* Scenes label */}
+            <div className="px-2 py-1 text-sm bg-keyframe-scene/20 font-medium border-b border-panel-border flex-shrink-0">
+              Scènes
+            </div>
+
+            {/* Object labels - 2D */}
+            {!renderMode && !mode3D && objects.map((obj) => (
               <div
-                className="flex-1 timeline-track bg-timeline-bg relative overflow-x-auto"
-                style={{ width: totalWidth }}
+                key={obj.id}
+                className={`px-2 py-1 text-sm truncate border-b border-panel-border flex items-center gap-2 cursor-pointer flex-shrink-0 ${
+                  selectedObjectIds.includes(obj.id) ? 'bg-primary/10' : ''
+                }`}
+                onClick={() => onSelectObject(obj.id)}
               >
+                <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: obj.properties.color }} />
+                {obj.name}
+              </div>
+            ))}
+
+            {/* Object labels - 3D */}
+            {!renderMode && mode3D && objects3D.map((obj) => (
+              <div
+                key={obj.id}
+                className={`px-2 py-1 text-sm truncate border-b border-panel-border flex items-center gap-2 cursor-pointer flex-shrink-0 ${
+                  selectedObjectIds.includes(obj.id) ? 'bg-primary/10' : ''
+                }`}
+                onClick={() => onSelectObject(obj.id)}
+              >
+                <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: obj.properties.color }} />
+                {obj.name}
+              </div>
+            ))}
+
+            {/* Audio label */}
+            <div className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
+              <span>Audio</span>
+              {audioTrack ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-5 w-5 p-0 text-destructive hover:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveAudio?.();
+                  }}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddAudio?.();
+                  }}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+
+            {/* Audio name sub-label when loaded */}
+            {audioTrack && (
+              <div className="px-2 py-1 text-xs text-muted-foreground border-b border-panel-border truncate flex-shrink-0 pl-4">
+                🎵 {audioTrack.name}
+              </div>
+            )}
+          </div>
+
+          {/* Scrollable tracks content */}
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-auto"
+            onClick={handleTimelineClick}
+            onScroll={() => {
+              // Sync ruler scroll with tracks scroll
+              if (scrollContainerRef.current && timelineRef.current) {
+                timelineRef.current.scrollLeft = scrollContainerRef.current.scrollLeft;
+              }
+            }}
+          >
+            <div style={{ width: totalWidth }} className="flex flex-col">
+              {/* Scenes track */}
+              <div className="timeline-track bg-timeline-bg relative border-b border-panel-border" style={{ width: totalWidth }}>
                 {scenes.map((scene) => {
                   const isDragging = draggingScene?.sceneId === scene.id;
                   return (
@@ -443,26 +525,14 @@ export const Timeline: React.FC<TimelineProps> = ({
                   );
                 })}
               </div>
-            </div>
 
-            {/* Object tracks - 2D */}
-            {!renderMode && !mode3D && objects.map((obj) => (
-              <div
-                key={obj.id}
-                className={`flex border-b border-panel-border cursor-pointer ${
-                  selectedObjectIds.includes(obj.id) ? 'bg-primary/10' : ''
-                }`}
-                onClick={() => onSelectObject(obj.id)}
-              >
-                <div className="w-32 flex-shrink-0 px-2 py-1 text-sm truncate border-r border-panel-border flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-sm"
-                    style={{ backgroundColor: obj.properties.color }}
-                  />
-                  {obj.name}
-                </div>
+              {/* Object tracks - 2D */}
+              {!renderMode && !mode3D && objects.map((obj) => (
                 <div
-                  className="flex-1 timeline-track bg-timeline-bg relative overflow-x-auto"
+                  key={obj.id}
+                  className={`timeline-track bg-timeline-bg relative border-b border-panel-border ${
+                    selectedObjectIds.includes(obj.id) ? 'bg-primary/10' : ''
+                  }`}
                   style={{ width: totalWidth }}
                 >
                   {obj.keyframes.map((kf, idx) => {
@@ -537,27 +607,15 @@ export const Timeline: React.FC<TimelineProps> = ({
                     );
                   })}
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {/* Object tracks - 3D */}
-            {!renderMode && mode3D && objects3D.map((obj) => (
-              <div
-                key={obj.id}
-                className={`flex border-b border-panel-border cursor-pointer ${
-                  selectedObjectIds.includes(obj.id) ? 'bg-primary/10' : ''
-                }`}
-                onClick={() => onSelectObject(obj.id)}
-              >
-                <div className="w-32 flex-shrink-0 px-2 py-1 text-sm truncate border-r border-panel-border flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-sm"
-                    style={{ backgroundColor: obj.properties.color }}
-                  />
-                  {obj.name}
-                </div>
+              {/* Object tracks - 3D */}
+              {!renderMode && mode3D && objects3D.map((obj) => (
                 <div
-                  className="flex-1 timeline-track bg-timeline-bg relative overflow-x-auto"
+                  key={obj.id}
+                  className={`timeline-track bg-timeline-bg relative border-b border-panel-border ${
+                    selectedObjectIds.includes(obj.id) ? 'bg-primary/10' : ''
+                  }`}
                   style={{ width: totalWidth }}
                 >
                   {obj.keyframes.map((kf, idx) => {
@@ -638,18 +696,10 @@ export const Timeline: React.FC<TimelineProps> = ({
                     );
                   })}
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {/* Audio track */}
-            <div className="flex border-b border-panel-border">
-              <div className="w-32 flex-shrink-0 px-2 py-1 text-sm text-muted-foreground border-r border-panel-border">
-                Audio {audioTrack && <span className="text-xs">({audioTrack.name})</span>}
-              </div>
-              <div
-                className="flex-1 timeline-track bg-timeline-bg overflow-x-auto relative h-8"
-                style={{ width: totalWidth }}
-              >
+              {/* Audio track - waveform */}
+              <div className="timeline-track bg-timeline-bg relative border-b border-panel-border h-8" style={{ width: totalWidth }}>
                 {audioTrack && audioTrack.waveform.length > 0 && (
                   <svg
                     className="absolute top-0 left-0 h-full"
@@ -679,6 +729,11 @@ export const Timeline: React.FC<TimelineProps> = ({
                   </svg>
                 )}
               </div>
+
+              {/* Audio name track (empty visual spacer when audio loaded) */}
+              {audioTrack && (
+                <div className="timeline-track bg-timeline-bg/50 relative border-b border-panel-border h-6" style={{ width: totalWidth }} />
+              )}
             </div>
           </div>
         </div>
