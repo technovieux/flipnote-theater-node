@@ -83,9 +83,12 @@ export const Timeline: React.FC<TimelineProps> = ({
   onSelectKeyframe,
   onMoveKeyframe,
   onDeleteKeyframe,
+  onAddAudio,
+  onRemoveAudio,
   renderMode = false,
 }) => {
   const timelineRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
   const [sceneDialogOpen, setSceneDialogOpen] = useState(false);
