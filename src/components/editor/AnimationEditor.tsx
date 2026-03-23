@@ -529,6 +529,17 @@ export const AnimationEditor: React.FC = () => {
         className="hidden"
         accept="image/*,audio/*"
       />
+      <input
+        type="file"
+        ref={audioInputRef}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) processAudioFile(file);
+          e.target.value = '';
+        }}
+        className="hidden"
+        accept="audio/*"
+      />
       
       <MenuBar
         onNewProject={handleNewProject}
