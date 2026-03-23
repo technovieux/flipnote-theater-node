@@ -77,6 +77,7 @@ export const AnimationEditor: React.FC = () => {
     loadProject,
     setBackgroundImage,
     setAudioTrack,
+    removeAudioTrack,
     copySelectedObject,
     pasteObject,
     moveKeyframe,
@@ -98,6 +99,7 @@ export const AnimationEditor: React.FC = () => {
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
   
   // Confirmation dialog state
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
