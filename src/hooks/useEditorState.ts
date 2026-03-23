@@ -1046,6 +1046,7 @@ export const useEditorState = () => {
     loadProject,
     setBackgroundImage,
     setAudioTrack,
+    removeAudioTrack,
     copySelectedObject,
     pasteObject,
     moveKeyframe,
