@@ -679,7 +679,7 @@ export const AnimationEditor: React.FC = () => {
                     setSelectedKeyframe(null);
                   }}
                   onAddAudio={() => audioInputRef.current?.click()}
-                  onRemoveAudio={removeAudioTrack}
+                  onRemoveAudio={(trackId) => removeAudioTrack(trackId)}
                   renderMode={renderMode}
                 />
               </ResizablePanel>
