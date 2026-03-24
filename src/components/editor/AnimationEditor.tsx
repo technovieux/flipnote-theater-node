@@ -403,9 +403,9 @@ export const AnimationEditor: React.FC = () => {
       return;
     }
     
-    if (isAudio && state.audioTrack) {
-      setPendingImport({ type: 'audio', file });
-      setConfirmDialogOpen(true);
+    if (isAudio) {
+      // Always allow adding audio (multi-track)
+      processAudioFile(file);
     } else if (isImage && state.backgroundImage) {
       setPendingImport({ type: 'image', file });
       setConfirmDialogOpen(true);
