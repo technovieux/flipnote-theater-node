@@ -327,7 +327,7 @@ export const exportAsVideo = async (
   const lastKeyframeTime = state.mode3D
     ? Math.max(...state.objects3D.flatMap((obj) => obj.keyframes.map((kf) => kf.time)), 0)
     : Math.max(...state.objects.flatMap((obj) => obj.keyframes.map((kf) => kf.time)), 0);
-  const audioDuration = state.audioTrack?.duration ? state.audioTrack.duration * 1000 : 0;
+  const audioDuration = state.audioTracks.length > 0 ? Math.max(...state.audioTracks.map(t => t.duration * 1000)) : 0;
   const endTime = Math.max(lastKeyframeTime, audioDuration) || 5000;
 
   const fps = 25;
