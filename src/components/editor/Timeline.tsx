@@ -418,14 +418,14 @@ export const Timeline: React.FC<TimelineProps> = ({
               </div>
             ))}
 
-            {/* Audio label */}
-            <div className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
-              <span>Audio</span>
-              {audioTrack ? (
+            {/* Audio track name with trash when loaded */}
+            {audioTrack && (
+              <div className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
+                <span className="truncate">🎵 {audioTrack.name}</span>
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-5 w-5 p-0 text-destructive hover:text-destructive"
+                  className="h-5 w-5 p-0 text-destructive hover:text-destructive flex-shrink-0"
                   onClick={(e) => {
                     e.stopPropagation();
                     onRemoveAudio?.();
@@ -433,27 +433,24 @@ export const Timeline: React.FC<TimelineProps> = ({
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddAudio?.();
-                  }}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-
-            {/* Audio name sub-label when loaded */}
-            {audioTrack && (
-              <div className="px-2 py-1 text-xs text-muted-foreground border-b border-panel-border truncate flex-shrink-0 pl-4">
-                🎵 {audioTrack.name}
               </div>
             )}
+
+            {/* Audio label with + to add */}
+            <div className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
+              <span>Audio</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddAudio?.();
+                }}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
 
           {/* Scrollable tracks content */}
