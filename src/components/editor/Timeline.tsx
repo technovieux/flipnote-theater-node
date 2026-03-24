@@ -150,8 +150,9 @@ export const Timeline: React.FC<TimelineProps> = ({
   const pixelsPerSecond = BASE_PIXELS_PER_SECOND * zoom;
   const totalWidth = (duration / 1000) * pixelsPerSecond;
 
-  // Calculate audio waveform width based on audio duration
-  const audioWidth = audioTrack ? (audioTrack.duration / 1000) * pixelsPerSecond : 0;
+  // Calculate max audio waveform width
+  const maxAudioDuration = audioTracks.length > 0 ? Math.max(...audioTracks.map(t => t.duration)) : 0;
+  const audioWidth = maxAudioDuration > 0 ? (maxAudioDuration / 1000) * pixelsPerSecond : 0;
   const getMarkerInterval = () => {
     if (zoom < 0.2) return 60000; // 1 minute
     if (zoom < 0.5) return 30000; // 30 seconds
