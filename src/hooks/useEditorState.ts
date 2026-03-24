@@ -1060,7 +1060,7 @@ export const useEditorState = () => {
     resetProject,
     loadProject,
     setBackgroundImage,
-    setAudioTrack,
+    addAudioTrack,
     removeAudioTrack,
     copySelectedObject,
     pasteObject,

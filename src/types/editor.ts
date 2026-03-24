@@ -117,7 +117,7 @@ export interface EditorState {
   objects3D: EditorObject3D[];
   selectedObjectIds: string[];
   scenes: Scene[];
-  audioTrack: AudioTrack | null;
+  audioTracks: AudioTrack[];
   backgroundImage: string | null; // URL or data URI
   currentTime: number;
   isPlaying: boolean;
