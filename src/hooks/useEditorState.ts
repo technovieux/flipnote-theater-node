@@ -50,7 +50,7 @@ const cloneStateForHistory = (state: EditorState): EditorState => {
     objects: JSON.parse(JSON.stringify(state.objects)),
     objects3D: JSON.parse(JSON.stringify(state.objects3D)),
     scenes: JSON.parse(JSON.stringify(state.scenes)),
-    audioTrack: state.audioTrack ? { ...state.audioTrack } : null,
+    audioTracks: state.audioTracks.map(t => ({ ...t })),
   };
 };
 
@@ -83,7 +83,7 @@ const initialState: EditorState = {
   objects3D: [],
   selectedObjectIds: [],
   scenes: [],
-  audioTrack: null,
+  audioTracks: [],
   backgroundImage: null,
   currentTime: 0,
   isPlaying: false,
@@ -847,17 +847,29 @@ export const useEditorState = () => {
   }, []);
 
   const loadProject = useCallback((project: FlptProject) => {
-    let audioTrack: AudioTrack | null = null;
+    // Support both legacy single audioTrack and new audioTracks array
+    const audioTracks: AudioTrack[] = [];
     
-    if (project.audioTrack) {
+    if (project.audioTracks && project.audioTracks.length > 0) {
+      for (const at of project.audioTracks) {
+        const file = base64ToFile(at.data, at.name);
+        audioTracks.push({
+          id: generateId(),
+          name: at.name,
+          file,
+          waveform: at.waveform,
+          duration: at.duration,
+        });
+      }
+    } else if (project.audioTrack) {
       const file = base64ToFile(project.audioTrack.data, project.audioTrack.name);
-      audioTrack = {
+      audioTracks.push({
         id: generateId(),
         name: project.audioTrack.name,
         file,
         waveform: project.audioTrack.waveform,
         duration: project.audioTrack.duration,
-      };
+      });
     }
     
     setState({
@@ -866,7 +878,7 @@ export const useEditorState = () => {
       objects3D: project.objects3D || [],
       scenes: project.scenes,
       backgroundImage: project.backgroundImage,
-      audioTrack,
+      audioTracks,
       duration: project.duration,
       mode3D: project.mode3D || project.modeFireworks || false,
       modeFireworks: project.modeFireworks || false,
@@ -878,23 +890,26 @@ export const useEditorState = () => {
     setState(prev => ({ ...prev, backgroundImage: imageUrl, hasUnsavedChanges: true }));
   }, []);
 
-  const setAudioTrack = useCallback((file: File, waveform: number[], duration: number) => {
+  const addAudioTrack = useCallback((file: File, waveform: number[], duration: number) => {
     setState(prev => ({
       ...prev,
       hasUnsavedChanges: true,
-      audioTrack: {
-        id: generateId(),
-        name: file.name,
-        file,
-        waveform,
-        duration,
-      },
+      audioTracks: [
+        ...prev.audioTracks,
+        {
+          id: generateId(),
+          name: file.name,
+          file,
+          waveform,
+          duration,
+        },
+      ],
     }));
   }, []);
 
-  const removeAudioTrack = useCallback(() => {
+  const removeAudioTrack = useCallback((trackId: string) => {
     setState(prev => {
-      const newState = { ...prev, audioTrack: null, hasUnsavedChanges: true };
+      const newState = { ...prev, audioTracks: prev.audioTracks.filter(t => t.id !== trackId), hasUnsavedChanges: true };
       saveToHistory(newState);
       return newState;
     });
@@ -1045,7 +1060,7 @@ export const useEditorState = () => {
     resetProject,
     loadProject,
     setBackgroundImage,
-    setAudioTrack,
+    addAudioTrack,
     removeAudioTrack,
     copySelectedObject,
     pasteObject,

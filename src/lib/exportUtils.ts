@@ -327,7 +327,7 @@ export const exportAsVideo = async (
   const lastKeyframeTime = state.mode3D
     ? Math.max(...state.objects3D.flatMap((obj) => obj.keyframes.map((kf) => kf.time)), 0)
     : Math.max(...state.objects.flatMap((obj) => obj.keyframes.map((kf) => kf.time)), 0);
-  const audioDuration = state.audioTrack?.duration ? state.audioTrack.duration * 1000 : 0;
+  const audioDuration = state.audioTracks.length > 0 ? Math.max(...state.audioTracks.map(t => t.duration * 1000)) : 0;
   const endTime = Math.max(lastKeyframeTime, audioDuration) || 5000;
 
   const fps = 25;
@@ -352,11 +352,11 @@ export const exportAsVideo = async (
 
   const stream = canvas.captureStream(fps);
 
-  // Add audio track if available
-  if (state.audioTrack?.file) {
+  // Add audio tracks if available
+  if (state.audioTracks.length > 0 && state.audioTracks[0]?.file) {
     try {
       const audioContext = new AudioContext();
-      const arrayBuffer = await state.audioTrack.file.arrayBuffer();
+      const arrayBuffer = await state.audioTracks[0].file.arrayBuffer();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       const source = audioContext.createMediaStreamDestination();
       const bufferSource = audioContext.createBufferSource();

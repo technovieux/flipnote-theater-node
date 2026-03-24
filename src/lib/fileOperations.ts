@@ -14,16 +14,23 @@ export interface FlptProject {
   objects3D?: EditorObject3D[];
   scenes: Scene[];
   backgroundImage: string | null;
-  audioTrack: {
+  // Legacy single audio track (for backward compat)
+  audioTrack?: {
     name: string;
     waveform: number[];
     duration: number;
-    data: string; // base64 encoded audio
+    data: string;
   } | null;
+  // New multi-track audio
+  audioTracks?: {
+    name: string;
+    waveform: number[];
+    duration: number;
+    data: string;
+  }[];
   duration: number;
   mode3D?: boolean;
   modeFireworks?: boolean;
-  // Embedded OBJ models for portability
   embeddedOBJModels?: EmbeddedOBJModel[];
 }
 
@@ -34,19 +41,21 @@ export const hasFileSystemAccess = (): boolean => {
 };
 
 export const serializeProject = async (state: EditorState): Promise<FlptProject> => {
-  let audioData: FlptProject['audioTrack'] = null;
+  const audioTracksData: FlptProject['audioTracks'] = [];
   
-  if (state.audioTrack?.file) {
-    const arrayBuffer = await state.audioTrack.file.arrayBuffer();
-    const base64 = btoa(
-      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-    );
-    audioData = {
-      name: state.audioTrack.name,
-      waveform: state.audioTrack.waveform,
-      duration: state.audioTrack.duration,
-      data: base64,
-    };
+  for (const track of state.audioTracks) {
+    if (track.file) {
+      const arrayBuffer = await track.file.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+      audioTracksData.push({
+        name: track.name,
+        waveform: track.waveform,
+        duration: track.duration,
+        data: base64,
+      });
+    }
   }
 
   // Extract unique OBJ geometries from 3D objects
@@ -70,12 +79,12 @@ export const serializeProject = async (state: EditorState): Promise<FlptProject>
   }
 
   return {
-    version: '1.2',
+    version: '1.3',
     objects: state.objects,
     objects3D: state.objects3D,
     scenes: state.scenes,
     backgroundImage: state.backgroundImage,
-    audioTrack: audioData,
+    audioTracks: audioTracksData && audioTracksData.length > 0 ? audioTracksData : undefined,
     duration: state.duration,
     mode3D: state.mode3D,
     modeFireworks: state.modeFireworks,

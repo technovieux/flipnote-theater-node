@@ -21,7 +21,7 @@ interface TimelineProps {
   objects3D: EditorObject3D[];
   mode3D: boolean;
   scenes: Scene[];
-  audioTrack: AudioTrack | null;
+  audioTracks: AudioTrack[];
   selectedObjectIds: string[];
   selectedKeyframe: { objectId: string; keyframeIndex: number } | null;
   currentTime: number;
@@ -41,7 +41,7 @@ interface TimelineProps {
   onMoveKeyframe?: (objectId: string, keyframeIndex: number, newTime: number) => void;
   onDeleteKeyframe?: (objectId: string, keyframeIndex: number) => void;
   onAddAudio?: () => void;
-  onRemoveAudio?: () => void;
+  onRemoveAudio?: (trackId: string) => void;
   renderMode?: boolean;
 }
 
@@ -64,7 +64,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   objects3D,
   mode3D,
   scenes,
-  audioTrack,
+  audioTracks,
   selectedObjectIds,
   selectedKeyframe,
   currentTime,
@@ -106,15 +106,15 @@ export const Timeline: React.FC<TimelineProps> = ({
     startTime: number;
   } | null>(null);
 
-  // Create audio element when audioTrack changes
+  // Create audio element for first audio track (playback)
+  const firstAudioTrack = audioTracks.length > 0 ? audioTracks[0] : null;
   useEffect(() => {
-    if (audioTrack?.file) {
-      // Cleanup old URL
+    if (firstAudioTrack?.file) {
       if (audioUrlRef.current) {
         URL.revokeObjectURL(audioUrlRef.current);
       }
       
-      const url = URL.createObjectURL(audioTrack.file);
+      const url = URL.createObjectURL(firstAudioTrack.file);
       audioUrlRef.current = url;
       
       const audio = new Audio(url);
@@ -125,7 +125,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         URL.revokeObjectURL(url);
       };
     }
-  }, [audioTrack?.file]);
+  }, [firstAudioTrack?.file]);
 
   // Sync audio playback with timeline
   useEffect(() => {
@@ -150,8 +150,9 @@ export const Timeline: React.FC<TimelineProps> = ({
   const pixelsPerSecond = BASE_PIXELS_PER_SECOND * zoom;
   const totalWidth = (duration / 1000) * pixelsPerSecond;
 
-  // Calculate audio waveform width based on audio duration
-  const audioWidth = audioTrack ? (audioTrack.duration / 1000) * pixelsPerSecond : 0;
+  // Calculate max audio waveform width
+  const maxAudioDuration = audioTracks.length > 0 ? Math.max(...audioTracks.map(t => t.duration)) : 0;
+  const audioWidth = maxAudioDuration > 0 ? (maxAudioDuration / 1000) * pixelsPerSecond : 0;
   const getMarkerInterval = () => {
     if (zoom < 0.2) return 60000; // 1 minute
     if (zoom < 0.5) return 30000; // 30 seconds
@@ -418,23 +419,23 @@ export const Timeline: React.FC<TimelineProps> = ({
               </div>
             ))}
 
-            {/* Audio track name with trash when loaded */}
-            {audioTrack && (
-              <div className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
-                <span className="truncate">🎵 {audioTrack.name}</span>
+            {/* Audio tracks with names and trash icons */}
+            {audioTracks.map((track) => (
+              <div key={track.id} className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
+                <span className="truncate">🎵 {track.name}</span>
                 <Button
                   size="sm"
                   variant="ghost"
                   className="h-5 w-5 p-0 text-destructive hover:text-destructive flex-shrink-0"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onRemoveAudio?.();
+                    onRemoveAudio?.(track.id);
                   }}
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
-            )}
+            ))}
 
             {/* Audio label with + to add */}
             <div className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
@@ -695,39 +696,42 @@ export const Timeline: React.FC<TimelineProps> = ({
                 </div>
               ))}
 
-              {/* Audio waveform track (when audio loaded) */}
-              {audioTrack && (
-                <div className="timeline-track bg-timeline-bg relative border-b border-panel-border h-8" style={{ width: totalWidth }}>
-                  {audioTrack.waveform.length > 0 && (
-                    <svg
-                      className="absolute top-0 left-0 h-full"
-                      style={{ width: audioWidth }}
-                      preserveAspectRatio="none"
-                    >
-                      <defs>
-                        <linearGradient id="waveformGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.8" />
-                          <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
-                        </linearGradient>
-                      </defs>
-                      {audioTrack.waveform.map((value, index) => {
-                        const barWidth = audioWidth / audioTrack.waveform.length;
-                        const barHeight = Math.max(2, value * 100);
-                        return (
-                          <rect
-                            key={index}
-                            x={index * barWidth}
-                            y={(32 - barHeight) / 2}
-                            width={Math.max(1, barWidth - 1)}
-                            height={barHeight}
-                            fill="url(#waveformGradient)"
-                          />
-                        );
-                      })}
-                    </svg>
-                  )}
-                </div>
-              )}
+              {/* Audio waveform tracks */}
+              {audioTracks.map((track, trackIndex) => {
+                const trackAudioWidth = (track.duration / 1000) * pixelsPerSecond;
+                return (
+                  <div key={track.id} className="timeline-track bg-timeline-bg relative border-b border-panel-border h-8" style={{ width: totalWidth }}>
+                    {track.waveform.length > 0 && (
+                      <svg
+                        className="absolute top-0 left-0 h-full"
+                        style={{ width: trackAudioWidth }}
+                        preserveAspectRatio="none"
+                      >
+                        <defs>
+                          <linearGradient id={`waveformGradient-${trackIndex}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.8" />
+                            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
+                          </linearGradient>
+                        </defs>
+                        {track.waveform.map((value, index) => {
+                          const barWidth = trackAudioWidth / track.waveform.length;
+                          const barHeight = Math.max(2, value * 100);
+                          return (
+                            <rect
+                              key={index}
+                              x={index * barWidth}
+                              y={(32 - barHeight) / 2}
+                              width={Math.max(1, barWidth - 1)}
+                              height={barHeight}
+                              fill={`url(#waveformGradient-${trackIndex})`}
+                            />
+                          );
+                        })}
+                      </svg>
+                    )}
+                  </div>
+                );
+              })}
 
               {/* Audio + row (always visible, empty track for adding more) */}
               <div className="timeline-track bg-timeline-bg/50 relative border-b border-panel-border h-8" style={{ width: totalWidth }} />

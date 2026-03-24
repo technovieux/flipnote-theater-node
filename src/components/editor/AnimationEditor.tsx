@@ -76,7 +76,7 @@ export const AnimationEditor: React.FC = () => {
     resetProject,
     loadProject,
     setBackgroundImage,
-    setAudioTrack,
+    addAudioTrack,
     removeAudioTrack,
     copySelectedObject,
     pasteObject,
@@ -370,7 +370,7 @@ export const AnimationEditor: React.FC = () => {
           waveform.push(sum / blockSize);
         }
         
-        setAudioTrack(file, waveform, audioBuffer.duration * 1000);
+        addAudioTrack(file, waveform, audioBuffer.duration * 1000);
         toast.success(`Audio importé: ${file.name}`);
       } catch (error) {
         toast.error("Erreur lors du chargement de l'audio");
@@ -403,18 +403,13 @@ export const AnimationEditor: React.FC = () => {
       return;
     }
     
-    if (isAudio && state.audioTrack) {
-      setPendingImport({ type: 'audio', file });
-      setConfirmDialogOpen(true);
+    if (isAudio) {
+      processAudioFile(file);
     } else if (isImage && state.backgroundImage) {
       setPendingImport({ type: 'image', file });
       setConfirmDialogOpen(true);
-    } else {
-      if (isAudio) {
-        processAudioFile(file);
-      } else {
-        processImageFile(file);
-      }
+    } else if (isImage) {
+      processImageFile(file);
     }
     
     e.target.value = '';
@@ -656,7 +651,7 @@ export const AnimationEditor: React.FC = () => {
                   objects3D={state.objects3D}
                   mode3D={state.mode3D}
                   scenes={state.scenes}
-                  audioTrack={state.audioTrack}
+                  audioTracks={state.audioTracks}
                   selectedObjectIds={state.selectedObjectIds}
                   selectedKeyframe={selectedKeyframe}
                   currentTime={state.currentTime}
@@ -679,7 +674,7 @@ export const AnimationEditor: React.FC = () => {
                     setSelectedKeyframe(null);
                   }}
                   onAddAudio={() => audioInputRef.current?.click()}
-                  onRemoveAudio={removeAudioTrack}
+                  onRemoveAudio={(trackId) => removeAudioTrack(trackId)}
                   renderMode={renderMode}
                 />
               </ResizablePanel>
