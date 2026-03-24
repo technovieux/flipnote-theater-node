@@ -83,7 +83,7 @@ const initialState: EditorState = {
   objects3D: [],
   selectedObjectIds: [],
   scenes: [],
-  audioTrack: null,
+  audioTracks: [],
   backgroundImage: null,
   currentTime: 0,
   isPlaying: false,
