@@ -76,7 +76,7 @@ export const AnimationEditor: React.FC = () => {
     resetProject,
     loadProject,
     setBackgroundImage,
-    setAudioTrack,
+    addAudioTrack,
     removeAudioTrack,
     copySelectedObject,
     pasteObject,
