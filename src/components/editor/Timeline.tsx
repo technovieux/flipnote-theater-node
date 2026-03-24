@@ -419,23 +419,23 @@ export const Timeline: React.FC<TimelineProps> = ({
               </div>
             ))}
 
-            {/* Audio track name with trash when loaded */}
-            {audioTrack && (
-              <div className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
-                <span className="truncate">🎵 {audioTrack.name}</span>
+            {/* Audio tracks with names and trash icons */}
+            {audioTracks.map((track) => (
+              <div key={track.id} className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
+                <span className="truncate">🎵 {track.name}</span>
                 <Button
                   size="sm"
                   variant="ghost"
                   className="h-5 w-5 p-0 text-destructive hover:text-destructive flex-shrink-0"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onRemoveAudio?.();
+                    onRemoveAudio?.(track.id);
                   }}
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
-            )}
+            ))}
 
             {/* Audio label with + to add */}
             <div className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
