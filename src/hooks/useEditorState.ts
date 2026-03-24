@@ -847,17 +847,29 @@ export const useEditorState = () => {
   }, []);
 
   const loadProject = useCallback((project: FlptProject) => {
-    let audioTrack: AudioTrack | null = null;
+    // Support both legacy single audioTrack and new audioTracks array
+    const audioTracks: AudioTrack[] = [];
     
-    if (project.audioTrack) {
+    if (project.audioTracks && project.audioTracks.length > 0) {
+      for (const at of project.audioTracks) {
+        const file = base64ToFile(at.data, at.name);
+        audioTracks.push({
+          id: generateId(),
+          name: at.name,
+          file,
+          waveform: at.waveform,
+          duration: at.duration,
+        });
+      }
+    } else if (project.audioTrack) {
       const file = base64ToFile(project.audioTrack.data, project.audioTrack.name);
-      audioTrack = {
+      audioTracks.push({
         id: generateId(),
         name: project.audioTrack.name,
         file,
         waveform: project.audioTrack.waveform,
         duration: project.audioTrack.duration,
-      };
+      });
     }
     
     setState({
@@ -866,7 +878,7 @@ export const useEditorState = () => {
       objects3D: project.objects3D || [],
       scenes: project.scenes,
       backgroundImage: project.backgroundImage,
-      audioTrack,
+      audioTracks,
       duration: project.duration,
       mode3D: project.mode3D || project.modeFireworks || false,
       modeFireworks: project.modeFireworks || false,
