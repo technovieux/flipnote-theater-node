@@ -106,15 +106,15 @@ export const Timeline: React.FC<TimelineProps> = ({
     startTime: number;
   } | null>(null);
 
-  // Create audio element when audioTrack changes
+  // Create audio element for first audio track (playback)
+  const firstAudioTrack = audioTracks.length > 0 ? audioTracks[0] : null;
   useEffect(() => {
-    if (audioTrack?.file) {
-      // Cleanup old URL
+    if (firstAudioTrack?.file) {
       if (audioUrlRef.current) {
         URL.revokeObjectURL(audioUrlRef.current);
       }
       
-      const url = URL.createObjectURL(audioTrack.file);
+      const url = URL.createObjectURL(firstAudioTrack.file);
       audioUrlRef.current = url;
       
       const audio = new Audio(url);
@@ -125,7 +125,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         URL.revokeObjectURL(url);
       };
     }
-  }, [audioTrack?.file]);
+  }, [firstAudioTrack?.file]);
 
   // Sync audio playback with timeline
   useEffect(() => {
