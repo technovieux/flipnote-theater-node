@@ -79,12 +79,12 @@ export const serializeProject = async (state: EditorState): Promise<FlptProject>
   }
 
   return {
-    version: '1.2',
+    version: '1.3',
     objects: state.objects,
     objects3D: state.objects3D,
     scenes: state.scenes,
     backgroundImage: state.backgroundImage,
-    audioTrack: audioData,
+    audioTracks: audioTracksData && audioTracksData.length > 0 ? audioTracksData : undefined,
     duration: state.duration,
     mode3D: state.mode3D,
     modeFireworks: state.modeFireworks,

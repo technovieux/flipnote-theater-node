@@ -352,11 +352,11 @@ export const exportAsVideo = async (
 
   const stream = canvas.captureStream(fps);
 
-  // Add audio track if available
-  if (state.audioTrack?.file) {
+  // Add audio tracks if available
+  if (state.audioTracks.length > 0 && state.audioTracks[0]?.file) {
     try {
       const audioContext = new AudioContext();
-      const arrayBuffer = await state.audioTrack.file.arrayBuffer();
+      const arrayBuffer = await state.audioTracks[0].file.arrayBuffer();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       const source = audioContext.createMediaStreamDestination();
       const bufferSource = audioContext.createBufferSource();
