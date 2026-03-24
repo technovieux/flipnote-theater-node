@@ -41,7 +41,7 @@ interface TimelineProps {
   onMoveKeyframe?: (objectId: string, keyframeIndex: number, newTime: number) => void;
   onDeleteKeyframe?: (objectId: string, keyframeIndex: number) => void;
   onAddAudio?: () => void;
-  onRemoveAudio?: () => void;
+  onRemoveAudio?: (trackId: string) => void;
   renderMode?: boolean;
 }
 
