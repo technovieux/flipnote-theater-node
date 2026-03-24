@@ -64,7 +64,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   objects3D,
   mode3D,
   scenes,
-  audioTrack,
+  audioTracks,
   selectedObjectIds,
   selectedKeyframe,
   currentTime,
