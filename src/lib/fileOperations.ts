@@ -14,16 +14,23 @@ export interface FlptProject {
   objects3D?: EditorObject3D[];
   scenes: Scene[];
   backgroundImage: string | null;
-  audioTrack: {
+  // Legacy single audio track (for backward compat)
+  audioTrack?: {
     name: string;
     waveform: number[];
     duration: number;
-    data: string; // base64 encoded audio
+    data: string;
   } | null;
+  // New multi-track audio
+  audioTracks?: {
+    name: string;
+    waveform: number[];
+    duration: number;
+    data: string;
+  }[];
   duration: number;
   mode3D?: boolean;
   modeFireworks?: boolean;
-  // Embedded OBJ models for portability
   embeddedOBJModels?: EmbeddedOBJModel[];
 }
 
