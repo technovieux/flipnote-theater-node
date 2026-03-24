@@ -656,7 +656,7 @@ export const AnimationEditor: React.FC = () => {
                   objects3D={state.objects3D}
                   mode3D={state.mode3D}
                   scenes={state.scenes}
-                  audioTrack={state.audioTrack}
+                  audioTracks={state.audioTracks}
                   selectedObjectIds={state.selectedObjectIds}
                   selectedKeyframe={selectedKeyframe}
                   currentTime={state.currentTime}
