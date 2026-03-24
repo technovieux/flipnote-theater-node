@@ -370,7 +370,7 @@ export const AnimationEditor: React.FC = () => {
           waveform.push(sum / blockSize);
         }
         
-        setAudioTrack(file, waveform, audioBuffer.duration * 1000);
+        addAudioTrack(file, waveform, audioBuffer.duration * 1000);
         toast.success(`Audio importé: ${file.name}`);
       } catch (error) {
         toast.error("Erreur lors du chargement de l'audio");
