@@ -418,14 +418,14 @@ export const Timeline: React.FC<TimelineProps> = ({
               </div>
             ))}
 
-            {/* Audio label */}
-            <div className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
-              <span>Audio</span>
-              {audioTrack ? (
+            {/* Audio track name with trash when loaded */}
+            {audioTrack && (
+              <div className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
+                <span className="truncate">🎵 {audioTrack.name}</span>
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-5 w-5 p-0 text-destructive hover:text-destructive"
+                  className="h-5 w-5 p-0 text-destructive hover:text-destructive flex-shrink-0"
                   onClick={(e) => {
                     e.stopPropagation();
                     onRemoveAudio?.();
@@ -433,27 +433,24 @@ export const Timeline: React.FC<TimelineProps> = ({
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddAudio?.();
-                  }}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-
-            {/* Audio name sub-label when loaded */}
-            {audioTrack && (
-              <div className="px-2 py-1 text-xs text-muted-foreground border-b border-panel-border truncate flex-shrink-0 pl-4">
-                🎵 {audioTrack.name}
               </div>
             )}
+
+            {/* Audio label with + to add */}
+            <div className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
+              <span>Audio</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddAudio?.();
+                }}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
 
           {/* Scrollable tracks content */}
@@ -698,42 +695,42 @@ export const Timeline: React.FC<TimelineProps> = ({
                 </div>
               ))}
 
-              {/* Audio track - waveform */}
-              <div className="timeline-track bg-timeline-bg relative border-b border-panel-border h-8" style={{ width: totalWidth }}>
-                {audioTrack && audioTrack.waveform.length > 0 && (
-                  <svg
-                    className="absolute top-0 left-0 h-full"
-                    style={{ width: audioWidth }}
-                    preserveAspectRatio="none"
-                  >
-                    <defs>
-                      <linearGradient id="waveformGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.8" />
-                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
-                      </linearGradient>
-                    </defs>
-                    {audioTrack.waveform.map((value, index) => {
-                      const barWidth = audioWidth / audioTrack.waveform.length;
-                      const barHeight = Math.max(2, value * 100);
-                      return (
-                        <rect
-                          key={index}
-                          x={index * barWidth}
-                          y={(32 - barHeight) / 2}
-                          width={Math.max(1, barWidth - 1)}
-                          height={barHeight}
-                          fill="url(#waveformGradient)"
-                        />
-                      );
-                    })}
-                  </svg>
-                )}
-              </div>
-
-              {/* Audio name track (empty visual spacer when audio loaded) */}
+              {/* Audio waveform track (when audio loaded) */}
               {audioTrack && (
-                <div className="timeline-track bg-timeline-bg/50 relative border-b border-panel-border h-6" style={{ width: totalWidth }} />
+                <div className="timeline-track bg-timeline-bg relative border-b border-panel-border h-8" style={{ width: totalWidth }}>
+                  {audioTrack.waveform.length > 0 && (
+                    <svg
+                      className="absolute top-0 left-0 h-full"
+                      style={{ width: audioWidth }}
+                      preserveAspectRatio="none"
+                    >
+                      <defs>
+                        <linearGradient id="waveformGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.8" />
+                          <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
+                        </linearGradient>
+                      </defs>
+                      {audioTrack.waveform.map((value, index) => {
+                        const barWidth = audioWidth / audioTrack.waveform.length;
+                        const barHeight = Math.max(2, value * 100);
+                        return (
+                          <rect
+                            key={index}
+                            x={index * barWidth}
+                            y={(32 - barHeight) / 2}
+                            width={Math.max(1, barWidth - 1)}
+                            height={barHeight}
+                            fill="url(#waveformGradient)"
+                          />
+                        );
+                      })}
+                    </svg>
+                  )}
+                </div>
               )}
+
+              {/* Audio + row (always visible, empty track for adding more) */}
+              <div className="timeline-track bg-timeline-bg/50 relative border-b border-panel-border h-8" style={{ width: totalWidth }} />
             </div>
           </div>
         </div>
