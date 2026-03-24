@@ -50,7 +50,7 @@ const cloneStateForHistory = (state: EditorState): EditorState => {
     objects: JSON.parse(JSON.stringify(state.objects)),
     objects3D: JSON.parse(JSON.stringify(state.objects3D)),
     scenes: JSON.parse(JSON.stringify(state.scenes)),
-    audioTrack: state.audioTrack ? { ...state.audioTrack } : null,
+    audioTracks: state.audioTracks.map(t => ({ ...t })),
   };
 };
 
