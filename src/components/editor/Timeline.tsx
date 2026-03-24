@@ -21,7 +21,7 @@ interface TimelineProps {
   objects3D: EditorObject3D[];
   mode3D: boolean;
   scenes: Scene[];
-  audioTrack: AudioTrack | null;
+  audioTracks: AudioTrack[];
   selectedObjectIds: string[];
   selectedKeyframe: { objectId: string; keyframeIndex: number } | null;
   currentTime: number;
