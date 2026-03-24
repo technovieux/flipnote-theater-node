@@ -404,17 +404,12 @@ export const AnimationEditor: React.FC = () => {
     }
     
     if (isAudio) {
-      // Always allow adding audio (multi-track)
       processAudioFile(file);
     } else if (isImage && state.backgroundImage) {
       setPendingImport({ type: 'image', file });
       setConfirmDialogOpen(true);
-    } else {
-      if (isAudio) {
-        processAudioFile(file);
-      } else {
-        processImageFile(file);
-      }
+    } else if (isImage) {
+      processImageFile(file);
     }
     
     e.target.value = '';
