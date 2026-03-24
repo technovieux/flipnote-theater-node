@@ -890,23 +890,26 @@ export const useEditorState = () => {
     setState(prev => ({ ...prev, backgroundImage: imageUrl, hasUnsavedChanges: true }));
   }, []);
 
-  const setAudioTrack = useCallback((file: File, waveform: number[], duration: number) => {
+  const addAudioTrack = useCallback((file: File, waveform: number[], duration: number) => {
     setState(prev => ({
       ...prev,
       hasUnsavedChanges: true,
-      audioTrack: {
-        id: generateId(),
-        name: file.name,
-        file,
-        waveform,
-        duration,
-      },
+      audioTracks: [
+        ...prev.audioTracks,
+        {
+          id: generateId(),
+          name: file.name,
+          file,
+          waveform,
+          duration,
+        },
+      ],
     }));
   }, []);
 
-  const removeAudioTrack = useCallback(() => {
+  const removeAudioTrack = useCallback((trackId: string) => {
     setState(prev => {
-      const newState = { ...prev, audioTrack: null, hasUnsavedChanges: true };
+      const newState = { ...prev, audioTracks: prev.audioTracks.filter(t => t.id !== trackId), hasUnsavedChanges: true };
       saveToHistory(newState);
       return newState;
     });
