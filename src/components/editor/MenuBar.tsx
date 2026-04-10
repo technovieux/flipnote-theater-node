@@ -34,10 +34,12 @@ interface MenuBarProps {
   onShowPropertiesChange: (show: boolean) => void;
   mode3D: boolean;
   modeFireworks?: boolean;
+  modeSpotlights?: boolean;
   hasSelectedObject: boolean;
   onOpenLibrary: () => void;
   onOpenCustomEditor: () => void;
   onOpenFireworkLibrary?: () => void;
+  onOpenSpotlightLibrary?: () => void;
   renderMode: boolean;
   onToggleRenderMode: () => void;
 }
@@ -62,10 +64,12 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   onShowPropertiesChange,
   mode3D,
   modeFireworks,
+  modeSpotlights,
   hasSelectedObject,
   onOpenLibrary,
   onOpenCustomEditor,
   onOpenFireworkLibrary,
+  onOpenSpotlightLibrary,
   renderMode,
   onToggleRenderMode,
 }) => {
@@ -123,6 +127,12 @@ export const MenuBar: React.FC<MenuBarProps> = ({
               <>
                 <MenubarItem onClick={onOpenFireworkLibrary}>
                   🎆 Ajouter un feu d'artifice...
+                </MenubarItem>
+              </>
+            ) : modeSpotlights ? (
+              <>
+                <MenubarItem onClick={onOpenSpotlightLibrary}>
+                  💡 Ajouter un projecteur...
                 </MenubarItem>
               </>
             ) : !mode3D ? (

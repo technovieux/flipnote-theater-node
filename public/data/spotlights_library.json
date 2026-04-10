@@ -1,0 +1,122 @@
+[
+  {
+    "name": "Spotlight PAR64",
+    "reference": "SP-001",
+    "manufacturer": "Chauvet",
+    "beamAngle": "15",
+    "beamType": "Narrow",
+    "power": "1000W",
+    "colors": ["#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00"],
+    "intensity": "100",
+    "focusDistance": "10",
+    "category": "Entry-Level"
+  },
+  {
+    "name": "LED Profile 150W",
+    "reference": "SP-002",
+    "manufacturer": "ETC",
+    "beamAngle": "26",
+    "beamType": "Medium",
+    "power": "150W",
+    "colors": ["#FFFFFF", "#FF6B6B", "#4ECDC4", "#FFE66D", "#95E1D3"],
+    "intensity": "85",
+    "focusDistance": "15",
+    "category": "Entry-Level"
+  },
+  {
+    "name": "Moving Head Spot 230W",
+    "reference": "SP-003",
+    "manufacturer": "Chauvet",
+    "beamAngle": "12",
+    "beamType": "Narrow",
+    "power": "230W",
+    "colors": ["#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF"],
+    "intensity": "95",
+    "focusDistance": "20",
+    "category": "Professional"
+  },
+  {
+    "name": "LED Wash 36x3W",
+    "reference": "SP-004",
+    "manufacturer": "ADJ",
+    "beamAngle": "40",
+    "beamType": "Wide",
+    "power": "108W",
+    "colors": ["#FFFFFF", "#FF0000", "#00FF00", "#0000FF"],
+    "intensity": "70",
+    "focusDistance": "8",
+    "category": "Entry-Level"
+  },
+  {
+    "name": "Beam Light Clay Paky",
+    "reference": "SP-005",
+    "manufacturer": "Clay Paky",
+    "beamAngle": "8",
+    "beamType": "Very Narrow",
+    "power": "230W",
+    "colors": ["#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00"],
+    "intensity": "100",
+    "focusDistance": "30",
+    "category": "Professional"
+  },
+  {
+    "name": "LED Fresnel 100W",
+    "reference": "SP-006",
+    "manufacturer": "Robe",
+    "beamAngle": "30",
+    "beamType": "Medium",
+    "power": "100W",
+    "colors": ["#FFFFFF", "#FFD700", "#FFA500", "#FF6347"],
+    "intensity": "80",
+    "focusDistance": "12",
+    "category": "Professional"
+  },
+  {
+    "name": "Arc Source 1200W",
+    "reference": "SP-007",
+    "manufacturer": "Siebel",
+    "beamAngle": "20",
+    "beamType": "Medium",
+    "power": "1200W",
+    "colors": ["#FFFFFF"],
+    "intensity": "100",
+    "focusDistance": "25",
+    "category": "Professional"
+  },
+  {
+    "name": "LED Par RGB",
+    "reference": "SP-008",
+    "manufacturer": "Blizzard",
+    "beamAngle": "36",
+    "beamType": "Wide",
+    "power": "54W",
+    "colors": ["#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF"],
+    "intensity": "65",
+    "focusDistance": "6",
+    "category": "Entry-Level"
+  },
+  {
+    "name": "Spot Ultra-Narrow",
+    "reference": "SP-009",
+    "manufacturer": "Clay Paky",
+    "beamAngle": "5",
+    "beamType": "Ultra-Narrow",
+    "power": "280W",
+    "colors": ["#FFFFFF", "#FF0000", "#00FF00", "#0000FF"],
+    "intensity": "100",
+    "focusDistance": "40",
+    "category": "Professional"
+  },
+  {
+    "name": "LED Wash Zoom 60x4W",
+    "reference": "SP-010",
+    "manufacturer": "Chauvet",
+    "beamAngle": "50",
+    "beamType": "Wide",
+    "power": "240W",
+    "colors": ["#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00"],
+    "intensity": "75",
+    "focusDistance": "10",
+    "category": "Entry-Level"
+  }
+]

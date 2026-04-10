@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Box, Layers, Sparkles } from 'lucide-react';
+import { Box, Layers, Sparkles, Lightbulb } from 'lucide-react';
 import { EditorMode } from '@/types/editor';
 
 interface WelcomeDialogProps {
@@ -29,7 +29,7 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
           </div>
 
           {/* Mode Selection Buttons */}
-          <div className="flex gap-6 w-full justify-center">
+          <div className="flex gap-6 w-full justify-center flex-wrap">
             {/* 2D Button */}
             <Button
               variant="outline"
@@ -72,6 +72,21 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
               <div className="text-center">
                 <div className="font-semibold text-lg">🎆 Pyro</div>
                 <div className="text-xs text-muted-foreground">Feux d'artifice</div>
+              </div>
+            </Button>
+
+            {/* Spotlights Button */}
+            <Button
+              variant="outline"
+              className="flex flex-col items-center justify-center w-40 h-44 gap-3 hover:border-yellow-500 hover:bg-yellow-500/5 transition-all duration-300 group"
+              onClick={() => onSelectMode('spotlights')}
+            >
+              <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-yellow-500/20 to-yellow-500/5 flex items-center justify-center group-hover:from-yellow-500/30 group-hover:to-yellow-500/10 transition-all duration-300">
+                <Lightbulb className="w-10 h-10 text-yellow-500" />
+              </div>
+              <div className="text-center">
+                <div className="font-semibold text-lg">💡 Spots</div>
+                <div className="text-xs text-muted-foreground">Projecteurs lumineux</div>
               </div>
             </Button>
           </div>

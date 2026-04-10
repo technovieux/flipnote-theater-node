@@ -17,6 +17,7 @@ import {
   OBJGeometry,
 } from '@/types/editor';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
+import { SpotlightProduct, SpotlightCategory } from '@/types/spotlights';
 import { FlptProject, base64ToFile } from '@/lib/fileOperations';
 import { interpolateColor } from '@/lib/colorUtils';
 
@@ -93,6 +94,7 @@ const initialState: EditorState = {
   theme: 'dark',
   mode3D: false,
   modeFireworks: false,
+  modeSpotlights: false,
   hasUnsavedChanges: false,
 };
 
@@ -240,6 +242,10 @@ export const useEditorState = () => {
 
   const setModeFireworks = useCallback((modeFireworks: boolean) => {
     setState(prev => ({ ...prev, modeFireworks, mode3D: modeFireworks, selectedObjectIds: [] }));
+  }, []);
+
+  const setModeSpotlights = useCallback((modeSpotlights: boolean) => {
+    setState(prev => ({ ...prev, modeSpotlights, mode3D: false, selectedObjectIds: [] }));
   }, []);
 
   const markAsChanged = useCallback(() => {
@@ -404,6 +410,33 @@ export const useEditorState = () => {
       keyframes: [],
       fireworkProduct: product,
       fireworkCategory: category,
+    };
+    
+    setState(prev => ({
+      ...prev,
+      objects3D: [newObject, ...prev.objects3D],
+      selectedObjectIds: [newObject.id],
+      hasUnsavedChanges: true,
+    }));
+  }, []);
+
+  // Add spotlight object
+  const addSpotlightObject = useCallback((product: SpotlightProduct, category: SpotlightCategory, address: string = 'DMX:1') => {
+    const newObject: EditorObject3D = {
+      id: generateId(),
+      name: `${product.name}`,
+      type: 'spotlight',
+      properties: {
+        ...default3DProperties,
+        color: product.colors[0] || '#FFFFFF',
+        width: 80,
+        height: 60,
+        depth: 100,
+      },
+      keyframes: [],
+      spotlightProduct: product,
+      spotlightCategory: category,
+      spotlightAddress: address,
     };
     
     setState(prev => ({
@@ -1033,7 +1066,9 @@ export const useEditorState = () => {
     setAnimatedMode,
     setMode3D,
     setModeFireworks,
+    setModeSpotlights,
     addFireworkObject,
+    addSpotlightObject,
     addObject,
     addObject3D,
     addObject3DWithGeometry,

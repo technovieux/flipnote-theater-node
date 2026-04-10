@@ -1,4 +1,5 @@
 import { FireworkProduct, FireworkCategory } from './fireworks';
+import { SpotlightProduct, SpotlightCategory } from './spotlights';
 
 export type ShapeType = 'rectangle' | 'circle' | 'triangle';
 export type Shape3DType = 
@@ -15,9 +16,11 @@ export type Shape3DType =
   // Custom and imported
   | 'custom' | 'obj'
   // Fireworks
-  | 'firework';
+  | 'firework'
+  // Spotlights
+  | 'spotlight';
 
-export type EditorMode = '2d' | '3d' | 'fireworks';
+export type EditorMode = '2d' | '3d' | 'fireworks' | 'spotlights';
 
 export interface CustomGeometry {
   points: { x: number; y: number }[];
@@ -93,6 +96,9 @@ export interface EditorObject3D {
   objGeometry?: OBJGeometry;
   fireworkProduct?: FireworkProduct;
   fireworkCategory?: FireworkCategory;
+  spotlightProduct?: SpotlightProduct;
+  spotlightCategory?: SpotlightCategory;
+  spotlightAddress?: string; // e.g., "DMX:123" or "192.168.1.100"
 }
 
 export interface Scene {
@@ -127,5 +133,6 @@ export interface EditorState {
   theme: ThemeMode;
   mode3D: boolean;
   modeFireworks: boolean;
+  modeSpotlights: boolean;
   hasUnsavedChanges: boolean;
 }
