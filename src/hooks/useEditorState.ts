@@ -685,6 +685,9 @@ export const useEditorState = () => {
       objects3D: prev.objects3D.map(obj =>
         obj.id === id ? { ...obj, name } : obj
       ),
+      spotlights: prev.spotlights.map(s =>
+        s.id === id ? { ...s, name } : s
+      ),
     }));
   }, []);
 
@@ -694,6 +697,7 @@ export const useEditorState = () => {
       hasUnsavedChanges: true,
       objects: prev.objects.filter(obj => obj.id !== id),
       objects3D: prev.objects3D.filter(obj => obj.id !== id),
+      spotlights: prev.spotlights.filter(s => s.id !== id),
       selectedObjectIds: prev.selectedObjectIds.filter(sid => sid !== id),
     }));
   }, []);
