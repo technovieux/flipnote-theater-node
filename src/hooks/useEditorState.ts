@@ -437,6 +437,7 @@ export const useEditorState = () => {
       spotlightProduct: product,
       spotlightCategory: category,
       spotlightAddress: address,
+      dmxValues: new Array(product.dmxChannels).fill(0),
     };
     
     setState(prev => ({

@@ -99,6 +99,7 @@ export interface EditorObject3D {
   spotlightProduct?: SpotlightProduct;
   spotlightCategory?: SpotlightCategory;
   spotlightAddress?: string; // e.g., "DMX:123" or "192.168.1.100"
+  dmxValues?: number[]; // Array of DMX channel values (0-255)
 }
 
 export interface Scene {
