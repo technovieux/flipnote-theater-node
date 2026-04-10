@@ -169,7 +169,7 @@ export const CanvasSpotlight: React.FC<CanvasSpotlightProps> = ({
             width={scaledWidth}
             height={scaledHeight}
             viewBox={`0 0 ${SCENE_WIDTH} ${SCENE_HEIGHT}`}
-            style={{ backgroundColor: '#1a1a1a' }}
+            style={{ backgroundColor: '#000000' }}
           >
             <defs>
               <filter id="soft-glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -190,6 +190,19 @@ export const CanvasSpotlight: React.FC<CanvasSpotlightProps> = ({
               </pattern>
             </defs>
             <rect width={SCENE_WIDTH} height={SCENE_HEIGHT} fill="url(#checkerboard)" />
+
+            {/* Background image */}
+            {backgroundImage && (
+              <image
+                href={backgroundImage}
+                x="0"
+                y="0"
+                width={SCENE_WIDTH}
+                height={SCENE_HEIGHT}
+                preserveAspectRatio="xMidYMid meet"
+                opacity="0.5"
+              />
+            )}
 
             {spotlightObjects.length === 0 && (
               <g>
