@@ -338,11 +338,79 @@ export const AnimationEditor: React.FC = () => {
   const handleSelectMode = (mode: EditorMode) => {
     if (mode === 'fireworks') {
       setModeFireworks(true);
+    } else if (mode === 'spotlight') {
+      setModeSpotlight(true);
     } else {
       setMode3D(mode === '3d');
     }
     setWelcomeDialogOpen(false);
   };
+
+  // DMX handlers
+  const handleDmxConnect = async () => {
+    try {
+      if (!DMXOutput.isSupported()) {
+        toast.error('Web Serial API non supportée. Utilisez Chrome ou Edge.');
+        return;
+      }
+      const success = await dmxOutput.connect();
+      if (success) {
+        setDmxConnected(true);
+        toast.success('Port DMX connecté');
+      }
+    } catch (error) {
+      toast.error(`Erreur DMX: ${(error as Error).message}`);
+    }
+  };
+
+  const handleDmxDisconnect = async () => {
+    await dmxOutput.disconnect();
+    setDmxConnected(false);
+    setDmxRealtime(false);
+    toast.info('Port DMX déconnecté');
+  };
+
+  const handleDmxRealtimeChange = (enabled: boolean) => {
+    setDmxRealtime(enabled);
+    if (enabled) {
+      dmxOutput.startRealtimeOutput();
+      toast.success('Sortie DMX temps-réel activée');
+    } else {
+      dmxOutput.stopRealtimeOutput();
+      toast.info('Sortie DMX temps-réel désactivée');
+    }
+  };
+
+  // Send DMX values when in realtime mode
+  useEffect(() => {
+    if (!dmxRealtime || !dmxConnected || !state.modeSpotlight) return;
+    
+    for (const spot of state.spotlights) {
+      const values = getInterpolatedSpotlightChannels(spot, state.currentTime);
+      dmxOutput.setChannels(spot.dmxAddress, values);
+    }
+  }, [dmxRealtime, dmxConnected, state.modeSpotlight, state.spotlights, state.currentTime, getInterpolatedSpotlightChannels]);
+
+  // Cleanup DMX on unmount
+  useEffect(() => {
+    return () => {
+      dmxOutput.disconnect();
+    };
+  }, []);
+
+  // Derived spotlight data for properties panel
+  const selectedSpotlightData: SpotlightObjectData[] = state.spotlights
+    .filter(s => state.selectedObjectIds.includes(s.id))
+    .map(s => ({
+      id: s.id,
+      name: s.name,
+      fixtureName: s.fixture.name,
+      dmxAddress: s.dmxAddress,
+      channels: s.fixture.channels,
+      channelValues: s.channelValues,
+      x: s.x,
+      y: s.y,
+    }));
 
   const handleOpenFile = () => {
     fileInputRef.current?.click();
