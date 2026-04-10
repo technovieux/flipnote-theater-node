@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Box, Layers, Sparkles } from 'lucide-react';
+import { Box, Layers, Sparkles, Lightbulb } from 'lucide-react';
 import { EditorMode } from '@/types/editor';
 
 interface WelcomeDialogProps {
@@ -29,15 +29,15 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
           </div>
 
           {/* Mode Selection Buttons */}
-          <div className="flex gap-6 w-full justify-center">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full justify-center px-4">
             {/* 2D Button */}
             <Button
               variant="outline"
-              className="flex flex-col items-center justify-center w-40 h-44 gap-3 hover:border-primary hover:bg-primary/5 transition-all duration-300 group"
+              className="flex flex-col items-center justify-center h-44 gap-3 hover:border-primary hover:bg-primary/5 transition-all duration-300 group"
               onClick={() => onSelectMode('2d')}
             >
-              <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/10 transition-all duration-300">
-                <Layers className="w-10 h-10 text-primary" />
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/10 transition-all duration-300">
+                <Layers className="w-8 h-8 text-primary" />
               </div>
               <div className="text-center">
                 <div className="font-semibold text-lg">2D</div>
@@ -48,11 +48,11 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
             {/* 3D Button */}
             <Button
               variant="outline"
-              className="flex flex-col items-center justify-center w-40 h-44 gap-3 hover:border-accent hover:bg-accent/5 transition-all duration-300 group"
+              className="flex flex-col items-center justify-center h-44 gap-3 hover:border-accent hover:bg-accent/5 transition-all duration-300 group"
               onClick={() => onSelectMode('3d')}
             >
-              <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center group-hover:from-accent/30 group-hover:to-accent/10 transition-all duration-300">
-                <Box className="w-10 h-10 text-accent" />
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center group-hover:from-accent/30 group-hover:to-accent/10 transition-all duration-300">
+                <Box className="w-8 h-8 text-accent" />
               </div>
               <div className="text-center">
                 <div className="font-semibold text-lg">3D</div>
@@ -63,15 +63,30 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
             {/* Fireworks Button */}
             <Button
               variant="outline"
-              className="flex flex-col items-center justify-center w-40 h-44 gap-3 hover:border-destructive hover:bg-destructive/5 transition-all duration-300 group"
+              className="flex flex-col items-center justify-center h-44 gap-3 hover:border-destructive hover:bg-destructive/5 transition-all duration-300 group"
               onClick={() => onSelectMode('fireworks')}
             >
-              <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-destructive/20 to-destructive/5 flex items-center justify-center group-hover:from-destructive/30 group-hover:to-destructive/10 transition-all duration-300">
-                <Sparkles className="w-10 h-10 text-destructive" />
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-destructive/20 to-destructive/5 flex items-center justify-center group-hover:from-destructive/30 group-hover:to-destructive/10 transition-all duration-300">
+                <Sparkles className="w-8 h-8 text-destructive" />
               </div>
               <div className="text-center">
                 <div className="font-semibold text-lg">🎆 Pyro</div>
                 <div className="text-xs text-muted-foreground">Feux d'artifice</div>
+              </div>
+            </Button>
+
+            {/* Spotlight Button */}
+            <Button
+              variant="outline"
+              className="flex flex-col items-center justify-center h-44 gap-3 hover:border-yellow-500 hover:bg-yellow-500/5 transition-all duration-300 group"
+              onClick={() => onSelectMode('spotlight')}
+            >
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-yellow-500/20 to-yellow-500/5 flex items-center justify-center group-hover:from-yellow-500/30 group-hover:to-yellow-500/10 transition-all duration-300">
+                <Lightbulb className="w-8 h-8 text-yellow-500" />
+              </div>
+              <div className="text-center">
+                <div className="font-semibold text-lg">💡 Spot</div>
+                <div className="text-xs text-muted-foreground">Projecteurs DMX</div>
               </div>
             </Button>
           </div>
