@@ -1,0 +1,171 @@
+[
+  {
+    "name": "PAR LED RGBW",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Dimmer", "defaultValue": 0, "type": "dimmer" },
+      { "name": "Rouge", "defaultValue": 0, "type": "color" },
+      { "name": "Vert", "defaultValue": 0, "type": "color" },
+      { "name": "Bleu", "defaultValue": 0, "type": "color" },
+      { "name": "Blanc", "defaultValue": 0, "type": "color" }
+    ]
+  },
+  {
+    "name": "PAR LED RGB",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Dimmer", "defaultValue": 0, "type": "dimmer" },
+      { "name": "Rouge", "defaultValue": 0, "type": "color" },
+      { "name": "Vert", "defaultValue": 0, "type": "color" },
+      { "name": "Bleu", "defaultValue": 0, "type": "color" }
+    ]
+  },
+  {
+    "name": "PAR 64 Halogène",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Dimmer", "defaultValue": 0, "type": "dimmer" }
+    ]
+  },
+  {
+    "name": "Lyre Spot 150W",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Pan", "defaultValue": 128, "type": "position" },
+      { "name": "Pan Fine", "defaultValue": 0, "type": "position" },
+      { "name": "Tilt", "defaultValue": 128, "type": "position" },
+      { "name": "Tilt Fine", "defaultValue": 0, "type": "position" },
+      { "name": "Dimmer", "defaultValue": 0, "type": "dimmer" },
+      { "name": "Stroboscope", "defaultValue": 0, "type": "other" },
+      { "name": "Couleur", "defaultValue": 0, "type": "color" },
+      { "name": "Gobo", "defaultValue": 0, "type": "gobo" },
+      { "name": "Focus", "defaultValue": 128, "type": "other" }
+    ]
+  },
+  {
+    "name": "Lyre Wash 36x10W",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Pan", "defaultValue": 128, "type": "position" },
+      { "name": "Pan Fine", "defaultValue": 0, "type": "position" },
+      { "name": "Tilt", "defaultValue": 128, "type": "position" },
+      { "name": "Tilt Fine", "defaultValue": 0, "type": "position" },
+      { "name": "Dimmer", "defaultValue": 0, "type": "dimmer" },
+      { "name": "Rouge", "defaultValue": 0, "type": "color" },
+      { "name": "Vert", "defaultValue": 0, "type": "color" },
+      { "name": "Bleu", "defaultValue": 0, "type": "color" },
+      { "name": "Blanc", "defaultValue": 0, "type": "color" },
+      { "name": "Zoom", "defaultValue": 128, "type": "other" }
+    ]
+  },
+  {
+    "name": "Scanner 250W",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Pan", "defaultValue": 128, "type": "position" },
+      { "name": "Tilt", "defaultValue": 128, "type": "position" },
+      { "name": "Dimmer", "defaultValue": 0, "type": "dimmer" },
+      { "name": "Couleur", "defaultValue": 0, "type": "color" },
+      { "name": "Gobo", "defaultValue": 0, "type": "gobo" },
+      { "name": "Stroboscope", "defaultValue": 0, "type": "other" }
+    ]
+  },
+  {
+    "name": "Barre LED 8 segments",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Dimmer", "defaultValue": 0, "type": "dimmer" },
+      { "name": "Stroboscope", "defaultValue": 0, "type": "other" },
+      { "name": "Seg 1 R", "defaultValue": 0, "type": "color" },
+      { "name": "Seg 1 G", "defaultValue": 0, "type": "color" },
+      { "name": "Seg 1 B", "defaultValue": 0, "type": "color" },
+      { "name": "Seg 2 R", "defaultValue": 0, "type": "color" },
+      { "name": "Seg 2 G", "defaultValue": 0, "type": "color" },
+      { "name": "Seg 2 B", "defaultValue": 0, "type": "color" }
+    ]
+  },
+  {
+    "name": "Stroboscope 1500W",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Dimmer", "defaultValue": 0, "type": "dimmer" },
+      { "name": "Vitesse Flash", "defaultValue": 0, "type": "other" }
+    ]
+  },
+  {
+    "name": "Fresnel LED 200W",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Dimmer", "defaultValue": 0, "type": "dimmer" },
+      { "name": "Température", "defaultValue": 128, "type": "color" }
+    ]
+  },
+  {
+    "name": "Découpe LED 300W",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Dimmer", "defaultValue": 0, "type": "dimmer" },
+      { "name": "Stroboscope", "defaultValue": 0, "type": "other" },
+      { "name": "Rouge", "defaultValue": 0, "type": "color" },
+      { "name": "Vert", "defaultValue": 0, "type": "color" },
+      { "name": "Bleu", "defaultValue": 0, "type": "color" },
+      { "name": "Blanc", "defaultValue": 0, "type": "color" },
+      { "name": "CTO", "defaultValue": 0, "type": "color" }
+    ]
+  },
+  {
+    "name": "Blinder 2x100W",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Dimmer", "defaultValue": 0, "type": "dimmer" },
+      { "name": "Flash", "defaultValue": 0, "type": "other" }
+    ]
+  },
+  {
+    "name": "Machine à fumée DMX",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Sortie fumée", "defaultValue": 0, "type": "other" },
+      { "name": "Ventilateur", "defaultValue": 0, "type": "other" }
+    ]
+  },
+  {
+    "name": "Lyre Beam 230W",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Pan", "defaultValue": 128, "type": "position" },
+      { "name": "Pan Fine", "defaultValue": 0, "type": "position" },
+      { "name": "Tilt", "defaultValue": 128, "type": "position" },
+      { "name": "Tilt Fine", "defaultValue": 0, "type": "position" },
+      { "name": "Dimmer", "defaultValue": 0, "type": "dimmer" },
+      { "name": "Stroboscope", "defaultValue": 0, "type": "other" },
+      { "name": "Couleur", "defaultValue": 0, "type": "color" },
+      { "name": "Gobo", "defaultValue": 0, "type": "gobo" },
+      { "name": "Prisme", "defaultValue": 0, "type": "other" },
+      { "name": "Focus", "defaultValue": 128, "type": "other" },
+      { "name": "Frost", "defaultValue": 0, "type": "other" }
+    ]
+  },
+  {
+    "name": "UV LED Bar",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Dimmer", "defaultValue": 0, "type": "dimmer" },
+      { "name": "Stroboscope", "defaultValue": 0, "type": "other" }
+    ]
+  },
+  {
+    "name": "Laser RGB 1W",
+    "manufacturer": "Generic",
+    "channels": [
+      { "name": "Mode", "defaultValue": 0, "type": "other" },
+      { "name": "Pattern", "defaultValue": 0, "type": "gobo" },
+      { "name": "Rouge", "defaultValue": 0, "type": "color" },
+      { "name": "Vert", "defaultValue": 0, "type": "color" },
+      { "name": "Bleu", "defaultValue": 0, "type": "color" },
+      { "name": "Rotation X", "defaultValue": 128, "type": "position" },
+      { "name": "Rotation Y", "defaultValue": 128, "type": "position" },
+      { "name": "Zoom", "defaultValue": 128, "type": "other" }
+    ]
+  }
+]

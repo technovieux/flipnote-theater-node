@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { EditorMode } from '@/types/editor';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
+import { SpotlightFixture } from '@/types/spotlight';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { MenuBar } from './MenuBar';
 import { ObjectsList } from './ObjectsList';
@@ -9,13 +10,16 @@ import { Canvas } from './Canvas';
 import { Canvas3D } from './Canvas3D';
 import { PropertiesPanel } from './PropertiesPanel';
 import { PropertiesPanel3D } from './PropertiesPanel3D';
+import { PropertiesPanelSpotlight, SpotlightObjectData } from './PropertiesPanelSpotlight';
 import { Timeline } from './Timeline';
 import { ExportDialog } from './ExportDialog';
 import { WelcomeDialog } from './WelcomeDialog';
 import { ShapeLibraryDialog } from './ShapeLibraryDialog';
 import { CustomShapeEditor } from './CustomShapeEditor';
 import { FireworkLibraryDialog } from './FireworkLibraryDialog';
+import { SpotlightLibraryDialog } from './SpotlightLibraryDialog';
 import { useEditorState } from '@/hooks/useEditorState';
+import { dmxOutput, DMXOutput } from '@/lib/dmxOutput';
 import { LibraryShape3D } from '@/data/shape3DLibrary';
 import { ImportedOBJModel } from '@/lib/objImporter';
 import { saveModels, modelExistsByFileName } from '@/lib/objLibraryStorage';
@@ -49,7 +53,12 @@ export const AnimationEditor: React.FC = () => {
     setAnimatedMode,
     setMode3D,
     setModeFireworks,
+    setModeSpotlight,
     addFireworkObject,
+    addSpotlightObject,
+    updateSpotlightDmxAddress,
+    updateSpotlightChannelValue,
+    getInterpolatedSpotlightChannels,
     addObject,
     addObject3D,
     addObject3DWithGeometry,
@@ -96,6 +105,9 @@ export const AnimationEditor: React.FC = () => {
   const [customEditorOpen, setCustomEditorOpen] = useState(false);
   const [renderMode, setRenderMode] = useState(false);
   const [fireworkLibraryOpen, setFireworkLibraryOpen] = useState(false);
+  const [spotlightLibraryOpen, setSpotlightLibraryOpen] = useState(false);
+  const [dmxConnected, setDmxConnected] = useState(false);
+  const [dmxRealtime, setDmxRealtime] = useState(false);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -326,11 +338,79 @@ export const AnimationEditor: React.FC = () => {
   const handleSelectMode = (mode: EditorMode) => {
     if (mode === 'fireworks') {
       setModeFireworks(true);
+    } else if (mode === 'spotlight') {
+      setModeSpotlight(true);
     } else {
       setMode3D(mode === '3d');
     }
     setWelcomeDialogOpen(false);
   };
+
+  // DMX handlers
+  const handleDmxConnect = async () => {
+    try {
+      if (!DMXOutput.isSupported()) {
+        toast.error('Web Serial API non supportée. Utilisez Chrome ou Edge.');
+        return;
+      }
+      const success = await dmxOutput.connect();
+      if (success) {
+        setDmxConnected(true);
+        toast.success('Port DMX connecté');
+      }
+    } catch (error) {
+      toast.error(`Erreur DMX: ${(error as Error).message}`);
+    }
+  };
+
+  const handleDmxDisconnect = async () => {
+    await dmxOutput.disconnect();
+    setDmxConnected(false);
+    setDmxRealtime(false);
+    toast.info('Port DMX déconnecté');
+  };
+
+  const handleDmxRealtimeChange = (enabled: boolean) => {
+    setDmxRealtime(enabled);
+    if (enabled) {
+      dmxOutput.startRealtimeOutput();
+      toast.success('Sortie DMX temps-réel activée');
+    } else {
+      dmxOutput.stopRealtimeOutput();
+      toast.info('Sortie DMX temps-réel désactivée');
+    }
+  };
+
+  // Send DMX values when in realtime mode
+  useEffect(() => {
+    if (!dmxRealtime || !dmxConnected || !state.modeSpotlight) return;
+    
+    for (const spot of state.spotlights) {
+      const values = getInterpolatedSpotlightChannels(spot, state.currentTime);
+      dmxOutput.setChannels(spot.dmxAddress, values);
+    }
+  }, [dmxRealtime, dmxConnected, state.modeSpotlight, state.spotlights, state.currentTime, getInterpolatedSpotlightChannels]);
+
+  // Cleanup DMX on unmount
+  useEffect(() => {
+    return () => {
+      dmxOutput.disconnect();
+    };
+  }, []);
+
+  // Derived spotlight data for properties panel
+  const selectedSpotlightData: SpotlightObjectData[] = state.spotlights
+    .filter(s => state.selectedObjectIds.includes(s.id))
+    .map(s => ({
+      id: s.id,
+      name: s.name,
+      fixtureName: s.fixture.name,
+      dmxAddress: s.dmxAddress,
+      channels: s.fixture.channels,
+      channelValues: s.channelValues,
+      x: s.x,
+      y: s.y,
+    }));
 
   const handleOpenFile = () => {
     fileInputRef.current?.click();
@@ -556,12 +636,19 @@ export const AnimationEditor: React.FC = () => {
         onShowPropertiesChange={setShowProperties}
         mode3D={state.mode3D}
         modeFireworks={state.modeFireworks}
+        modeSpotlight={state.modeSpotlight}
         hasSelectedObject={state.selectedObjectIds.length > 0}
         onOpenLibrary={() => setLibraryDialogOpen(true)}
         onOpenCustomEditor={() => setCustomEditorOpen(true)}
         onOpenFireworkLibrary={() => setFireworkLibraryOpen(true)}
+        onOpenSpotlightLibrary={() => setSpotlightLibraryOpen(true)}
         renderMode={renderMode}
         onToggleRenderMode={() => setRenderMode(!renderMode)}
+        dmxConnected={dmxConnected}
+        dmxRealtime={dmxRealtime}
+        onDmxConnect={handleDmxConnect}
+        onDmxDisconnect={handleDmxDisconnect}
+        onDmxRealtimeChange={handleDmxRealtimeChange}
       />
       
       <div className="flex-1 p-1 overflow-hidden">
@@ -571,7 +658,22 @@ export const AnimationEditor: React.FC = () => {
               {!renderMode && (
                 <>
                   <ResizablePanel defaultSize={25} minSize={15}>
-                    {state.mode3D ? (
+                    {state.modeSpotlight ? (
+                      <ObjectsList
+                        objects={state.spotlights.map(s => ({
+                          id: s.id,
+                          name: s.name,
+                          type: 'circle' as const,
+                          properties: { x: s.x, y: s.y, width: 50, height: 50, rotation: 0, opacity: s.opacity, color: s.color },
+                          keyframes: s.keyframes.map(kf => ({ time: kf.time, properties: { x: s.x, y: s.y, width: 50, height: 50, rotation: 0, opacity: 100, color: s.color } })),
+                        }))}
+                        selectedObjectIds={state.selectedObjectIds}
+                        onSelect={selectObject}
+                        onReorder={reorderObjects}
+                        onDelete={deleteObject}
+                        onRename={renameObject}
+                      />
+                    ) : state.mode3D ? (
                       <ObjectsList3D
                         objects={state.objects3D}
                         selectedObjectIds={state.selectedObjectIds}
@@ -626,7 +728,14 @@ export const AnimationEditor: React.FC = () => {
               {state.showProperties && !renderMode && (
                 <>
                   <ResizablePanel defaultSize={30} minSize={20}>
-                    {state.mode3D ? (
+                    {state.modeSpotlight ? (
+                      <PropertiesPanelSpotlight
+                        selectedSpotlights={selectedSpotlightData}
+                        onUpdateDmxAddress={updateSpotlightDmxAddress}
+                        onUpdateChannelValue={updateSpotlightChannelValue}
+                        onAddKeyframe={addKeyframe}
+                      />
+                    ) : state.mode3D ? (
                       <PropertiesPanel3D
                         selectedObjects={selectedObjects3D}
                         onUpdateProperties={updateObject3DProperties}
@@ -647,9 +756,17 @@ export const AnimationEditor: React.FC = () => {
               )}
               <ResizablePanel defaultSize={state.showProperties && !renderMode ? 70 : 100} minSize={40}>
                 <Timeline
-                  objects={state.objects}
+                  objects={state.modeSpotlight 
+                    ? state.spotlights.map(s => ({
+                        id: s.id,
+                        name: s.name,
+                        type: 'circle' as const,
+                        properties: { x: s.x, y: s.y, width: 50, height: 50, rotation: 0, opacity: s.opacity, color: s.color },
+                        keyframes: s.keyframes.map(kf => ({ time: kf.time, properties: { x: s.x, y: s.y, width: 50, height: 50, rotation: 0, opacity: 100, color: s.color } })),
+                      }))
+                    : state.objects}
                   objects3D={state.objects3D}
-                  mode3D={state.mode3D}
+                  mode3D={state.mode3D && !state.modeSpotlight}
                   scenes={state.scenes}
                   audioTracks={state.audioTracks}
                   selectedObjectIds={state.selectedObjectIds}
@@ -751,6 +868,15 @@ export const AnimationEditor: React.FC = () => {
         onSelectFirework={(product, category) => {
           addFireworkObject(product, category);
           toast.success(`${product.name} ajouté au projet`);
+        }}
+      />
+
+      <SpotlightLibraryDialog
+        open={spotlightLibraryOpen}
+        onOpenChange={setSpotlightLibraryOpen}
+        onSelectFixture={(fixture) => {
+          addSpotlightObject(fixture);
+          toast.success(`${fixture.name} ajouté au projet`);
         }}
       />
 

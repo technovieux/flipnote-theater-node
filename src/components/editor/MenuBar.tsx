@@ -34,12 +34,20 @@ interface MenuBarProps {
   onShowPropertiesChange: (show: boolean) => void;
   mode3D: boolean;
   modeFireworks?: boolean;
+  modeSpotlight?: boolean;
   hasSelectedObject: boolean;
   onOpenLibrary: () => void;
   onOpenCustomEditor: () => void;
   onOpenFireworkLibrary?: () => void;
+  onOpenSpotlightLibrary?: () => void;
   renderMode: boolean;
   onToggleRenderMode: () => void;
+  // DMX
+  dmxConnected: boolean;
+  dmxRealtime: boolean;
+  onDmxConnect: () => void;
+  onDmxDisconnect: () => void;
+  onDmxRealtimeChange: (enabled: boolean) => void;
 }
 
 export const MenuBar: React.FC<MenuBarProps> = ({
@@ -62,12 +70,19 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   onShowPropertiesChange,
   mode3D,
   modeFireworks,
+  modeSpotlight,
   hasSelectedObject,
   onOpenLibrary,
   onOpenCustomEditor,
   onOpenFireworkLibrary,
+  onOpenSpotlightLibrary,
   renderMode,
   onToggleRenderMode,
+  dmxConnected,
+  dmxRealtime,
+  onDmxConnect,
+  onDmxDisconnect,
+  onDmxRealtimeChange,
 }) => {
   return (
     <Menubar className="border-b border-panel-border rounded-none bg-card px-2">
@@ -119,7 +134,13 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         <MenubarMenu>
           <MenubarTrigger className="text-sm">Objet</MenubarTrigger>
           <MenubarContent>
-            {modeFireworks ? (
+            {modeSpotlight ? (
+              <>
+                <MenubarItem onClick={onOpenSpotlightLibrary}>
+                  💡 Ajouter un projecteur...
+                </MenubarItem>
+              </>
+            ) : modeFireworks ? (
               <>
                 <MenubarItem onClick={onOpenFireworkLibrary}>
                   🎆 Ajouter un feu d'artifice...
@@ -159,6 +180,39 @@ export const MenuBar: React.FC<MenuBarProps> = ({
             <MenubarItem onClick={onRename} disabled={!hasSelectedObject}>
               Renommer <MenubarShortcut>F2</MenubarShortcut>
             </MenubarItem>
+          </MenubarContent>
+        </MenubarMenu>
+      )}
+
+      {modeSpotlight && (
+        <MenubarMenu>
+          <MenubarTrigger className="text-sm">Sortie DMX</MenubarTrigger>
+          <MenubarContent>
+            {dmxConnected ? (
+              <MenubarItem onClick={onDmxDisconnect}>
+                🔌 Déconnecter le port
+              </MenubarItem>
+            ) : (
+              <MenubarItem onClick={onDmxConnect}>
+                🔌 Sortie : Sélectionner un port...
+              </MenubarItem>
+            )}
+            <MenubarSeparator />
+            <MenubarCheckboxItem
+              checked={dmxRealtime}
+              onCheckedChange={onDmxRealtimeChange}
+              disabled={!dmxConnected}
+            >
+              DMX temps-réel
+            </MenubarCheckboxItem>
+            {dmxConnected && (
+              <>
+                <MenubarSeparator />
+                <MenubarItem disabled>
+                  ✅ Port connecté
+                </MenubarItem>
+              </>
+            )}
           </MenubarContent>
         </MenubarMenu>
       )}

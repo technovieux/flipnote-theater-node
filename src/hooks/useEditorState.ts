@@ -3,6 +3,7 @@ import {
   EditorState, 
   EditorObject, 
   EditorObject3D,
+  SpotlightEditorObject,
   ObjectProperties, 
   Object3DProperties,
   Keyframe, 
@@ -17,6 +18,7 @@ import {
   OBJGeometry,
 } from '@/types/editor';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
+import { SpotlightFixture, SpotlightKeyframe } from '@/types/spotlight';
 import { FlptProject, base64ToFile } from '@/lib/fileOperations';
 import { interpolateColor } from '@/lib/colorUtils';
 
@@ -49,6 +51,7 @@ const cloneStateForHistory = (state: EditorState): EditorState => {
     ...state,
     objects: JSON.parse(JSON.stringify(state.objects)),
     objects3D: JSON.parse(JSON.stringify(state.objects3D)),
+    spotlights: JSON.parse(JSON.stringify(state.spotlights)),
     scenes: JSON.parse(JSON.stringify(state.scenes)),
     audioTracks: state.audioTracks.map(t => ({ ...t })),
   };
@@ -81,18 +84,20 @@ const default3DProperties: Object3DProperties = {
 const initialState: EditorState = {
   objects: [],
   objects3D: [],
+  spotlights: [],
   selectedObjectIds: [],
   scenes: [],
   audioTracks: [],
   backgroundImage: null,
   currentTime: 0,
   isPlaying: false,
-  duration: 7200000, // 2 hours in ms
+  duration: 7200000,
   showProperties: true,
   animatedMode: true,
   theme: 'dark',
   mode3D: false,
   modeFireworks: false,
+  modeSpotlight: false,
   hasUnsavedChanges: false,
 };
 
@@ -210,6 +215,7 @@ export const useEditorState = () => {
     const snapshot = JSON.stringify({
       objects: state.objects,
       objects3D: state.objects3D,
+      spotlights: state.spotlights,
       scenes: state.scenes,
       backgroundImage: state.backgroundImage,
       selectedObjectIds: state.selectedObjectIds,
@@ -220,7 +226,7 @@ export const useEditorState = () => {
       saveToHistory(state);
     }
     prevStateRef.current = snapshot;
-  }, [state.objects, state.objects3D, state.scenes, state.backgroundImage, state.selectedObjectIds, saveToHistory, state]);
+  }, [state.objects, state.objects3D, state.spotlights, state.scenes, state.backgroundImage, state.selectedObjectIds, saveToHistory, state]);
 
   const setTheme = useCallback((theme: ThemeMode) => {
     setState(prev => ({ ...prev, theme }));
@@ -235,11 +241,15 @@ export const useEditorState = () => {
   }, []);
 
   const setMode3D = useCallback((mode3D: boolean) => {
-    setState(prev => ({ ...prev, mode3D, modeFireworks: false, selectedObjectIds: [] }));
+    setState(prev => ({ ...prev, mode3D, modeFireworks: false, modeSpotlight: false, selectedObjectIds: [] }));
   }, []);
 
   const setModeFireworks = useCallback((modeFireworks: boolean) => {
-    setState(prev => ({ ...prev, modeFireworks, mode3D: modeFireworks, selectedObjectIds: [] }));
+    setState(prev => ({ ...prev, modeFireworks, mode3D: modeFireworks, modeSpotlight: false, selectedObjectIds: [] }));
+  }, []);
+
+  const setModeSpotlight = useCallback((modeSpotlight: boolean) => {
+    setState(prev => ({ ...prev, modeSpotlight, mode3D: false, modeFireworks: false, selectedObjectIds: [] }));
   }, []);
 
   const markAsChanged = useCallback(() => {
@@ -414,6 +424,86 @@ export const useEditorState = () => {
     }));
   }, []);
 
+  // Add spotlight object
+  const addSpotlightObject = useCallback((fixture: SpotlightFixture) => {
+    const newSpotlight: SpotlightEditorObject = {
+      id: generateId(),
+      name: `${fixture.name} ${state.spotlights.length + 1}`,
+      fixture,
+      dmxAddress: 1 + state.spotlights.reduce((max, s) => Math.max(max, s.dmxAddress + s.fixture.channels.length), 0),
+      channelValues: fixture.channels.map(c => c.defaultValue),
+      x: 100 + state.spotlights.length * 60,
+      y: 100,
+      opacity: 100,
+      color: '#FFD700',
+      keyframes: [],
+    };
+
+    setState(prev => ({
+      ...prev,
+      spotlights: [newSpotlight, ...prev.spotlights],
+      selectedObjectIds: [newSpotlight.id],
+      hasUnsavedChanges: true,
+    }));
+  }, [state.spotlights.length, state.spotlights]);
+
+  const updateSpotlightDmxAddress = useCallback((id: string, address: number) => {
+    setState(prev => ({
+      ...prev,
+      hasUnsavedChanges: true,
+      spotlights: prev.spotlights.map(s =>
+        s.id === id ? { ...s, dmxAddress: address } : s
+      ),
+    }));
+  }, []);
+
+  const updateSpotlightChannelValue = useCallback((id: string, channelIndex: number, value: number) => {
+    setState(prev => ({
+      ...prev,
+      hasUnsavedChanges: true,
+      spotlights: prev.spotlights.map(s => {
+        if (s.id !== id) return s;
+        const newValues = [...s.channelValues];
+        newValues[channelIndex] = value;
+
+        // Also update keyframe if at one
+        const kfIdx = s.keyframes.findIndex(kf => Math.abs(kf.time - prev.currentTime) < 100);
+        if (kfIdx >= 0) {
+          const newKeyframes = [...s.keyframes];
+          const kfValues = [...newKeyframes[kfIdx].channelValues];
+          kfValues[channelIndex] = value;
+          newKeyframes[kfIdx] = { ...newKeyframes[kfIdx], channelValues: kfValues };
+          return { ...s, channelValues: newValues, keyframes: newKeyframes };
+        }
+
+        return { ...s, channelValues: newValues };
+      }),
+    }));
+  }, []);
+
+  const getInterpolatedSpotlightChannels = useCallback((spot: SpotlightEditorObject, time: number): number[] => {
+    if (spot.keyframes.length === 0) return spot.channelValues;
+
+    const sorted = [...spot.keyframes].sort((a, b) => a.time - b.time);
+    let prevKf: SpotlightKeyframe | null = null;
+    let nextKf: SpotlightKeyframe | null = null;
+
+    for (const kf of sorted) {
+      if (kf.time <= time) prevKf = kf;
+      else if (!nextKf) { nextKf = kf; break; }
+    }
+
+    if (!prevKf && !nextKf) return spot.channelValues;
+    if (!prevKf) return nextKf!.channelValues;
+    if (!nextKf) return prevKf.channelValues;
+    if (!state.animatedMode) return prevKf.channelValues;
+
+    const progress = (time - prevKf.time) / (nextKf.time - prevKf.time);
+    return prevKf.channelValues.map((v, i) => 
+      Math.round(v + (nextKf!.channelValues[i] - v) * progress)
+    );
+  }, [state.animatedMode]);
+
 
   const selectObject = useCallback((id: string | null, options?: { ctrlKey?: boolean; shiftKey?: boolean }) => {
     setState(prev => {
@@ -436,7 +526,9 @@ export const useEditorState = () => {
       
       if (shiftKey && prev.selectedObjectIds.length > 0) {
         // Range selection
-        const allObjects = prev.mode3D ? prev.objects3D : prev.objects;
+        const allObjects = prev.modeSpotlight 
+          ? prev.spotlights 
+          : prev.mode3D ? prev.objects3D : prev.objects;
         const lastSelectedId = prev.selectedObjectIds[prev.selectedObjectIds.length - 1];
         const lastIndex = allObjects.findIndex(o => o.id === lastSelectedId);
         const currentIndex = allObjects.findIndex(o => o.id === id);
@@ -593,6 +685,9 @@ export const useEditorState = () => {
       objects3D: prev.objects3D.map(obj =>
         obj.id === id ? { ...obj, name } : obj
       ),
+      spotlights: prev.spotlights.map(s =>
+        s.id === id ? { ...s, name } : s
+      ),
     }));
   }, []);
 
@@ -602,6 +697,7 @@ export const useEditorState = () => {
       hasUnsavedChanges: true,
       objects: prev.objects.filter(obj => obj.id !== id),
       objects3D: prev.objects3D.filter(obj => obj.id !== id),
+      spotlights: prev.spotlights.filter(s => s.id !== id),
       selectedObjectIds: prev.selectedObjectIds.filter(sid => sid !== id),
     }));
   }, []);
@@ -613,6 +709,7 @@ export const useEditorState = () => {
       hasUnsavedChanges: true,
       objects: prev.objects.filter(obj => !prev.selectedObjectIds.includes(obj.id)),
       objects3D: prev.objects3D.filter(obj => !prev.selectedObjectIds.includes(obj.id)),
+      spotlights: prev.spotlights.filter(s => !prev.selectedObjectIds.includes(s.id)),
       selectedObjectIds: [],
     }));
   }, []);
@@ -673,6 +770,33 @@ export const useEditorState = () => {
             }
             
             return { ...obj, keyframes: newKeyframes };
+          }),
+        };
+      } else if (prev.modeSpotlight) {
+        return {
+          ...prev,
+          hasUnsavedChanges: true,
+          spotlights: prev.spotlights.map(spot => {
+            if (!prev.selectedObjectIds.includes(spot.id)) return spot;
+            
+            const existingIndex = spot.keyframes.findIndex(
+              kf => Math.abs(kf.time - prev.currentTime) < 100
+            );
+            
+            const newKeyframe: SpotlightKeyframe = {
+              time: prev.currentTime,
+              channelValues: [...spot.channelValues],
+            };
+            
+            let newKeyframes = [...spot.keyframes];
+            if (existingIndex >= 0) {
+              newKeyframes[existingIndex] = newKeyframe;
+            } else {
+              newKeyframes.push(newKeyframe);
+              newKeyframes.sort((a, b) => a.time - b.time);
+            }
+            
+            return { ...spot, keyframes: newKeyframes };
           }),
         };
       } else {
@@ -876,12 +1000,14 @@ export const useEditorState = () => {
       ...initialState,
       objects: project.objects,
       objects3D: project.objects3D || [],
+      spotlights: project.spotlights || [],
       scenes: project.scenes,
       backgroundImage: project.backgroundImage,
       audioTracks,
       duration: project.duration,
       mode3D: project.mode3D || project.modeFireworks || false,
       modeFireworks: project.modeFireworks || false,
+      modeSpotlight: project.modeSpotlight || false,
       hasUnsavedChanges: false,
     });
   }, []);
@@ -1033,7 +1159,12 @@ export const useEditorState = () => {
     setAnimatedMode,
     setMode3D,
     setModeFireworks,
+    setModeSpotlight,
     addFireworkObject,
+    addSpotlightObject,
+    updateSpotlightDmxAddress,
+    updateSpotlightChannelValue,
+    getInterpolatedSpotlightChannels,
     addObject,
     addObject3D,
     addObject3DWithGeometry,
