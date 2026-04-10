@@ -17,7 +17,6 @@ import {
   OBJGeometry,
 } from '@/types/editor';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
-import { SpotlightProduct, SpotlightCategory } from '@/types/spotlights';
 import { FlptProject, base64ToFile } from '@/lib/fileOperations';
 import { interpolateColor } from '@/lib/colorUtils';
 
@@ -94,7 +93,6 @@ const initialState: EditorState = {
   theme: 'dark',
   mode3D: false,
   modeFireworks: false,
-  modeSpotlights: false,
   hasUnsavedChanges: false,
 };
 
@@ -242,10 +240,6 @@ export const useEditorState = () => {
 
   const setModeFireworks = useCallback((modeFireworks: boolean) => {
     setState(prev => ({ ...prev, modeFireworks, mode3D: modeFireworks, selectedObjectIds: [] }));
-  }, []);
-
-  const setModeSpotlights = useCallback((modeSpotlights: boolean) => {
-    setState(prev => ({ ...prev, modeSpotlights, mode3D: false, selectedObjectIds: [] }));
   }, []);
 
   const markAsChanged = useCallback(() => {
@@ -420,34 +414,6 @@ export const useEditorState = () => {
     }));
   }, []);
 
-  // Add spotlight object
-  const addSpotlightObject = useCallback((product: SpotlightProduct, category: SpotlightCategory, address: string = 'DMX:1') => {
-    const newObject: EditorObject3D = {
-      id: generateId(),
-      name: `${product.name}`,
-      type: 'spotlight',
-      properties: {
-        ...default3DProperties,
-        color: product.colors[0] || '#FFFFFF',
-        width: 80,
-        height: 60,
-        depth: 100,
-      },
-      keyframes: [],
-      spotlightProduct: product,
-      spotlightCategory: category,
-      spotlightAddress: address,
-      dmxValues: new Array(product.dmxChannels).fill(0),
-    };
-    
-    setState(prev => ({
-      ...prev,
-      objects3D: [newObject, ...prev.objects3D],
-      selectedObjectIds: [newObject.id],
-      hasUnsavedChanges: true,
-    }));
-  }, []);
-
 
   const selectObject = useCallback((id: string | null, options?: { ctrlKey?: boolean; shiftKey?: boolean }) => {
     setState(prev => {
@@ -555,7 +521,7 @@ export const useEditorState = () => {
     });
   }, []);
 
-  const updateObject3DProperties = useCallback((id: string, properties: any) => {
+  const updateObject3DProperties = useCallback((id: string, properties: Partial<Object3DProperties>) => {
     setState(prev => {
       const obj = prev.objects3D.find(o => o.id === id);
       if (!obj) return prev;
@@ -564,42 +530,31 @@ export const useEditorState = () => {
         kf => Math.abs(kf.time - prev.currentTime) < 100
       );
 
-      const propertyValues: Partial<Object3DProperties> = {};
-      const otherValues: Record<string, any> = {};
-      Object.entries(properties).forEach(([key, value]) => {
-        if (key in obj.properties) {
-          propertyValues[key as keyof Object3DProperties] = value;
-        } else {
-          otherValues[key] = value;
-        }
-      });
-
       return {
         ...prev,
         hasUnsavedChanges: true,
         objects3D: prev.objects3D.map(o => {
           if (o.id !== id) return o;
 
-          const newProperties = { ...o.properties, ...propertyValues };
-          const updatedObject = { ...o, properties: newProperties, ...otherValues };
+          const newProperties = { ...o.properties, ...properties };
 
           if (keyframeIndex >= 0) {
             const newKeyframes = [...o.keyframes];
             newKeyframes[keyframeIndex] = {
               ...newKeyframes[keyframeIndex],
-              properties: { ...newKeyframes[keyframeIndex].properties, ...propertyValues },
+              properties: { ...newKeyframes[keyframeIndex].properties, ...properties },
             };
-            return { ...updatedObject, keyframes: newKeyframes };
+            return { ...o, properties: newProperties, keyframes: newKeyframes };
           }
 
-          return updatedObject;
+          return { ...o, properties: newProperties };
         }),
       };
     });
   }, []);
 
   // Batch update for 3D objects
-  const updateSelectedObjects3DProperties = useCallback((properties: any) => {
+  const updateSelectedObjects3DProperties = useCallback((properties: Partial<Object3DProperties>) => {
     setState(prev => {
       return {
         ...prev,
@@ -611,29 +566,18 @@ export const useEditorState = () => {
             kf => Math.abs(kf.time - prev.currentTime) < 100
           );
 
-          const propertyValues: Partial<Object3DProperties> = {};
-          const otherValues: Record<string, any> = {};
-          Object.entries(properties).forEach(([key, value]) => {
-            if (key in o.properties) {
-              propertyValues[key as keyof Object3DProperties] = value;
-            } else {
-              otherValues[key] = value;
-            }
-          });
-
-          const newProperties = { ...o.properties, ...propertyValues };
-          const updatedObject = { ...o, properties: newProperties, ...otherValues };
+          const newProperties = { ...o.properties, ...properties };
 
           if (keyframeIndex >= 0) {
             const newKeyframes = [...o.keyframes];
             newKeyframes[keyframeIndex] = {
               ...newKeyframes[keyframeIndex],
-              properties: { ...newKeyframes[keyframeIndex].properties, ...propertyValues },
+              properties: { ...newKeyframes[keyframeIndex].properties, ...properties },
             };
-            return { ...updatedObject, keyframes: newKeyframes };
+            return { ...o, properties: newProperties, keyframes: newKeyframes };
           }
 
-          return updatedObject;
+          return { ...o, properties: newProperties };
         }),
       };
     });
@@ -718,11 +662,6 @@ export const useEditorState = () => {
               time: prev.currentTime,
               properties: { ...obj.properties },
               camera: currentCameraPosition || undefined,
-              // Include spotlight-specific properties
-              ...(obj.type === 'spotlight' && {
-                spotlightAddress: obj.spotlightAddress,
-                dmxValues: obj.dmxValues ? [...obj.dmxValues] : undefined,
-              }),
             };
             
             let newKeyframes = [...obj.keyframes];
@@ -1094,9 +1033,7 @@ export const useEditorState = () => {
     setAnimatedMode,
     setMode3D,
     setModeFireworks,
-    setModeSpotlights,
     addFireworkObject,
-    addSpotlightObject,
     addObject,
     addObject3D,
     addObject3DWithGeometry,

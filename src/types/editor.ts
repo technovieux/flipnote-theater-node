@@ -1,5 +1,4 @@
 import { FireworkProduct, FireworkCategory } from './fireworks';
-import { SpotlightProduct, SpotlightCategory } from './spotlights';
 
 export type ShapeType = 'rectangle' | 'circle' | 'triangle';
 export type Shape3DType = 
@@ -16,11 +15,9 @@ export type Shape3DType =
   // Custom and imported
   | 'custom' | 'obj'
   // Fireworks
-  | 'firework'
-  // Spotlights
-  | 'spotlight';
+  | 'firework';
 
-export type EditorMode = '2d' | '3d' | 'fireworks' | 'spotlights';
+export type EditorMode = '2d' | '3d' | 'fireworks';
 
 export interface CustomGeometry {
   points: { x: number; y: number }[];
@@ -76,9 +73,6 @@ export interface Keyframe3D {
   time: number;
   properties: Object3DProperties;
   camera?: CameraPosition;
-  // Spotlight-specific properties
-  spotlightAddress?: string;
-  dmxValues?: number[];
 }
 
 export interface EditorObject {
@@ -99,10 +93,6 @@ export interface EditorObject3D {
   objGeometry?: OBJGeometry;
   fireworkProduct?: FireworkProduct;
   fireworkCategory?: FireworkCategory;
-  spotlightProduct?: SpotlightProduct;
-  spotlightCategory?: SpotlightCategory;
-  spotlightAddress?: string; // e.g., "DMX:123" or "192.168.1.100"
-  dmxValues?: number[]; // Array of DMX channel values (0-255)
 }
 
 export interface Scene {
@@ -137,6 +127,5 @@ export interface EditorState {
   theme: ThemeMode;
   mode3D: boolean;
   modeFireworks: boolean;
-  modeSpotlights: boolean;
   hasUnsavedChanges: boolean;
 }

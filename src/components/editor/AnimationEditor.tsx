@@ -1,24 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { EditorMode } from '@/types/editor';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
-import { SpotlightProduct, SpotlightCategory } from '@/types/spotlights';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { MenuBar } from './MenuBar';
 import { ObjectsList } from './ObjectsList';
 import { ObjectsList3D } from './ObjectsList3D';
 import { Canvas } from './Canvas';
 import { Canvas3D } from './Canvas3D';
-import { CanvasSpotlight } from './CanvasSpotlight';
 import { PropertiesPanel } from './PropertiesPanel';
 import { PropertiesPanel3D } from './PropertiesPanel3D';
-import { SpotlightPropertiesPanel } from './SpotlightPropertiesPanel';
 import { Timeline } from './Timeline';
 import { ExportDialog } from './ExportDialog';
 import { WelcomeDialog } from './WelcomeDialog';
 import { ShapeLibraryDialog } from './ShapeLibraryDialog';
 import { CustomShapeEditor } from './CustomShapeEditor';
 import { FireworkLibraryDialog } from './FireworkLibraryDialog';
-import { SpotlightLibraryDialog } from './SpotlightLibraryDialog';
 import { useEditorState } from '@/hooks/useEditorState';
 import { LibraryShape3D } from '@/data/shape3DLibrary';
 import { ImportedOBJModel } from '@/lib/objImporter';
@@ -53,9 +49,7 @@ export const AnimationEditor: React.FC = () => {
     setAnimatedMode,
     setMode3D,
     setModeFireworks,
-    setModeSpotlights,
     addFireworkObject,
-    addSpotlightObject,
     addObject,
     addObject3D,
     addObject3DWithGeometry,
@@ -102,7 +96,6 @@ export const AnimationEditor: React.FC = () => {
   const [customEditorOpen, setCustomEditorOpen] = useState(false);
   const [renderMode, setRenderMode] = useState(false);
   const [fireworkLibraryOpen, setFireworkLibraryOpen] = useState(false);
-  const [spotlightLibraryOpen, setSpotlightLibraryOpen] = useState(false);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -333,8 +326,6 @@ export const AnimationEditor: React.FC = () => {
   const handleSelectMode = (mode: EditorMode) => {
     if (mode === 'fireworks') {
       setModeFireworks(true);
-    } else if (mode === 'spotlights') {
-      setModeSpotlights(true);
     } else {
       setMode3D(mode === '3d');
     }
@@ -565,12 +556,10 @@ export const AnimationEditor: React.FC = () => {
         onShowPropertiesChange={setShowProperties}
         mode3D={state.mode3D}
         modeFireworks={state.modeFireworks}
-        modeSpotlights={state.modeSpotlights}
         hasSelectedObject={state.selectedObjectIds.length > 0}
         onOpenLibrary={() => setLibraryDialogOpen(true)}
         onOpenCustomEditor={() => setCustomEditorOpen(true)}
         onOpenFireworkLibrary={() => setFireworkLibraryOpen(true)}
-        onOpenSpotlightLibrary={() => setSpotlightLibraryOpen(true)}
         renderMode={renderMode}
         onToggleRenderMode={() => setRenderMode(!renderMode)}
       />
@@ -582,7 +571,7 @@ export const AnimationEditor: React.FC = () => {
               {!renderMode && (
                 <>
                   <ResizablePanel defaultSize={25} minSize={15}>
-                    {state.modeSpotlights || state.mode3D ? (
+                    {state.mode3D ? (
                       <ObjectsList3D
                         objects={state.objects3D}
                         selectedObjectIds={state.selectedObjectIds}
@@ -606,18 +595,7 @@ export const AnimationEditor: React.FC = () => {
                 </>
               )}
               <ResizablePanel defaultSize={renderMode ? 100 : 75} minSize={30}>
-                {state.modeSpotlights ? (
-                  <CanvasSpotlight
-                    objects={state.objects3D}
-                    selectedObjectIds={renderMode ? [] : state.selectedObjectIds}
-                    onSelect={renderMode ? () => {} : selectObject}
-                    onUpdateProperties={renderMode ? () => {} : updateObject3DProperties}
-                    getInterpolatedProperties={getInterpolatedProperties3D}
-                    currentTime={state.currentTime}
-                    backgroundImage={state.backgroundImage}
-                    isPlaying={state.isPlaying}
-                  />
-                ) : state.mode3D ? (
+                {state.mode3D ? (
                   <Canvas3D
                     objects={state.objects3D}
                     selectedObjectIds={renderMode ? [] : state.selectedObjectIds}
@@ -648,14 +626,7 @@ export const AnimationEditor: React.FC = () => {
               {state.showProperties && !renderMode && (
                 <>
                   <ResizablePanel defaultSize={30} minSize={20}>
-                    {state.modeSpotlights ? (
-                      <SpotlightPropertiesPanel
-                        selectedObjects={selectedObjects3D}
-                        onUpdateProperties={updateObject3DProperties}
-                        onUpdateAllSelected={updateSelectedObjects3DProperties}
-                        onAddKeyframe={addKeyframe}
-                      />
-                    ) : state.mode3D ? (
+                    {state.mode3D ? (
                       <PropertiesPanel3D
                         selectedObjects={selectedObjects3D}
                         onUpdateProperties={updateObject3DProperties}
@@ -679,7 +650,6 @@ export const AnimationEditor: React.FC = () => {
                   objects={state.objects}
                   objects3D={state.objects3D}
                   mode3D={state.mode3D}
-                  modeSpotlights={state.modeSpotlights}
                   scenes={state.scenes}
                   audioTracks={state.audioTracks}
                   selectedObjectIds={state.selectedObjectIds}
@@ -781,15 +751,6 @@ export const AnimationEditor: React.FC = () => {
         onSelectFirework={(product, category) => {
           addFireworkObject(product, category);
           toast.success(`${product.name} ajouté au projet`);
-        }}
-      />
-
-      <SpotlightLibraryDialog
-        open={spotlightLibraryOpen}
-        onOpenChange={setSpotlightLibraryOpen}
-        onSelectSpotlight={(product, category, address) => {
-          addSpotlightObject(product, category, address);
-          toast.success(`${product.name} (${address}) ajouté au projet`);
         }}
       />
 
