@@ -226,7 +226,7 @@ export const useEditorState = () => {
       saveToHistory(state);
     }
     prevStateRef.current = snapshot;
-  }, [state.objects, state.objects3D, state.scenes, state.backgroundImage, state.selectedObjectIds, saveToHistory, state]);
+  }, [state.objects, state.objects3D, state.spotlights, state.scenes, state.backgroundImage, state.selectedObjectIds, saveToHistory, state]);
 
   const setTheme = useCallback((theme: ThemeMode) => {
     setState(prev => ({ ...prev, theme }));
@@ -526,7 +526,9 @@ export const useEditorState = () => {
       
       if (shiftKey && prev.selectedObjectIds.length > 0) {
         // Range selection
-        const allObjects = prev.mode3D ? prev.objects3D : prev.objects;
+        const allObjects = prev.modeSpotlight 
+          ? prev.spotlights 
+          : prev.mode3D ? prev.objects3D : prev.objects;
         const lastSelectedId = prev.selectedObjectIds[prev.selectedObjectIds.length - 1];
         const lastIndex = allObjects.findIndex(o => o.id === lastSelectedId);
         const currentIndex = allObjects.findIndex(o => o.id === id);
@@ -703,6 +705,7 @@ export const useEditorState = () => {
       hasUnsavedChanges: true,
       objects: prev.objects.filter(obj => !prev.selectedObjectIds.includes(obj.id)),
       objects3D: prev.objects3D.filter(obj => !prev.selectedObjectIds.includes(obj.id)),
+      spotlights: prev.spotlights.filter(s => !prev.selectedObjectIds.includes(s.id)),
       selectedObjectIds: [],
     }));
   }, []);
@@ -763,6 +766,33 @@ export const useEditorState = () => {
             }
             
             return { ...obj, keyframes: newKeyframes };
+          }),
+        };
+      } else if (prev.modeSpotlight) {
+        return {
+          ...prev,
+          hasUnsavedChanges: true,
+          spotlights: prev.spotlights.map(spot => {
+            if (!prev.selectedObjectIds.includes(spot.id)) return spot;
+            
+            const existingIndex = spot.keyframes.findIndex(
+              kf => Math.abs(kf.time - prev.currentTime) < 100
+            );
+            
+            const newKeyframe: SpotlightKeyframe = {
+              time: prev.currentTime,
+              channelValues: [...spot.channelValues],
+            };
+            
+            let newKeyframes = [...spot.keyframes];
+            if (existingIndex >= 0) {
+              newKeyframes[existingIndex] = newKeyframe;
+            } else {
+              newKeyframes.push(newKeyframe);
+              newKeyframes.sort((a, b) => a.time - b.time);
+            }
+            
+            return { ...spot, keyframes: newKeyframes };
           }),
         };
       } else {
