@@ -240,7 +240,7 @@ export const useEditorState = () => {
   }, []);
 
   const setMode3D = useCallback((mode3D: boolean) => {
-    setState(prev => ({ ...prev, mode3D, modeFireworks: false, selectedObjectIds: [] }));
+    setState(prev => ({ ...prev, mode3D, modeFireworks: false, modeSpotlight: false, selectedObjectIds: [] }));
   }, []);
 
   const setModeFireworks = useCallback((modeFireworks: boolean) => {
@@ -422,6 +422,86 @@ export const useEditorState = () => {
       hasUnsavedChanges: true,
     }));
   }, []);
+
+  // Add spotlight object
+  const addSpotlightObject = useCallback((fixture: SpotlightFixture) => {
+    const newSpotlight: SpotlightEditorObject = {
+      id: generateId(),
+      name: `${fixture.name} ${state.spotlights.length + 1}`,
+      fixture,
+      dmxAddress: 1 + state.spotlights.reduce((max, s) => Math.max(max, s.dmxAddress + s.fixture.channels.length), 0),
+      channelValues: fixture.channels.map(c => c.defaultValue),
+      x: 100 + state.spotlights.length * 60,
+      y: 100,
+      opacity: 100,
+      color: '#FFD700',
+      keyframes: [],
+    };
+
+    setState(prev => ({
+      ...prev,
+      spotlights: [newSpotlight, ...prev.spotlights],
+      selectedObjectIds: [newSpotlight.id],
+      hasUnsavedChanges: true,
+    }));
+  }, [state.spotlights.length, state.spotlights]);
+
+  const updateSpotlightDmxAddress = useCallback((id: string, address: number) => {
+    setState(prev => ({
+      ...prev,
+      hasUnsavedChanges: true,
+      spotlights: prev.spotlights.map(s =>
+        s.id === id ? { ...s, dmxAddress: address } : s
+      ),
+    }));
+  }, []);
+
+  const updateSpotlightChannelValue = useCallback((id: string, channelIndex: number, value: number) => {
+    setState(prev => ({
+      ...prev,
+      hasUnsavedChanges: true,
+      spotlights: prev.spotlights.map(s => {
+        if (s.id !== id) return s;
+        const newValues = [...s.channelValues];
+        newValues[channelIndex] = value;
+
+        // Also update keyframe if at one
+        const kfIdx = s.keyframes.findIndex(kf => Math.abs(kf.time - prev.currentTime) < 100);
+        if (kfIdx >= 0) {
+          const newKeyframes = [...s.keyframes];
+          const kfValues = [...newKeyframes[kfIdx].channelValues];
+          kfValues[channelIndex] = value;
+          newKeyframes[kfIdx] = { ...newKeyframes[kfIdx], channelValues: kfValues };
+          return { ...s, channelValues: newValues, keyframes: newKeyframes };
+        }
+
+        return { ...s, channelValues: newValues };
+      }),
+    }));
+  }, []);
+
+  const getInterpolatedSpotlightChannels = useCallback((spot: SpotlightEditorObject, time: number): number[] => {
+    if (spot.keyframes.length === 0) return spot.channelValues;
+
+    const sorted = [...spot.keyframes].sort((a, b) => a.time - b.time);
+    let prevKf: SpotlightKeyframe | null = null;
+    let nextKf: SpotlightKeyframe | null = null;
+
+    for (const kf of sorted) {
+      if (kf.time <= time) prevKf = kf;
+      else if (!nextKf) { nextKf = kf; break; }
+    }
+
+    if (!prevKf && !nextKf) return spot.channelValues;
+    if (!prevKf) return nextKf!.channelValues;
+    if (!nextKf) return prevKf.channelValues;
+    if (!state.animatedMode) return prevKf.channelValues;
+
+    const progress = (time - prevKf.time) / (nextKf.time - prevKf.time);
+    return prevKf.channelValues.map((v, i) => 
+      Math.round(v + (nextKf!.channelValues[i] - v) * progress)
+    );
+  }, [state.animatedMode]);
 
 
   const selectObject = useCallback((id: string | null, options?: { ctrlKey?: boolean; shiftKey?: boolean }) => {
