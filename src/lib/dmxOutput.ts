@@ -4,8 +4,8 @@
  */
 
 export class DMXOutput {
-  private port: SerialPort | null = null;
-  private writer: WritableStreamDefaultWriter | null = null;
+  private port: any = null;
+  private writer: any = null;
   private channels: Uint8Array = new Uint8Array(513); // Start code + 512 channels
   private sending = false;
   private intervalId: number | null = null;
@@ -15,7 +15,7 @@ export class DMXOutput {
   }
 
   static isSupported(): boolean {
-    return 'serial' in navigator;
+    return 'serial' in (navigator as any);
   }
 
   async connect(): Promise<boolean> {
@@ -24,7 +24,7 @@ export class DMXOutput {
     }
 
     try {
-      this.port = await navigator.serial.requestPort();
+      this.port = await (navigator as any).serial.requestPort();
       await this.port.open({
         baudRate: 250000,
         dataBits: 8,
