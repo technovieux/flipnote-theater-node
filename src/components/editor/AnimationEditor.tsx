@@ -756,9 +756,17 @@ export const AnimationEditor: React.FC = () => {
               )}
               <ResizablePanel defaultSize={state.showProperties && !renderMode ? 70 : 100} minSize={40}>
                 <Timeline
-                  objects={state.objects}
+                  objects={state.modeSpotlight 
+                    ? state.spotlights.map(s => ({
+                        id: s.id,
+                        name: s.name,
+                        type: 'circle' as const,
+                        properties: { x: s.x, y: s.y, width: 50, height: 50, rotation: 0, opacity: s.opacity, color: s.color },
+                        keyframes: s.keyframes.map(kf => ({ time: kf.time, properties: { x: s.x, y: s.y, width: 50, height: 50, rotation: 0, opacity: 100, color: s.color } })),
+                      }))
+                    : state.objects}
                   objects3D={state.objects3D}
-                  mode3D={state.mode3D}
+                  mode3D={state.mode3D && !state.modeSpotlight}
                   scenes={state.scenes}
                   audioTracks={state.audioTracks}
                   selectedObjectIds={state.selectedObjectIds}
