@@ -76,6 +76,9 @@ export interface Keyframe3D {
   time: number;
   properties: Object3DProperties;
   camera?: CameraPosition;
+  // Spotlight-specific properties
+  spotlightAddress?: string;
+  dmxValues?: number[];
 }
 
 export interface EditorObject {

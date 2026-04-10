@@ -73,10 +73,6 @@ export const SpotlightPropertiesPanel: React.FC<SpotlightPropertiesPanelProps> =
     setDmxValues(newDmxValues);
   }, [selectedObjects]);
 
-  if (selectedObjects.length === 0 || selectedObjects[0].type !== 'spotlight') {
-    return null;
-  }
-
   const isMulti = selectedObjects.length > 1;
   const firstObj = selectedObjects[0];
   const product = firstObj.spotlightProduct!;
@@ -85,14 +81,14 @@ export const SpotlightPropertiesPanel: React.FC<SpotlightPropertiesPanelProps> =
 
   const handleDMXChange = (channelIndex: number, value: number, objectId?: string) => {
     const targetId = objectId || firstObj.id;
+    const currentValues = dmxValues[targetId] || channels.map(ch => ch.default);
+    const updatedValues = currentValues.map((v, i) => i === channelIndex ? value : v);
 
     setDmxValues(prev => ({
       ...prev,
-      [targetId]: prev[targetId]?.map((v, i) => i === channelIndex ? value : v) || []
+      [targetId]: updatedValues,
     }));
 
-    // Mettre à jour les propriétés de l'objet
-    const updatedValues = dmxValues[targetId]?.map((v, i) => i === channelIndex ? value : v) || [];
     onUpdateProperties(targetId, { dmxValues: updatedValues });
 
     // Ajouter automatiquement une keyframe

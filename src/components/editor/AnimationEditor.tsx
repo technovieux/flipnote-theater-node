@@ -11,6 +11,7 @@ import { Canvas3D } from './Canvas3D';
 import { CanvasSpotlight } from './CanvasSpotlight';
 import { PropertiesPanel } from './PropertiesPanel';
 import { PropertiesPanel3D } from './PropertiesPanel3D';
+import { SpotlightPropertiesPanel } from './SpotlightPropertiesPanel';
 import { Timeline } from './Timeline';
 import { ExportDialog } from './ExportDialog';
 import { WelcomeDialog } from './WelcomeDialog';
@@ -647,7 +648,14 @@ export const AnimationEditor: React.FC = () => {
               {state.showProperties && !renderMode && (
                 <>
                   <ResizablePanel defaultSize={30} minSize={20}>
-                    {state.mode3D ? (
+                    {state.modeSpotlights ? (
+                      <SpotlightPropertiesPanel
+                        selectedObjects={selectedObjects3D}
+                        onUpdateProperties={updateObject3DProperties}
+                        onUpdateAllSelected={updateSelectedObjects3DProperties}
+                        onAddKeyframe={addKeyframe}
+                      />
+                    ) : state.mode3D ? (
                       <PropertiesPanel3D
                         selectedObjects={selectedObjects3D}
                         onUpdateProperties={updateObject3DProperties}
@@ -671,6 +679,7 @@ export const AnimationEditor: React.FC = () => {
                   objects={state.objects}
                   objects3D={state.objects3D}
                   mode3D={state.mode3D}
+                  modeSpotlights={state.modeSpotlights}
                   scenes={state.scenes}
                   audioTracks={state.audioTracks}
                   selectedObjectIds={state.selectedObjectIds}

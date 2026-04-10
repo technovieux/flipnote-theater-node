@@ -555,7 +555,7 @@ export const useEditorState = () => {
     });
   }, []);
 
-  const updateObject3DProperties = useCallback((id: string, properties: Partial<Object3DProperties>) => {
+  const updateObject3DProperties = useCallback((id: string, properties: any) => {
     setState(prev => {
       const obj = prev.objects3D.find(o => o.id === id);
       if (!obj) return prev;
@@ -564,31 +564,42 @@ export const useEditorState = () => {
         kf => Math.abs(kf.time - prev.currentTime) < 100
       );
 
+      const propertyValues: Partial<Object3DProperties> = {};
+      const otherValues: Record<string, any> = {};
+      Object.entries(properties).forEach(([key, value]) => {
+        if (key in obj.properties) {
+          propertyValues[key as keyof Object3DProperties] = value;
+        } else {
+          otherValues[key] = value;
+        }
+      });
+
       return {
         ...prev,
         hasUnsavedChanges: true,
         objects3D: prev.objects3D.map(o => {
           if (o.id !== id) return o;
 
-          const newProperties = { ...o.properties, ...properties };
+          const newProperties = { ...o.properties, ...propertyValues };
+          const updatedObject = { ...o, properties: newProperties, ...otherValues };
 
           if (keyframeIndex >= 0) {
             const newKeyframes = [...o.keyframes];
             newKeyframes[keyframeIndex] = {
               ...newKeyframes[keyframeIndex],
-              properties: { ...newKeyframes[keyframeIndex].properties, ...properties },
+              properties: { ...newKeyframes[keyframeIndex].properties, ...propertyValues },
             };
-            return { ...o, properties: newProperties, keyframes: newKeyframes };
+            return { ...updatedObject, keyframes: newKeyframes };
           }
 
-          return { ...o, properties: newProperties };
+          return updatedObject;
         }),
       };
     });
   }, []);
 
   // Batch update for 3D objects
-  const updateSelectedObjects3DProperties = useCallback((properties: Partial<Object3DProperties>) => {
+  const updateSelectedObjects3DProperties = useCallback((properties: any) => {
     setState(prev => {
       return {
         ...prev,
@@ -600,18 +611,29 @@ export const useEditorState = () => {
             kf => Math.abs(kf.time - prev.currentTime) < 100
           );
 
-          const newProperties = { ...o.properties, ...properties };
+          const propertyValues: Partial<Object3DProperties> = {};
+          const otherValues: Record<string, any> = {};
+          Object.entries(properties).forEach(([key, value]) => {
+            if (key in o.properties) {
+              propertyValues[key as keyof Object3DProperties] = value;
+            } else {
+              otherValues[key] = value;
+            }
+          });
+
+          const newProperties = { ...o.properties, ...propertyValues };
+          const updatedObject = { ...o, properties: newProperties, ...otherValues };
 
           if (keyframeIndex >= 0) {
             const newKeyframes = [...o.keyframes];
             newKeyframes[keyframeIndex] = {
               ...newKeyframes[keyframeIndex],
-              properties: { ...newKeyframes[keyframeIndex].properties, ...properties },
+              properties: { ...newKeyframes[keyframeIndex].properties, ...propertyValues },
             };
-            return { ...o, properties: newProperties, keyframes: newKeyframes };
+            return { ...updatedObject, keyframes: newKeyframes };
           }
 
-          return { ...o, properties: newProperties };
+          return updatedObject;
         }),
       };
     });
@@ -696,6 +718,11 @@ export const useEditorState = () => {
               time: prev.currentTime,
               properties: { ...obj.properties },
               camera: currentCameraPosition || undefined,
+              // Include spotlight-specific properties
+              ...(obj.type === 'spotlight' && {
+                spotlightAddress: obj.spotlightAddress,
+                dmxValues: obj.dmxValues ? [...obj.dmxValues] : undefined,
+              }),
             };
             
             let newKeyframes = [...obj.keyframes];

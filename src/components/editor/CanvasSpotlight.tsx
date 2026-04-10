@@ -191,6 +191,31 @@ export const CanvasSpotlight: React.FC<CanvasSpotlightProps> = ({
             </defs>
             <rect width={SCENE_WIDTH} height={SCENE_HEIGHT} fill="url(#checkerboard)" />
 
+            {spotlightObjects.length === 0 && (
+              <g>
+                <rect x="0" y="0" width={SCENE_WIDTH} height={SCENE_HEIGHT} fill="rgba(0,0,0,0.45)" />
+                <text
+                  x={SCENE_WIDTH / 2}
+                  y={SCENE_HEIGHT / 2 - 10}
+                  textAnchor="middle"
+                  fontSize="32"
+                  fill="#ffffff"
+                  opacity="0.95"
+                >
+                  Aucun projecteur dans la scène
+                </text>
+                <text
+                  x={SCENE_WIDTH / 2}
+                  y={SCENE_HEIGHT / 2 + 24}
+                  textAnchor="middle"
+                  fontSize="18"
+                  fill="#cbd5e1"
+                  opacity="0.9"
+                >
+                  Ouvrez la bibliothèque et ajoutez un projecteur.</text>
+              </g>
+            )}
+
             {/* Spotlight objects */}
             {spotlightObjects.map(obj => {
               const props = isPlaying 
@@ -202,39 +227,35 @@ export const CanvasSpotlight: React.FC<CanvasSpotlightProps> = ({
               return (
                 <g key={obj.id}>
                   {/* Spotlight rect */}
-                  <g
-                    style={{ cursor: 'move' }}
-                    onClick={() => {}}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      handleMouseDown(e as any, obj.id);
+                  <rect
+                    x={props.x - props.width / 2}
+                    y={props.y - props.height / 2}
+                    width={props.width}
+                    height={props.height}
+                    fill={props.color}
+                    opacity={0.6}
+                    rx="4"
+                    stroke={isSelected ? '#3b82f6' : props.color}
+                    strokeWidth={isSelected ? '3' : '1'}
+                    style={{ cursor: 'pointer' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelect(obj.id);
                     }}
-                  >
-                    <rect
-                      x={props.x - props.width / 2}
-                      y={props.y - props.height / 2}
-                      width={props.width}
-                      height={props.height}
-                      fill={props.color}
-                      opacity={0.6}
-                      rx="4"
-                      stroke={isSelected ? '#3b82f6' : props.color}
-                      strokeWidth={isSelected ? '3' : '1'}
-                    />
+                  />
 
-                    {/* Label */}
-                    <text
-                      x={props.x}
-                      y={props.y + props.height / 2 + 25}
-                      textAnchor="middle"
-                      fontSize="14"
-                      fill="white"
-                      opacity="0.8"
-                      pointerEvents="none"
-                    >
-                      {obj.spotlightAddress} {obj.name}
-                    </text>
-                  </g>
+                  {/* Label */}
+                  <text
+                    x={props.x}
+                    y={props.y + props.height / 2 + 25}
+                    textAnchor="middle"
+                    fontSize="14"
+                    fill="white"
+                    opacity="0.8"
+                    pointerEvents="none"
+                  >
+                    {obj.spotlightAddress} {obj.name}
+                  </text>
 
                   {/* Selection indicator */}
                   {isSelected && (

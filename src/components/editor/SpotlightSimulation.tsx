@@ -29,7 +29,7 @@ const interpolateValue = (
   
   // Find surrounding keyframes
   let before = sorted[0];
-  let after = sorted[keyframes.length - 1];
+  let after = sorted[sorted.length - 1];
   
   for (let i = 0; i < sorted.length; i++) {
     if (sorted[i].time <= currentTime) {
@@ -68,7 +68,7 @@ const interpolateColor = (
   const sorted = [...keyframes].sort((a, b) => a.time - b.time);
   
   let before = sorted[0];
-  let after = sorted[keyframes.length - 1];
+  let after = sorted[sorted.length - 1];
   
   for (let i = 0; i < sorted.length; i++) {
     if (sorted[i].time <= currentTime) {
@@ -134,7 +134,8 @@ export const SpotlightSimulation: React.FC<SpotlightSimulationProps> = ({
     <g id="spotlight-simulation">
       {spotlights.map((spot) => {
         const intensity = spot.intensity / 100;
-        const glowRadius = (spot.product.beamAngle / 60) * Math.max(spot.width, spot.height) * 2;
+        const beamAngle = parseInt(spot.product.beamAngle) || 60;
+        const glowRadius = (beamAngle / 60) * Math.max(spot.width, spot.height) * 2;
         const centerX = spot.x;
         const centerY = spot.y;
 

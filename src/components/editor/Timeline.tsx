@@ -20,6 +20,7 @@ interface TimelineProps {
   objects: EditorObject[];
   objects3D: EditorObject3D[];
   mode3D: boolean;
+  modeSpotlights?: boolean;
   scenes: Scene[];
   audioTracks: AudioTrack[];
   selectedObjectIds: string[];
@@ -63,6 +64,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   objects,
   objects3D,
   mode3D,
+  modeSpotlights = false,
   scenes,
   audioTracks,
   selectedObjectIds,
@@ -392,7 +394,7 @@ export const Timeline: React.FC<TimelineProps> = ({
             </div>
 
             {/* Object labels - 2D */}
-            {!renderMode && !mode3D && objects.map((obj) => (
+            {!renderMode && !mode3D && !modeSpotlights && objects.map((obj) => (
               <div
                 key={obj.id}
                 className={`px-2 py-1 text-sm truncate border-b border-panel-border flex items-center gap-2 cursor-pointer flex-shrink-0 ${
@@ -406,7 +408,7 @@ export const Timeline: React.FC<TimelineProps> = ({
             ))}
 
             {/* Object labels - 3D */}
-            {!renderMode && mode3D && objects3D.map((obj) => (
+            {!renderMode && (mode3D || modeSpotlights) && objects3D.map((obj) => (
               <div
                 key={obj.id}
                 className={`px-2 py-1 text-sm truncate border-b border-panel-border flex items-center gap-2 cursor-pointer flex-shrink-0 ${
@@ -525,7 +527,7 @@ export const Timeline: React.FC<TimelineProps> = ({
               </div>
 
               {/* Object tracks - 2D */}
-              {!renderMode && !mode3D && objects.map((obj) => (
+              {!renderMode && !mode3D && !modeSpotlights && objects.map((obj) => (
                 <div
                   key={obj.id}
                   className={`timeline-track bg-timeline-bg relative border-b border-panel-border ${
@@ -608,7 +610,7 @@ export const Timeline: React.FC<TimelineProps> = ({
               ))}
 
               {/* Object tracks - 3D */}
-              {!renderMode && mode3D && objects3D.map((obj) => (
+              {!renderMode && (mode3D || modeSpotlights) && objects3D.map((obj) => (
                 <div
                   key={obj.id}
                   className={`timeline-track bg-timeline-bg relative border-b border-panel-border ${
