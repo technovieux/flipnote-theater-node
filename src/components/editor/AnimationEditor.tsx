@@ -658,7 +658,22 @@ export const AnimationEditor: React.FC = () => {
               {!renderMode && (
                 <>
                   <ResizablePanel defaultSize={25} minSize={15}>
-                    {state.mode3D ? (
+                    {state.modeSpotlight ? (
+                      <ObjectsList
+                        objects={state.spotlights.map(s => ({
+                          id: s.id,
+                          name: s.name,
+                          type: 'circle' as const,
+                          properties: { x: s.x, y: s.y, width: 50, height: 50, rotation: 0, opacity: s.opacity, color: s.color },
+                          keyframes: s.keyframes.map(kf => ({ time: kf.time, properties: { x: s.x, y: s.y, width: 50, height: 50, rotation: 0, opacity: 100, color: s.color } })),
+                        }))}
+                        selectedObjectIds={state.selectedObjectIds}
+                        onSelect={selectObject}
+                        onReorder={reorderObjects}
+                        onDelete={deleteObject}
+                        onRename={renameObject}
+                      />
+                    ) : state.mode3D ? (
                       <ObjectsList3D
                         objects={state.objects3D}
                         selectedObjectIds={state.selectedObjectIds}
@@ -713,7 +728,14 @@ export const AnimationEditor: React.FC = () => {
               {state.showProperties && !renderMode && (
                 <>
                   <ResizablePanel defaultSize={30} minSize={20}>
-                    {state.mode3D ? (
+                    {state.modeSpotlight ? (
+                      <PropertiesPanelSpotlight
+                        selectedSpotlights={selectedSpotlightData}
+                        onUpdateDmxAddress={updateSpotlightDmxAddress}
+                        onUpdateChannelValue={updateSpotlightChannelValue}
+                        onAddKeyframe={addKeyframe}
+                      />
+                    ) : state.mode3D ? (
                       <PropertiesPanel3D
                         selectedObjects={selectedObjects3D}
                         onUpdateProperties={updateObject3DProperties}
