@@ -636,12 +636,19 @@ export const AnimationEditor: React.FC = () => {
         onShowPropertiesChange={setShowProperties}
         mode3D={state.mode3D}
         modeFireworks={state.modeFireworks}
+        modeSpotlight={state.modeSpotlight}
         hasSelectedObject={state.selectedObjectIds.length > 0}
         onOpenLibrary={() => setLibraryDialogOpen(true)}
         onOpenCustomEditor={() => setCustomEditorOpen(true)}
         onOpenFireworkLibrary={() => setFireworkLibraryOpen(true)}
+        onOpenSpotlightLibrary={() => setSpotlightLibraryOpen(true)}
         renderMode={renderMode}
         onToggleRenderMode={() => setRenderMode(!renderMode)}
+        dmxConnected={dmxConnected}
+        dmxRealtime={dmxRealtime}
+        onDmxConnect={handleDmxConnect}
+        onDmxDisconnect={handleDmxDisconnect}
+        onDmxRealtimeChange={handleDmxRealtimeChange}
       />
       
       <div className="flex-1 p-1 overflow-hidden">
