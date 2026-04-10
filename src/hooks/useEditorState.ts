@@ -215,6 +215,7 @@ export const useEditorState = () => {
     const snapshot = JSON.stringify({
       objects: state.objects,
       objects3D: state.objects3D,
+      spotlights: state.spotlights,
       scenes: state.scenes,
       backgroundImage: state.backgroundImage,
       selectedObjectIds: state.selectedObjectIds,
