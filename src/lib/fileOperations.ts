@@ -1,4 +1,4 @@
-import { EditorState, EditorObject, EditorObject3D, Scene, AudioTrack, OBJGeometry } from '@/types/editor';
+import { EditorState, EditorObject, EditorObject3D, SpotlightEditorObject, Scene, AudioTrack, OBJGeometry } from '@/types/editor';
 
 // Embedded OBJ model for portable project files
 export interface EmbeddedOBJModel {
@@ -12,16 +12,15 @@ export interface FlptProject {
   version: string;
   objects: EditorObject[];
   objects3D?: EditorObject3D[];
+  spotlights?: SpotlightEditorObject[];
   scenes: Scene[];
   backgroundImage: string | null;
-  // Legacy single audio track (for backward compat)
   audioTrack?: {
     name: string;
     waveform: number[];
     duration: number;
     data: string;
   } | null;
-  // New multi-track audio
   audioTracks?: {
     name: string;
     waveform: number[];
@@ -31,6 +30,7 @@ export interface FlptProject {
   duration: number;
   mode3D?: boolean;
   modeFireworks?: boolean;
+  modeSpotlight?: boolean;
   embeddedOBJModels?: EmbeddedOBJModel[];
 }
 
@@ -79,15 +79,17 @@ export const serializeProject = async (state: EditorState): Promise<FlptProject>
   }
 
   return {
-    version: '1.3',
+    version: '1.4',
     objects: state.objects,
     objects3D: state.objects3D,
+    spotlights: state.spotlights.length > 0 ? state.spotlights : undefined,
     scenes: state.scenes,
     backgroundImage: state.backgroundImage,
     audioTracks: audioTracksData && audioTracksData.length > 0 ? audioTracksData : undefined,
     duration: state.duration,
     mode3D: state.mode3D,
     modeFireworks: state.modeFireworks,
+    modeSpotlight: state.modeSpotlight || undefined,
     embeddedOBJModels: embeddedOBJModels.length > 0 ? embeddedOBJModels : undefined,
   };
 };
