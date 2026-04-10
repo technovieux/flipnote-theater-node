@@ -3,6 +3,7 @@ import {
   EditorState, 
   EditorObject, 
   EditorObject3D,
+  SpotlightEditorObject,
   ObjectProperties, 
   Object3DProperties,
   Keyframe, 
@@ -17,6 +18,7 @@ import {
   OBJGeometry,
 } from '@/types/editor';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
+import { SpotlightFixture, SpotlightKeyframe } from '@/types/spotlight';
 import { FlptProject, base64ToFile } from '@/lib/fileOperations';
 import { interpolateColor } from '@/lib/colorUtils';
 
@@ -49,6 +51,7 @@ const cloneStateForHistory = (state: EditorState): EditorState => {
     ...state,
     objects: JSON.parse(JSON.stringify(state.objects)),
     objects3D: JSON.parse(JSON.stringify(state.objects3D)),
+    spotlights: JSON.parse(JSON.stringify(state.spotlights)),
     scenes: JSON.parse(JSON.stringify(state.scenes)),
     audioTracks: state.audioTracks.map(t => ({ ...t })),
   };
@@ -81,18 +84,20 @@ const default3DProperties: Object3DProperties = {
 const initialState: EditorState = {
   objects: [],
   objects3D: [],
+  spotlights: [],
   selectedObjectIds: [],
   scenes: [],
   audioTracks: [],
   backgroundImage: null,
   currentTime: 0,
   isPlaying: false,
-  duration: 7200000, // 2 hours in ms
+  duration: 7200000,
   showProperties: true,
   animatedMode: true,
   theme: 'dark',
   mode3D: false,
   modeFireworks: false,
+  modeSpotlight: false,
   hasUnsavedChanges: false,
 };
 
