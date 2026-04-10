@@ -244,7 +244,11 @@ export const useEditorState = () => {
   }, []);
 
   const setModeFireworks = useCallback((modeFireworks: boolean) => {
-    setState(prev => ({ ...prev, modeFireworks, mode3D: modeFireworks, selectedObjectIds: [] }));
+    setState(prev => ({ ...prev, modeFireworks, mode3D: modeFireworks, modeSpotlight: false, selectedObjectIds: [] }));
+  }, []);
+
+  const setModeSpotlight = useCallback((modeSpotlight: boolean) => {
+    setState(prev => ({ ...prev, modeSpotlight, mode3D: false, modeFireworks: false, selectedObjectIds: [] }));
   }, []);
 
   const markAsChanged = useCallback(() => {
