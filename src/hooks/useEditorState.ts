@@ -996,12 +996,14 @@ export const useEditorState = () => {
       ...initialState,
       objects: project.objects,
       objects3D: project.objects3D || [],
+      spotlights: project.spotlights || [],
       scenes: project.scenes,
       backgroundImage: project.backgroundImage,
       audioTracks,
       duration: project.duration,
       mode3D: project.mode3D || project.modeFireworks || false,
       modeFireworks: project.modeFireworks || false,
+      modeSpotlight: project.modeSpotlight || false,
       hasUnsavedChanges: false,
     });
   }, []);
