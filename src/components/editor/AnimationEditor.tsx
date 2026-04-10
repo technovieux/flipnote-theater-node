@@ -863,6 +863,15 @@ export const AnimationEditor: React.FC = () => {
         }}
       />
 
+      <SpotlightLibraryDialog
+        open={spotlightLibraryOpen}
+        onOpenChange={setSpotlightLibraryOpen}
+        onSelectFixture={(fixture) => {
+          addSpotlightObject(fixture);
+          toast.success(`${fixture.name} ajouté au projet`);
+        }}
+      />
+
       <AlertDialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
