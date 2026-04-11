@@ -44,8 +44,38 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { saveProject, saveProjectAs, openProject, clearCurrentFile, FlptProject, EmbeddedOBJModel } from '@/lib/fileOperations';
+import { SpotlightEditorObject } from '@/types/editor';
 
-export const AnimationEditor: React.FC = () => {
+// Derive display color from spotlight channel values
+const getSpotlightColor = (spot: SpotlightEditorObject, channelValues: number[]): string => {
+  let r = 255, g = 255, b = 255;
+  let dimmer = 255;
+  let hasRgb = false;
+
+  spot.fixture.channels.forEach((ch, i) => {
+    const val = channelValues[i] ?? 0;
+    if (ch.type === 'dimmer') {
+      dimmer = val;
+    } else if (ch.type === 'color') {
+      const name = ch.name.toLowerCase();
+      if (name.includes('rouge') || name.includes('red')) { r = val; hasRgb = true; }
+      else if (name.includes('vert') || name.includes('green')) { g = val; hasRgb = true; }
+      else if (name.includes('bleu') || name.includes('blue')) { b = val; hasRgb = true; }
+    }
+  });
+
+  if (!hasRgb) {
+    // No RGB channels — use dimmer as white intensity
+    const v = dimmer;
+    return `rgb(${v}, ${v}, ${v})`;
+  }
+
+  // Apply dimmer as a multiplier
+  const factor = dimmer / 255;
+  return `rgb(${Math.round(r * factor)}, ${Math.round(g * factor)}, ${Math.round(b * factor)})`;
+};
+
+
   const {
     state,
     setTheme,
