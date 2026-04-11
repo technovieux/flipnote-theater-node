@@ -708,6 +708,31 @@ export const AnimationEditor: React.FC = () => {
                     currentTime={state.currentTime}
                     isPlaying={state.isPlaying}
                   />
+                ) : state.modeSpotlight ? (
+                  <Canvas
+                    objects={state.spotlights.map(s => {
+                      const channels = getInterpolatedSpotlightChannels(s, state.currentTime);
+                      const color = getSpotlightColor(s, channels);
+                      return {
+                        id: s.id,
+                        name: s.name,
+                        type: 'rectangle' as const,
+                        properties: { x: s.x, y: s.y, width: 60, height: 60, rotation: 0, opacity: 100, color },
+                        keyframes: [],
+                      };
+                    })}
+                    selectedObjectIds={renderMode ? [] : state.selectedObjectIds}
+                    onSelect={renderMode ? () => {} : selectObject}
+                    onUpdateProperties={renderMode ? () => {} : (id, props) => {
+                      if (props.x !== undefined || props.y !== undefined) {
+                        updateSpotlightPosition(id, { x: props.x, y: props.y });
+                      }
+                    }}
+                    getInterpolatedProperties={(obj) => obj.properties}
+                    currentTime={state.currentTime}
+                    backgroundImage={state.backgroundImage}
+                    isPlaying={state.isPlaying}
+                  />
                 ) : (
                   <Canvas
                     objects={state.objects}
