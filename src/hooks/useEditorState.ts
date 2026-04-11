@@ -457,6 +457,15 @@ export const useEditorState = () => {
     }));
   }, []);
 
+  const updateSpotlightPosition = useCallback((id: string, properties: Partial<{ x: number; y: number }>) => {
+    setState(prev => ({
+      ...prev,
+      spotlights: prev.spotlights.map(s =>
+        s.id === id ? { ...s, ...properties } : s
+      ),
+    }));
+  }, []);
+
   const updateSpotlightChannelValue = useCallback((id: string, channelIndex: number, value: number) => {
     setState(prev => ({
       ...prev,
@@ -1163,6 +1172,7 @@ export const useEditorState = () => {
     addFireworkObject,
     addSpotlightObject,
     updateSpotlightDmxAddress,
+    updateSpotlightPosition,
     updateSpotlightChannelValue,
     getInterpolatedSpotlightChannels,
     addObject,
