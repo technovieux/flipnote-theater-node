@@ -1,23 +1,66 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Box, Layers, Sparkles, Lightbulb } from 'lucide-react';
+import { Box, Layers, Sparkles, Lightbulb, Combine, Radio, Settings } from 'lucide-react';
 import { EditorMode } from '@/types/editor';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface WelcomeDialogProps {
   open: boolean;
   onSelectMode: (mode: EditorMode) => void;
 }
 
+interface HexButtonProps {
+  icon: React.ReactNode;
+  label: string;
+  sublabel?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  colorClass: string;
+}
+
+const HexButton: React.FC<HexButtonProps> = ({ icon, label, sublabel, onClick, disabled, colorClass }) => {
+  return (
+    <TooltipProvider delayDuration={0}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={onClick}
+            disabled={disabled}
+            className={`group relative w-[100px] h-[115px] flex items-center justify-center transition-all duration-300 ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:scale-110'}`}
+          >
+            {/* Hexagon SVG shape */}
+            <svg viewBox="0 0 100 115" className="absolute inset-0 w-full h-full">
+              <polygon
+                points="50,0 100,28.75 100,86.25 50,115 0,86.25 0,28.75"
+                className={`fill-card stroke-border transition-all duration-300 ${!disabled ? `group-hover:${colorClass} group-hover:stroke-transparent` : ''}`}
+                strokeWidth="2"
+                style={!disabled ? {} : {}}
+              />
+            </svg>
+            {/* Icon */}
+            <div className="relative z-10 flex items-center justify-center">
+              {icon}
+            </div>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-center">
+          <p className="font-semibold">{label}</p>
+          {sublabel && <p className="text-xs text-muted-foreground">{sublabel}</p>}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+
 export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode }) => {
   return (
     <Dialog open={open}>
-      <DialogContent 
-        className="sm:max-w-2xl border-2 border-primary/20 bg-gradient-to-b from-card to-background [&>button]:hidden"
+      <DialogContent
+        className="sm:max-w-lg border-2 border-primary/20 bg-gradient-to-b from-card to-background [&>button]:hidden"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <div className="flex flex-col items-center py-6 space-y-8">
+        <div className="flex flex-col items-center py-6 space-y-4">
           {/* Title */}
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
@@ -28,67 +71,68 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
             </p>
           </div>
 
-          {/* Mode Selection Buttons */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full justify-center px-4">
-            {/* 2D Button */}
-            <Button
-              variant="outline"
-              className="flex flex-col items-center justify-center h-44 gap-3 hover:border-primary hover:bg-primary/5 transition-all duration-300 group"
-              onClick={() => onSelectMode('2d')}
-            >
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:from-primary/30 group-hover:to-primary/10 transition-all duration-300">
-                <Layers className="w-8 h-8 text-primary" />
-              </div>
-              <div className="text-center">
-                <div className="font-semibold text-lg">2D</div>
-                <div className="text-xs text-muted-foreground">Formes planes</div>
-              </div>
-            </Button>
+          {/* Honeycomb layout */}
+          <div className="flex flex-col items-center -space-y-[29px]">
+            {/* Row 1: 2D, 3D */}
+            <div className="flex gap-2">
+              <HexButton
+                icon={<Layers className="w-8 h-8 text-primary" />}
+                label="2D"
+                sublabel="Formes planes"
+                colorClass="fill-primary/20"
+                onClick={() => onSelectMode('2d')}
+              />
+              <HexButton
+                icon={<Box className="w-8 h-8 text-accent" />}
+                label="3D"
+                sublabel="Objets en volume"
+                colorClass="fill-accent/20"
+                onClick={() => onSelectMode('3d')}
+              />
+            </div>
 
-            {/* 3D Button */}
-            <Button
-              variant="outline"
-              className="flex flex-col items-center justify-center h-44 gap-3 hover:border-accent hover:bg-accent/5 transition-all duration-300 group"
-              onClick={() => onSelectMode('3d')}
-            >
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center group-hover:from-accent/30 group-hover:to-accent/10 transition-all duration-300">
-                <Box className="w-8 h-8 text-accent" />
-              </div>
-              <div className="text-center">
-                <div className="font-semibold text-lg">3D</div>
-                <div className="text-xs text-muted-foreground">Objets en volume</div>
-              </div>
-            </Button>
+            {/* Row 2: Fireworks, Combined, Spotlights */}
+            <div className="flex gap-2">
+              <HexButton
+                icon={<Sparkles className="w-8 h-8 text-destructive" />}
+                label="🎆 Pyro"
+                sublabel="Feux d'artifice"
+                colorClass="fill-destructive/20"
+                onClick={() => onSelectMode('fireworks')}
+              />
+              <HexButton
+                icon={<Combine className="w-8 h-8 text-muted-foreground" />}
+                label="Combiné"
+                sublabel="Bientôt disponible"
+                colorClass="fill-muted/20"
+                disabled
+              />
+              <HexButton
+                icon={<Lightbulb className="w-8 h-8 text-yellow-500" />}
+                label="💡 Spot"
+                sublabel="Projecteurs DMX"
+                colorClass="fill-yellow-500/20"
+                onClick={() => onSelectMode('spotlight')}
+              />
+            </div>
 
-            {/* Fireworks Button */}
-            <Button
-              variant="outline"
-              className="flex flex-col items-center justify-center h-44 gap-3 hover:border-destructive hover:bg-destructive/5 transition-all duration-300 group"
-              onClick={() => onSelectMode('fireworks')}
-            >
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-destructive/20 to-destructive/5 flex items-center justify-center group-hover:from-destructive/30 group-hover:to-destructive/10 transition-all duration-300">
-                <Sparkles className="w-8 h-8 text-destructive" />
-              </div>
-              <div className="text-center">
-                <div className="font-semibold text-lg">🎆 Pyro</div>
-                <div className="text-xs text-muted-foreground">Feux d'artifice</div>
-              </div>
-            </Button>
-
-            {/* Spotlight Button */}
-            <Button
-              variant="outline"
-              className="flex flex-col items-center justify-center h-44 gap-3 hover:border-yellow-500 hover:bg-yellow-500/5 transition-all duration-300 group"
-              onClick={() => onSelectMode('spotlight')}
-            >
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-yellow-500/20 to-yellow-500/5 flex items-center justify-center group-hover:from-yellow-500/30 group-hover:to-yellow-500/10 transition-all duration-300">
-                <Lightbulb className="w-8 h-8 text-yellow-500" />
-              </div>
-              <div className="text-center">
-                <div className="font-semibold text-lg">💡 Spot</div>
-                <div className="text-xs text-muted-foreground">Projecteurs DMX</div>
-              </div>
-            </Button>
+            {/* Row 3: Drones, Settings */}
+            <div className="flex gap-2">
+              <HexButton
+                icon={<Radio className="w-8 h-8 text-muted-foreground" />}
+                label="🚁 Drones"
+                sublabel="Bientôt disponible"
+                colorClass="fill-muted/20"
+                disabled
+              />
+              <HexButton
+                icon={<Settings className="w-8 h-8 text-muted-foreground" />}
+                label="⚙️ Paramètres"
+                sublabel="Configuration générale"
+                colorClass="fill-muted/20"
+                disabled
+              />
+            </div>
           </div>
         </div>
       </DialogContent>
