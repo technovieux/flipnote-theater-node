@@ -57,6 +57,7 @@ export const AnimationEditor: React.FC = () => {
     addFireworkObject,
     addSpotlightObject,
     updateSpotlightDmxAddress,
+    updateSpotlightPosition,
     updateSpotlightChannelValue,
     getInterpolatedSpotlightChannels,
     addObject,
