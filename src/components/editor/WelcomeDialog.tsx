@@ -73,9 +73,9 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
             </p>
           </div>
 
-          <div className="flex flex-col items-center -space-y-[29px]">
+          <div className="flex flex-col items-center" style={{ gap: '-28px' }}>
             {/* Row 1 */}
-            <div className="flex gap-2">
+            <div className="flex" style={{ gap: '4px' }}>
               <HexButton
                 icon={<Layers className="w-8 h-8 text-primary" />}
                 label="2D"
@@ -93,7 +93,7 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
             </div>
 
             {/* Row 2 */}
-            <div className="flex gap-2">
+            <div className="flex" style={{ gap: '4px', marginTop: '-28px' }}>
               <HexButton
                 icon={<Sparkles className="w-8 h-8 text-destructive" />}
                 label="🎆 Pyro"
@@ -118,7 +118,7 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
             </div>
 
             {/* Row 3 */}
-            <div className="flex gap-2">
+            <div className="flex" style={{ gap: '4px', marginTop: '-28px' }}>
               <HexButton
                 icon={<Radio className="w-8 h-8 text-muted-foreground" />}
                 label="🚁 Drones"
