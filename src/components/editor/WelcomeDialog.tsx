@@ -93,7 +93,7 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
             </div>
 
             {/* Row 2 */}
-            <div className="flex" style={{ gap: '4px', marginTop: '-22px' }}>
+            <div className="flex" style={{ gap: '4px', marginTop: '-23px' }}>
               <HexButton
                 icon={<Sparkles className="w-8 h-8 text-destructive" />}
                 label="🎆 Pyro"
