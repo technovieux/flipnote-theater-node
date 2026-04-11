@@ -76,7 +76,8 @@ const getSpotlightColor = (spot: SpotlightEditorObject, channelValues: number[])
 };
 
 
-  export const AnimationEditor: React.FC = () => {
+export const AnimationEditor: React.FC = () => {
+  const {
     state,
     setTheme,
     setShowProperties,
