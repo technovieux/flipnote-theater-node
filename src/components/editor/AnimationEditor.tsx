@@ -44,6 +44,37 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { saveProject, saveProjectAs, openProject, clearCurrentFile, FlptProject, EmbeddedOBJModel } from '@/lib/fileOperations';
+import { SpotlightEditorObject } from '@/types/editor';
+
+// Derive display color from spotlight channel values
+const getSpotlightColor = (spot: SpotlightEditorObject, channelValues: number[]): string => {
+  let r = 255, g = 255, b = 255;
+  let dimmer = 255;
+  let hasRgb = false;
+
+  spot.fixture.channels.forEach((ch, i) => {
+    const val = channelValues[i] ?? 0;
+    if (ch.type === 'dimmer') {
+      dimmer = val;
+    } else if (ch.type === 'color') {
+      const name = ch.name.toLowerCase();
+      if (name.includes('rouge') || name.includes('red')) { r = val; hasRgb = true; }
+      else if (name.includes('vert') || name.includes('green')) { g = val; hasRgb = true; }
+      else if (name.includes('bleu') || name.includes('blue')) { b = val; hasRgb = true; }
+    }
+  });
+
+  if (!hasRgb) {
+    // No RGB channels — use dimmer as white intensity
+    const v = dimmer;
+    return `rgb(${v}, ${v}, ${v})`;
+  }
+
+  // Apply dimmer as a multiplier
+  const factor = dimmer / 255;
+  return `rgb(${Math.round(r * factor)}, ${Math.round(g * factor)}, ${Math.round(b * factor)})`;
+};
+
 
 export const AnimationEditor: React.FC = () => {
   const {
@@ -57,6 +88,7 @@ export const AnimationEditor: React.FC = () => {
     addFireworkObject,
     addSpotlightObject,
     updateSpotlightDmxAddress,
+    updateSpotlightPosition,
     updateSpotlightChannelValue,
     getInterpolatedSpotlightChannels,
     addObject,
@@ -705,6 +737,31 @@ export const AnimationEditor: React.FC = () => {
                     onUpdateProperties={renderMode ? () => {} : updateObject3DProperties}
                     getInterpolatedProperties={getInterpolatedProperties3D}
                     currentTime={state.currentTime}
+                    isPlaying={state.isPlaying}
+                  />
+                ) : state.modeSpotlight ? (
+                  <Canvas
+                    objects={state.spotlights.map(s => {
+                      const channels = getInterpolatedSpotlightChannels(s, state.currentTime);
+                      const color = getSpotlightColor(s, channels);
+                      return {
+                        id: s.id,
+                        name: s.name,
+                        type: 'rectangle' as const,
+                        properties: { x: s.x, y: s.y, width: 60, height: 60, rotation: 0, opacity: 100, color },
+                        keyframes: [],
+                      };
+                    })}
+                    selectedObjectIds={renderMode ? [] : state.selectedObjectIds}
+                    onSelect={renderMode ? () => {} : selectObject}
+                    onUpdateProperties={renderMode ? () => {} : (id, props) => {
+                      if (props.x !== undefined || props.y !== undefined) {
+                        updateSpotlightPosition(id, { x: props.x, y: props.y });
+                      }
+                    }}
+                    getInterpolatedProperties={(obj) => obj.properties}
+                    currentTime={state.currentTime}
+                    backgroundImage={state.backgroundImage}
                     isPlaying={state.isPlaying}
                   />
                 ) : (
