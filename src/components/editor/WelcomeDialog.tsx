@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Box, Layers, Sparkles, Lightbulb, Combine, Radio, Settings } from 'lucide-react';
 import { EditorMode } from '@/types/editor';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { SettingsDialog } from './SettingsDialog';
 
 interface WelcomeDialogProps {
   open: boolean;
@@ -56,7 +57,10 @@ const HexButton: React.FC<HexButtonProps> = ({ icon, label, sublabel, onClick, d
 };
 
 export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode }) => {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   return (
+    <>
     <Dialog open={open}>
       <DialogContent
         className="sm:max-w-lg border-2 border-primary/20 bg-gradient-to-b from-card to-background [&>button]:hidden"
@@ -131,12 +135,14 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
                 label="⚙️ Paramètres"
                 sublabel="Configuration générale"
                 hoverFill="hsl(var(--muted) / 0.5)"
-                disabled
+                onClick={() => setSettingsOpen(true)}
               />
             </div>
           </div>
         </div>
       </DialogContent>
     </Dialog>
+    <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+    </>
   );
 };
