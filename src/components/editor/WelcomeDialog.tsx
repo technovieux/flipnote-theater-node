@@ -135,12 +135,14 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
                 label="⚙️ Paramètres"
                 sublabel="Configuration générale"
                 hoverFill="hsl(var(--muted) / 0.5)"
-                disabled
+                onClick={() => setSettingsOpen(true)}
               />
             </div>
           </div>
         </div>
       </DialogContent>
     </Dialog>
+    <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+    </>
   );
 };
