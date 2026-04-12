@@ -100,7 +100,7 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
             <div className="flex" style={{ gap: '4px', marginTop: '-24px' }}>
               <HexButton
                 icon={<Sparkles className="w-8 h-8 text-destructive" />}
-                label="🎆 Pyro"
+                label="Pyro"
                 sublabel="Feux d'artifice"
                 hoverFill="hsl(var(--destructive) / 0.2)"
                 onClick={() => onSelectMode('fireworks')}
@@ -114,7 +114,7 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
               />
               <HexButton
                 icon={<Lightbulb className="w-8 h-8" style={{ color: 'hsl(45, 93%, 47%)' }} />}
-                label="💡 Spot"
+                label="Spot"
                 sublabel="Projecteurs DMX"
                 hoverFill="hsl(45, 93%, 47%, 0.2)"
                 onClick={() => onSelectMode('spotlight')}
@@ -125,14 +125,14 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
             <div className="flex" style={{ gap: '4px', marginTop: '-24px' }}>
               <HexButton
                 icon={<Radio className="w-8 h-8 text-muted-foreground" />}
-                label="🚁 Drones"
+                label="Drones"
                 sublabel="Bientôt disponible"
                 hoverFill="hsl(var(--muted) / 0.5)"
                 disabled
               />
               <HexButton
                 icon={<Settings className="w-8 h-8 text-muted-foreground" />}
-                label="⚙️ Paramètres"
+                label="Paramètres"
                 sublabel="Configuration générale"
                 hoverFill="hsl(var(--muted) / 0.5)"
                 onClick={() => setSettingsOpen(true)}
