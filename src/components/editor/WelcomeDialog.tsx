@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Box, Layers, Sparkles, Lightbulb, Combine, Radio, Settings } from 'lucide-react';
 import { EditorMode } from '@/types/editor';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { SettingsDialog } from './SettingsDialog';
 
 interface WelcomeDialogProps {
   open: boolean;
