@@ -5,6 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Settings, Package, Layers, Box, Sparkles, Lightbulb,
   Search, Download, Trash2, ArrowLeft, Check
@@ -21,33 +22,39 @@ interface SettingsDialogProps {
 type SettingsSection = 'general' | 'packages';
 type PackageMode = '2d' | '3d' | 'fireworks' | 'spotlight';
 type PackageTab = 'installed' | 'catalog';
+type CatalogKind = 'pack' | 'single';
 
 interface CatalogItem {
   id: string;
   name: string;
   description: string;
   author: string;
+  kind: CatalogKind;
   installed: boolean;
 }
 
 // Mock catalog data
 const mockCatalog: Record<PackageMode, CatalogItem[]> = {
   '2d': [
-    { id: 'c2d-1', name: 'Pack Formes Avancées', description: 'Polygones complexes et courbes', author: 'Flipnote Team', installed: false },
-    { id: 'c2d-2', name: 'Pack Textures', description: 'Textures et motifs pour formes 2D', author: 'Community', installed: false },
+    { id: 'c2d-1', name: 'Pack Formes Avancées', description: 'Polygones complexes et courbes', author: 'Flipnote Team', kind: 'pack', installed: false },
+    { id: 'c2d-2', name: 'Pack Textures', description: 'Textures et motifs pour formes 2D', author: 'Community', kind: 'pack', installed: false },
+    { id: 'c2d-3', name: 'Étoile 12 branches', description: 'Forme étoile personnalisée', author: 'Community', kind: 'single', installed: false },
   ],
   '3d': [
-    { id: 'c3d-1', name: 'Pack Véhicules', description: 'Voitures, avions, bateaux détaillés', author: 'Flipnote Team', installed: false },
-    { id: 'c3d-2', name: 'Pack Nature', description: 'Arbres, rochers, plantes réalistes', author: 'Community', installed: false },
-    { id: 'c3d-3', name: 'Pack Architecture', description: 'Bâtiments et structures modernes', author: 'Flipnote Team', installed: false },
+    { id: 'c3d-1', name: 'Pack Véhicules', description: 'Voitures, avions, bateaux détaillés', author: 'Flipnote Team', kind: 'pack', installed: false },
+    { id: 'c3d-2', name: 'Pack Nature', description: 'Arbres, rochers, plantes réalistes', author: 'Community', kind: 'pack', installed: false },
+    { id: 'c3d-3', name: 'Pack Architecture', description: 'Bâtiments et structures modernes', author: 'Flipnote Team', kind: 'pack', installed: false },
+    { id: 'c3d-4', name: 'Lampadaire Vintage', description: 'Modèle de lampadaire rétro', author: 'Community', kind: 'single', installed: false },
   ],
   fireworks: [
-    { id: 'cfw-1', name: 'Pack Asiatique', description: 'Effets pyrotechniques traditionnels asiatiques', author: 'Flipnote Team', installed: false },
-    { id: 'cfw-2', name: 'Pack Festival', description: 'Compositions pour grands festivals', author: 'Community', installed: false },
+    { id: 'cfw-1', name: 'Pack Asiatique', description: 'Effets pyrotechniques traditionnels asiatiques', author: 'Flipnote Team', kind: 'pack', installed: false },
+    { id: 'cfw-2', name: 'Pack Festival', description: 'Compositions pour grands festivals', author: 'Community', kind: 'pack', installed: false },
+    { id: 'cfw-3', name: 'Cascade Dorée', description: 'Effet cascade individuel', author: 'Community', kind: 'single', installed: false },
   ],
   spotlight: [
-    { id: 'csp-1', name: 'Pack LED Bars', description: 'Barres LED et wash linéaires', author: 'Flipnote Team', installed: false },
-    { id: 'csp-2', name: 'Pack Moving Heads Pro', description: 'Lyres asservies professionnelles', author: 'Community', installed: false },
+    { id: 'csp-1', name: 'Pack LED Bars', description: 'Barres LED et wash linéaires', author: 'Flipnote Team', kind: 'pack', installed: false },
+    { id: 'csp-2', name: 'Pack Moving Heads Pro', description: 'Lyres asservies professionnelles', author: 'Community', kind: 'pack', installed: false },
+    { id: 'csp-3', name: 'PAR 64 Classic', description: 'Projecteur PAR classique', author: 'Flipnote Team', kind: 'single', installed: false },
   ],
 };
 
@@ -118,12 +125,17 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChan
     return [];
   }, [selectedMode, objModels, spotlightFixtures, fireworkProducts, searchQuery]);
 
+  const [catalogKindFilter, setCatalogKindFilter] = useState<{ pack: boolean; single: boolean }>({ pack: true, single: true });
+
   const catalogItems = useMemo(() => {
     const q = normalize(searchQuery);
     const items = mockCatalog[selectedMode] || [];
     const withState = items.map(i => ({ ...i, installed: installedCatalog.includes(i.id) }));
-    return q ? withState.filter(i => normalize(i.name).includes(q) || normalize(i.description).includes(q)) : withState;
-  }, [selectedMode, searchQuery, installedCatalog]);
+    const kindFiltered = withState.filter(i =>
+      (catalogKindFilter.pack && i.kind === 'pack') || (catalogKindFilter.single && i.kind === 'single')
+    );
+    return q ? kindFiltered.filter(i => normalize(i.name).includes(q) || normalize(i.description).includes(q)) : kindFiltered;
+  }, [selectedMode, searchQuery, installedCatalog, catalogKindFilter]);
 
   const handleInstallCatalog = (id: string) => {
     setInstalledCatalog(prev => [...prev, id]);
@@ -132,6 +144,13 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChan
   const handleDeleteOBJ = async (id: string) => {
     await deleteModel(id);
     setObjModels(prev => prev.filter(m => m.id !== id));
+  };
+
+  const handleDeleteInstalled = (id: string, type: string) => {
+    if (type === 'imported') {
+      handleDeleteOBJ(id);
+    }
+    // For built-in items, deletion is a no-op for now
   };
 
   return (
@@ -235,16 +254,14 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChan
                                     {item.type === 'built-in' ? 'Intégré' : 'Importé'}
                                   </Badge>
                                 </div>
-                                {item.type === 'imported' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                                    onClick={() => handleDeleteOBJ(item.id)}
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                                  </Button>
-                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                                  onClick={() => handleDeleteInstalled(item.id, item.type)}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                                </Button>
                               </div>
                             ))}
                           </div>
@@ -253,7 +270,25 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChan
                     </TabsContent>
 
                     <TabsContent value="catalog" className="flex-1 m-0 overflow-hidden">
-                      <ScrollArea className="h-full p-3">
+                      <div className="flex items-center gap-4 px-3 pt-2 pb-1">
+                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                          <Checkbox
+                            checked={catalogKindFilter.pack}
+                            onCheckedChange={(v) => setCatalogKindFilter(p => ({ ...p, pack: !!v }))}
+                            className="h-3.5 w-3.5"
+                          />
+                          Packs
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                          <Checkbox
+                            checked={catalogKindFilter.single}
+                            onCheckedChange={(v) => setCatalogKindFilter(p => ({ ...p, single: !!v }))}
+                            className="h-3.5 w-3.5"
+                          />
+                          Objets seuls
+                        </label>
+                      </div>
+                      <ScrollArea className="h-full p-3 pt-1">
                         {catalogItems.length === 0 ? (
                           <p className="text-sm text-muted-foreground text-center py-8">
                             Aucun paquet trouvé
@@ -263,7 +298,12 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChan
                             {catalogItems.map(item => (
                               <div key={item.id} className="flex items-center justify-between px-3 py-2.5 rounded-md border bg-card">
                                 <div>
-                                  <p className="text-sm font-medium">{item.name}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-medium">{item.name}</p>
+                                    <Badge variant="outline" className="text-[10px] h-4">
+                                      {item.kind === 'pack' ? 'Pack' : 'Seul'}
+                                    </Badge>
+                                  </div>
                                   <p className="text-xs text-muted-foreground">{item.description}</p>
                                   <p className="text-[10px] text-muted-foreground mt-0.5">par {item.author}</p>
                                 </div>
