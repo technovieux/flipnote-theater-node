@@ -57,7 +57,10 @@ const HexButton: React.FC<HexButtonProps> = ({ icon, label, sublabel, onClick, d
 };
 
 export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode }) => {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   return (
+    <>
     <Dialog open={open}>
       <DialogContent
         className="sm:max-w-lg border-2 border-primary/20 bg-gradient-to-b from-card to-background [&>button]:hidden"
