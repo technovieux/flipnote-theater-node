@@ -9,7 +9,8 @@ import {
   Settings, Package, Layers, Box, Sparkles, Lightbulb,
   Search, Download, Trash2, ArrowLeft, Check
 } from 'lucide-react';
-import { getAllModels, deleteModel, type ImportedOBJModel } from '@/lib/objLibraryStorage';
+import { getAllModels, deleteModel } from '@/lib/objLibraryStorage';
+import type { ImportedOBJModel } from '@/lib/objImporter';
 import { shape3DLibrary } from '@/data/shape3DLibrary';
 
 interface SettingsDialogProps {
