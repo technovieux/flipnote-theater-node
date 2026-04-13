@@ -260,7 +260,15 @@ export const useEditorState = () => {
     setState(prev => ({ ...prev, modeSpotlight, mode3D: false, modeFireworks: false, selectedObjectIds: [] }));
   }, []);
 
-  const markAsChanged = useCallback(() => {
+  const setModeCombined = useCallback((modeCombined: boolean) => {
+    setState(prev => ({ ...prev, modeCombined, mode3D: modeCombined, modeFireworks: false, modeSpotlight: false, selectedObjectIds: [] }));
+  }, []);
+
+  const updateProjectConfig = useCallback((config: Partial<import('@/types/editor').ProjectConfig>) => {
+    setState(prev => ({ ...prev, projectConfig: { ...prev.projectConfig, ...config }, hasUnsavedChanges: true }));
+  }, []);
+
+
     setState(prev => ({ ...prev, hasUnsavedChanges: true }));
   }, []);
 
