@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { EditorMode } from '@/types/editor';
+import { EditorMode, ProjectConfig } from '@/types/editor';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
 import { SpotlightFixture } from '@/types/spotlight';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
@@ -19,6 +19,8 @@ import { CustomShapeEditor } from './CustomShapeEditor';
 import { FireworkLibraryDialog } from './FireworkLibraryDialog';
 import { SpotlightLibraryDialog } from './SpotlightLibraryDialog';
 import { useEditorState } from '@/hooks/useEditorState';
+import { ProjectConfigDialog } from './ProjectConfigDialog';
+import { getSunLightInfo } from '@/lib/sunPosition';
 import { dmxOutput, DMXOutput } from '@/lib/dmxOutput';
 import { LibraryShape3D } from '@/data/shape3DLibrary';
 import { ImportedOBJModel } from '@/lib/objImporter';
@@ -85,6 +87,8 @@ export const AnimationEditor: React.FC = () => {
     setMode3D,
     setModeFireworks,
     setModeSpotlight,
+    setModeCombined,
+    updateProjectConfig,
     addFireworkObject,
     addSpotlightObject,
     updateSpotlightDmxAddress,
@@ -138,6 +142,7 @@ export const AnimationEditor: React.FC = () => {
   const [renderMode, setRenderMode] = useState(false);
   const [fireworkLibraryOpen, setFireworkLibraryOpen] = useState(false);
   const [spotlightLibraryOpen, setSpotlightLibraryOpen] = useState(false);
+  const [projectConfigOpen, setProjectConfigOpen] = useState(false);
   const [dmxConnected, setDmxConnected] = useState(false);
   const [dmxRealtime, setDmxRealtime] = useState(false);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
@@ -372,6 +377,8 @@ export const AnimationEditor: React.FC = () => {
       setModeFireworks(true);
     } else if (mode === 'spotlight') {
       setModeSpotlight(true);
+    } else if (mode === 'combined') {
+      setModeCombined(true);
     } else {
       setMode3D(mode === '3d');
     }
@@ -669,6 +676,7 @@ export const AnimationEditor: React.FC = () => {
         mode3D={state.mode3D}
         modeFireworks={state.modeFireworks}
         modeSpotlight={state.modeSpotlight}
+        modeCombined={state.modeCombined}
         hasSelectedObject={state.selectedObjectIds.length > 0}
         onOpenLibrary={() => setLibraryDialogOpen(true)}
         onOpenCustomEditor={() => setCustomEditorOpen(true)}
@@ -676,6 +684,7 @@ export const AnimationEditor: React.FC = () => {
         onOpenSpotlightLibrary={() => setSpotlightLibraryOpen(true)}
         renderMode={renderMode}
         onToggleRenderMode={() => setRenderMode(!renderMode)}
+        onOpenProjectConfig={() => setProjectConfigOpen(true)}
         dmxConnected={dmxConnected}
         dmxRealtime={dmxRealtime}
         onDmxConnect={handleDmxConnect}
@@ -738,6 +747,13 @@ export const AnimationEditor: React.FC = () => {
                     getInterpolatedProperties={getInterpolatedProperties3D}
                     currentTime={state.currentTime}
                     isPlaying={state.isPlaying}
+                    sunLight={state.modeCombined ? getSunLightInfo(
+                      state.projectConfig.latitude,
+                      state.projectConfig.longitude,
+                      state.projectConfig.startDate,
+                      state.projectConfig.startTime,
+                      state.currentTime
+                    ) : null}
                   />
                 ) : state.modeSpotlight ? (
                   <Canvas
@@ -935,6 +951,13 @@ export const AnimationEditor: React.FC = () => {
           addSpotlightObject(fixture);
           toast.success(`${fixture.name} ajouté au projet`);
         }}
+      />
+
+      <ProjectConfigDialog
+        open={projectConfigOpen}
+        onOpenChange={setProjectConfigOpen}
+        config={state.projectConfig}
+        onUpdateConfig={updateProjectConfig}
       />
 
       <AlertDialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>

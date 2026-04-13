@@ -35,6 +35,7 @@ interface MenuBarProps {
   mode3D: boolean;
   modeFireworks?: boolean;
   modeSpotlight?: boolean;
+  modeCombined?: boolean;
   hasSelectedObject: boolean;
   onOpenLibrary: () => void;
   onOpenCustomEditor: () => void;
@@ -42,6 +43,7 @@ interface MenuBarProps {
   onOpenSpotlightLibrary?: () => void;
   renderMode: boolean;
   onToggleRenderMode: () => void;
+  onOpenProjectConfig?: () => void;
   // DMX
   dmxConnected: boolean;
   dmxRealtime: boolean;
@@ -71,6 +73,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   mode3D,
   modeFireworks,
   modeSpotlight,
+  modeCombined,
   hasSelectedObject,
   onOpenLibrary,
   onOpenCustomEditor,
@@ -78,6 +81,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   onOpenSpotlightLibrary,
   renderMode,
   onToggleRenderMode,
+  onOpenProjectConfig,
   dmxConnected,
   dmxRealtime,
   onDmxConnect,
@@ -213,6 +217,17 @@ export const MenuBar: React.FC<MenuBarProps> = ({
                 </MenubarItem>
               </>
             )}
+          </MenubarContent>
+        </MenubarMenu>
+      )}
+
+      {modeCombined && (
+        <MenubarMenu>
+          <MenubarTrigger className="text-sm">Projet</MenubarTrigger>
+          <MenubarContent>
+            <MenubarItem onClick={onOpenProjectConfig}>
+              ⚙️ Configuration du projet...
+            </MenubarItem>
           </MenubarContent>
         </MenubarMenu>
       )}

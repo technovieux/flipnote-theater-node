@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import * as THREE from 'three';
 
+import { SunLightInfo } from '@/lib/sunPosition';
+
 interface Canvas3DProps {
   objects: EditorObject3D[];
   selectedObjectIds: string[];
@@ -17,6 +19,7 @@ interface Canvas3DProps {
   getInterpolatedProperties: (object: EditorObject3D, time: number) => Object3DProperties;
   currentTime: number;
   isPlaying: boolean;
+  sunLight?: SunLightInfo | null;
 }
 
 type TransformMode = 'translate' | 'rotate' | 'scale' | null;
@@ -668,6 +671,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
   getInterpolatedProperties,
   currentTime,
   isPlaying,
+  sunLight,
 }) => {
   const controlsRef = useRef<any>(null);
   const [navMode, setNavMode] = useState<'select' | 'pan' | 'rotate'>('select');
@@ -802,9 +806,9 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
           <Suspense fallback={null}>
             <CameraTracker controlsRef={controlsRef} />
             <CameraController controlsRef={controlsRef} mode={navMode} />
-            <ambientLight intensity={0.5} />
-            <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
-            <pointLight position={[-10, -10, -5]} intensity={0.5} />
+            <ambientLight intensity={sunLight ? sunLight.ambientIntensity : 0.5} color={sunLight ? sunLight.color : '#ffffff'} />
+            <directionalLight position={[10, 10, 5]} intensity={sunLight ? sunLight.directionalIntensity : 1} color={sunLight ? sunLight.color : '#ffffff'} castShadow />
+            <pointLight position={[-10, -10, -5]} intensity={sunLight ? sunLight.ambientIntensity * 0.5 : 0.5} />
             
             <Environment preset="studio" />
             
