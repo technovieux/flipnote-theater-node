@@ -1185,6 +1185,8 @@ export const useEditorState = () => {
     setMode3D,
     setModeFireworks,
     setModeSpotlight,
+    setModeCombined,
+    updateProjectConfig,
     addFireworkObject,
     addSpotlightObject,
     updateSpotlightDmxAddress,
