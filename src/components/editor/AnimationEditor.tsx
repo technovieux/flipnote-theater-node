@@ -77,13 +77,6 @@ const getSpotlightColor = (spot: SpotlightEditorObject, channelValues: number[])
   return `rgb(${Math.round(r * factor)}, ${Math.round(g * factor)}, ${Math.round(b * factor)})`;
 };
 
-      <ProjectConfigDialog
-        open={projectConfigOpen}
-        onOpenChange={setProjectConfigOpen}
-        config={state.projectConfig}
-        onUpdateConfig={updateProjectConfig}
-      />
-
 
 export const AnimationEditor: React.FC = () => {
   const {
