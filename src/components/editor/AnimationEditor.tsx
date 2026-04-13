@@ -676,6 +676,7 @@ export const AnimationEditor: React.FC = () => {
         mode3D={state.mode3D}
         modeFireworks={state.modeFireworks}
         modeSpotlight={state.modeSpotlight}
+        modeCombined={state.modeCombined}
         hasSelectedObject={state.selectedObjectIds.length > 0}
         onOpenLibrary={() => setLibraryDialogOpen(true)}
         onOpenCustomEditor={() => setCustomEditorOpen(true)}
@@ -683,6 +684,7 @@ export const AnimationEditor: React.FC = () => {
         onOpenSpotlightLibrary={() => setSpotlightLibraryOpen(true)}
         renderMode={renderMode}
         onToggleRenderMode={() => setRenderMode(!renderMode)}
+        onOpenProjectConfig={() => setProjectConfigOpen(true)}
         dmxConnected={dmxConnected}
         dmxRealtime={dmxRealtime}
         onDmxConnect={handleDmxConnect}
