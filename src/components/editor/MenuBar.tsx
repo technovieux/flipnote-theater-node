@@ -221,6 +221,17 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         </MenubarMenu>
       )}
 
+      {modeCombined && (
+        <MenubarMenu>
+          <MenubarTrigger className="text-sm">Projet</MenubarTrigger>
+          <MenubarContent>
+            <MenubarItem onClick={onOpenProjectConfig}>
+              ⚙️ Configuration du projet...
+            </MenubarItem>
+          </MenubarContent>
+        </MenubarMenu>
+      )}
+
       <MenubarMenu>
         <MenubarTrigger className="text-sm">Préférences</MenubarTrigger>
         <MenubarContent>
