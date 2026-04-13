@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { EditorMode } from '@/types/editor';
+import { EditorMode, ProjectConfig } from '@/types/editor';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
 import { SpotlightFixture } from '@/types/spotlight';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
@@ -19,6 +19,8 @@ import { CustomShapeEditor } from './CustomShapeEditor';
 import { FireworkLibraryDialog } from './FireworkLibraryDialog';
 import { SpotlightLibraryDialog } from './SpotlightLibraryDialog';
 import { useEditorState } from '@/hooks/useEditorState';
+import { ProjectConfigDialog } from './ProjectConfigDialog';
+import { getSunLightInfo } from '@/lib/sunPosition';
 import { dmxOutput, DMXOutput } from '@/lib/dmxOutput';
 import { LibraryShape3D } from '@/data/shape3DLibrary';
 import { ImportedOBJModel } from '@/lib/objImporter';
