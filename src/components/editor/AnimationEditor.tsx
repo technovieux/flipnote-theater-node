@@ -142,6 +142,7 @@ export const AnimationEditor: React.FC = () => {
   const [renderMode, setRenderMode] = useState(false);
   const [fireworkLibraryOpen, setFireworkLibraryOpen] = useState(false);
   const [spotlightLibraryOpen, setSpotlightLibraryOpen] = useState(false);
+  const [projectConfigOpen, setProjectConfigOpen] = useState(false);
   const [dmxConnected, setDmxConnected] = useState(false);
   const [dmxRealtime, setDmxRealtime] = useState(false);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
