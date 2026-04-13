@@ -87,6 +87,8 @@ export const AnimationEditor: React.FC = () => {
     setMode3D,
     setModeFireworks,
     setModeSpotlight,
+    setModeCombined,
+    updateProjectConfig,
     addFireworkObject,
     addSpotlightObject,
     updateSpotlightDmxAddress,
