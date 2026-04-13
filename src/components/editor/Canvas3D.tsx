@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import * as THREE from 'three';
 
+import { SunLightInfo } from '@/lib/sunPosition';
+
 interface Canvas3DProps {
   objects: EditorObject3D[];
   selectedObjectIds: string[];
@@ -17,6 +19,7 @@ interface Canvas3DProps {
   getInterpolatedProperties: (object: EditorObject3D, time: number) => Object3DProperties;
   currentTime: number;
   isPlaying: boolean;
+  sunLight?: SunLightInfo | null;
 }
 
 type TransformMode = 'translate' | 'rotate' | 'scale' | null;
