@@ -377,6 +377,8 @@ export const AnimationEditor: React.FC = () => {
       setModeFireworks(true);
     } else if (mode === 'spotlight') {
       setModeSpotlight(true);
+    } else if (mode === 'combined') {
+      setModeCombined(true);
     } else {
       setMode3D(mode === '3d');
     }
