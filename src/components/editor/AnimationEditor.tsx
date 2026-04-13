@@ -953,6 +953,13 @@ export const AnimationEditor: React.FC = () => {
         }}
       />
 
+      <ProjectConfigDialog
+        open={projectConfigOpen}
+        onOpenChange={setProjectConfigOpen}
+        config={state.projectConfig}
+        onUpdateConfig={updateProjectConfig}
+      />
+
       <AlertDialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
