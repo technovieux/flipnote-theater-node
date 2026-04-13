@@ -268,7 +268,7 @@ export const useEditorState = () => {
     setState(prev => ({ ...prev, projectConfig: { ...prev.projectConfig, ...config }, hasUnsavedChanges: true }));
   }, []);
 
-
+  const markAsChanged = useCallback(() => {
     setState(prev => ({ ...prev, hasUnsavedChanges: true }));
   }, []);
 
