@@ -17,7 +17,16 @@ export type Shape3DType =
   // Fireworks
   | 'firework';
 
-export type EditorMode = '2d' | '3d' | 'fireworks' | 'spotlight';
+export type EditorMode = '2d' | '3d' | 'fireworks' | 'spotlight' | 'combined';
+
+export interface ProjectConfig {
+  startTime: string; // HH:MM format
+  startDate: string; // ISO date string
+  latitude: number;
+  longitude: number;
+  locationName: string;
+}
+
 
 export interface SpotlightEditorObject {
   id: string;
@@ -142,5 +151,7 @@ export interface EditorState {
   mode3D: boolean;
   modeFireworks: boolean;
   modeSpotlight: boolean;
+  modeCombined: boolean;
+  projectConfig: ProjectConfig;
   hasUnsavedChanges: boolean;
 }
