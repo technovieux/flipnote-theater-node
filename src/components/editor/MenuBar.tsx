@@ -160,7 +160,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
                 </MenubarSubContent>
               </MenubarSub>
             ) : (
-              <>
+            <>
                 <MenubarSub>
                   <MenubarSubTrigger>Formes de base</MenubarSubTrigger>
                   <MenubarSubContent>
@@ -171,6 +171,10 @@ export const MenuBar: React.FC<MenuBarProps> = ({
                     <MenubarItem onClick={() => onAddObject3D('torus')}>Tore</MenubarItem>
                   </MenubarSubContent>
                 </MenubarSub>
+                <MenubarSeparator />
+                <MenubarItem onClick={() => onAddObject3D('spotlight_lyre')}>
+                  💡 Ajouter un spot (Lyre)
+                </MenubarItem>
                 <MenubarSeparator />
                 <MenubarItem onClick={onOpenLibrary}>
                   📦 Bibliothèque d'objets...
