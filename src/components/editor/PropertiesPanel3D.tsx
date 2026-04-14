@@ -29,7 +29,9 @@ export const PropertiesPanel3D: React.FC<PropertiesPanel3DProps> = ({
   }
 
   const isMulti = selectedObjects.length > 1;
-  const firstProps = selectedObjects[0].properties;
+  const firstObj = selectedObjects[0];
+  const firstProps = firstObj.properties;
+  const isLyre = !isMulti && firstObj.type === 'spotlight_lyre';
 
   const getMixedValue = (key: keyof Object3DProperties): number | null => {
     if (!isMulti) return firstProps[key] as number;
@@ -95,22 +97,45 @@ export const PropertiesPanel3D: React.FC<PropertiesPanel3DProps> = ({
           </div>
         ))}
 
-        <div className="text-xs font-medium text-muted-foreground mt-3 mb-1">Rotation</div>
+        <div className="text-xs font-medium text-muted-foreground mt-3 mb-1">
+          {isLyre ? 'Pan / Tilt' : 'Rotation'}
+        </div>
 
-        {([['rotationX', 'Rot. X (°)'], ['rotationY', 'Rot. Y (°)'], ['rotationZ', 'Rot. Z (°)']] as const).map(([key, label]) => (
-          <div key={key} className="property-row">
-            <span className="property-label">{label}</span>
-            <Slider
-              value={[val(key) ?? firstProps[key]]}
-              onValueChange={([v]) => handleChange(key, v)}
-              max={360}
-              min={0}
-              step={1}
-              className="flex-1"
-            />
-            <span className="text-xs w-10 text-right">{val(key) !== null ? Math.round(val(key)!) : '—'}</span>
-          </div>
-        ))}
+        {isLyre ? (
+          <>
+            {([['rotationY', 'Pan (°)'], ['rotationX', 'Tilt (°)']] as const).map(([key, label]) => (
+              <div key={key} className="property-row">
+                <span className="property-label">{label}</span>
+                <Slider
+                  value={[val(key) ?? firstProps[key]]}
+                  onValueChange={([v]) => handleChange(key, v)}
+                  max={key === 'rotationY' ? 540 : 270}
+                  min={key === 'rotationY' ? -540 : -135}
+                  step={1}
+                  className="flex-1"
+                />
+                <span className="text-xs w-10 text-right">{val(key) !== null ? Math.round(val(key)!) : '—'}</span>
+              </div>
+            ))}
+          </>
+        ) : (
+          <>
+            {([['rotationX', 'Rot. X (°)'], ['rotationY', 'Rot. Y (°)'], ['rotationZ', 'Rot. Z (°)']] as const).map(([key, label]) => (
+              <div key={key} className="property-row">
+                <span className="property-label">{label}</span>
+                <Slider
+                  value={[val(key) ?? firstProps[key]]}
+                  onValueChange={([v]) => handleChange(key, v)}
+                  max={360}
+                  min={0}
+                  step={1}
+                  className="flex-1"
+                />
+                <span className="text-xs w-10 text-right">{val(key) !== null ? Math.round(val(key)!) : '—'}</span>
+              </div>
+            ))}
+          </>
+        )}
 
         <div className="text-xs font-medium text-muted-foreground mt-3 mb-1">Apparence</div>
 

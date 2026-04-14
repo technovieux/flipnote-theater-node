@@ -336,6 +336,7 @@ export const useEditorState = () => {
       bottle: 'Bouteille',
       cup: 'Tasse',
       custom: 'Forme',
+      spotlight_lyre: 'Lyre Spot',
     };
     
     const newObject: EditorObject3D = {
