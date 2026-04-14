@@ -3,6 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport, TransformControls } from '@react-three/drei';
 import { EditorObject3D, Object3DProperties, CameraPosition, CustomGeometry, OBJGeometry } from '@/types/editor';
 import { FireworkSimulation } from './FireworkSimulation';
+import { SpotlightLyre3D } from './SpotlightLyre3D';
 import { setCameraPosition } from '@/hooks/useEditorState';
 import { Move, ZoomIn, ZoomOut, RotateCcw, Hand, MousePointer, Move3d, RotateCw, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -832,6 +833,23 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
               const props = isPlaying
                 ? getInterpolatedProperties(obj, currentTime)
                 : (selectedObjectIds.includes(obj.id) ? obj.properties : getInterpolatedProperties(obj, currentTime));
+              
+              // Render lyre spotlight with special component
+              if (obj.type === 'spotlight_lyre') {
+                return (
+                  <SpotlightLyre3D
+                    key={obj.id}
+                    object={obj}
+                    properties={props}
+                    isSelected={selectedObjectIds.includes(obj.id)}
+                    onSelect={() => onSelect(obj.id)}
+                    onUpdateProperties={(p) => onUpdateProperties(obj.id, p)}
+                    isPlaying={isPlaying}
+                    transformMode={transformMode}
+                    orbitControlsRef={controlsRef}
+                  />
+                );
+              }
               
               return (
                 <Shape3D

@@ -15,7 +15,9 @@ export type Shape3DType =
   // Custom and imported
   | 'custom' | 'obj'
   // Fireworks
-  | 'firework';
+  | 'firework'
+  // Spotlight fixtures
+  | 'spotlight_lyre';
 
 export type EditorMode = '2d' | '3d' | 'fireworks' | 'spotlight' | 'combined';
 
