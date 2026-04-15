@@ -99,7 +99,7 @@ export const loadFixture = async (fixtureId: string): Promise<LoadedFixture | nu
     try {
       const res = await fetch(url);
       const text = await res.text();
-      const serialized = parseOBJContent(text);
+      const serialized = parseOBJContentRaw(text);
       if (!serialized) continue;
 
       const geometry = new THREE.BufferGeometry();
