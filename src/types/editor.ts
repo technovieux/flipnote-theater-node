@@ -117,6 +117,7 @@ export interface EditorObject3D {
   objGeometry?: OBJGeometry;
   fireworkProduct?: FireworkProduct;
   fireworkCategory?: FireworkCategory;
+  fixtureId?: string; // ID from fixtures manifest for spotlight fixtures
 }
 
 export interface Scene {
