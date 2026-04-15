@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { TransformControls } from '@react-three/drei';
 import { EditorObject3D, Object3DProperties } from '@/types/editor';
+import { loadFixture, LoadedFixture, LoadedFixturePart } from '@/lib/fixtureLoader';
 import * as THREE from 'three';
 
 type TransformMode = 'translate' | 'rotate' | 'scale' | null;
@@ -15,30 +16,8 @@ interface SpotlightLyre3DProps {
   isPlaying: boolean;
   transformMode: TransformMode;
   orbitControlsRef: React.RefObject<any>;
+  fixtureId?: string;
 }
-
-// Realistic moving head (lyre) dimensions in meters
-const BASE_RADIUS = 0.12;
-const BASE_HEIGHT = 0.04;
-const COLUMN_RADIUS = 0.025;
-const COLUMN_HEIGHT = 0.08;
-const YOKE_ARM_WIDTH = 0.02;
-const YOKE_ARM_HEIGHT = 0.28;
-const YOKE_ARM_DEPTH = 0.03;
-const YOKE_GAP = 0.22;
-const HEAD_RADIUS = 0.10;
-const HEAD_LENGTH = 0.30;
-const LENS_RADIUS = 0.085;
-const LENS_DEPTH = 0.015;
-const VENT_RING_RADIUS = 0.105;
-const HANDLE_RADIUS = 0.008;
-const HANDLE_LENGTH = 0.10;
-
-const darkMetal = '#1a1a1a';
-const mediumMetal = '#2a2a2a';
-const headColor = '#222222';
-const lensColor = '#88ccff';
-const ventColor = '#111111';
 
 export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
   object,
@@ -49,15 +28,20 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
   isPlaying,
   transformMode,
   orbitControlsRef,
+  fixtureId = 'lyre_spot_150w',
 }) => {
   const groupRef = useRef<THREE.Group>(null);
   const yokeRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
   const transformControlsRef = useRef<any>(null);
 
-  // Which sub-part the rotate gizmo is attached to
-  // 'pan' = yoke rotation, 'tilt' = head rotation
   const [rotateTarget, setRotateTarget] = useState<'pan' | 'tilt'>('pan');
+  const [loadedFixture, setLoadedFixture] = useState<LoadedFixture | null>(null);
+
+  // Load the fixture OBJ parts
+  useEffect(() => {
+    loadFixture(fixtureId).then(setLoadedFixture).catch(console.error);
+  }, [fixtureId]);
 
   // Disable orbit controls during gizmo drag
   useEffect(() => {
@@ -123,7 +107,6 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
   ];
 
   const uniformScale = (properties.width / 100 + properties.height / 100 + properties.depth / 100) / 3;
-
   const panRad = THREE.MathUtils.degToRad(properties.rotationY);
   const tiltRad = THREE.MathUtils.degToRad(properties.rotationX);
 
@@ -132,7 +115,6 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
     onSelect();
   };
 
-  // Get the correct ref for transform controls
   const getTransformTarget = () => {
     if (transformMode === 'rotate') {
       return rotateTarget === 'pan' ? yokeRef.current : headRef.current;
@@ -142,6 +124,21 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
 
   const transformTarget = getTransformTarget();
 
+  // Find parts by role
+  const basePart = loadedFixture?.parts.find(p => p.name === 'base');
+  const yokePart = loadedFixture?.parts.find(p => p.name === 'yoke');
+  const headPart = loadedFixture?.parts.find(p => p.name === 'head');
+
+  const renderPart = (part: LoadedFixturePart) => (
+    <mesh geometry={part.geometry}>
+      <meshStandardMaterial
+        color={part.material.color}
+        metalness={part.material.metalness ?? 0.5}
+        roughness={part.material.roughness ?? 0.4}
+      />
+    </mesh>
+  );
+
   const content = (
     <group
       ref={groupRef}
@@ -150,92 +147,50 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
       onPointerDown={handlePointerDown}
     >
       {/* === BASE (never rotates) === */}
-      <mesh position={[0, BASE_HEIGHT / 2, 0]}>
-        <cylinderGeometry args={[BASE_RADIUS, BASE_RADIUS * 1.1, BASE_HEIGHT, 32]} />
-        <meshStandardMaterial color={darkMetal} metalness={0.6} roughness={0.3} />
-      </mesh>
-      {[0, 1, 2, 3].map(i => {
-        const angle = (i / 4) * Math.PI * 2;
-        return (
-          <mesh key={`foot-${i}`} position={[Math.cos(angle) * BASE_RADIUS * 0.8, 0.005, Math.sin(angle) * BASE_RADIUS * 0.8]}>
-            <cylinderGeometry args={[0.012, 0.012, 0.01, 8]} />
-            <meshStandardMaterial color="#333" roughness={0.9} />
-          </mesh>
-        );
-      })}
-      <mesh position={[0, BASE_HEIGHT + COLUMN_HEIGHT / 2, 0]}>
-        <cylinderGeometry args={[COLUMN_RADIUS, COLUMN_RADIUS * 1.2, COLUMN_HEIGHT, 16]} />
-        <meshStandardMaterial color={mediumMetal} metalness={0.5} roughness={0.4} />
-      </mesh>
+      {basePart && renderPart(basePart)}
 
-      {/* === YOKE (rotates with pan only) === */}
-      <group ref={yokeRef} rotation={[0, panRad, 0]} position={[0, BASE_HEIGHT + COLUMN_HEIGHT, 0]}>
-        {/* Left arm */}
-        <mesh position={[-(YOKE_GAP / 2 + YOKE_ARM_WIDTH / 2), YOKE_ARM_HEIGHT / 2, 0]}>
-          <boxGeometry args={[YOKE_ARM_WIDTH, YOKE_ARM_HEIGHT, YOKE_ARM_DEPTH]} />
-          <meshStandardMaterial color={darkMetal} metalness={0.6} roughness={0.3} />
-        </mesh>
-        {/* Right arm */}
-        <mesh position={[(YOKE_GAP / 2 + YOKE_ARM_WIDTH / 2), YOKE_ARM_HEIGHT / 2, 0]}>
-          <boxGeometry args={[YOKE_ARM_WIDTH, YOKE_ARM_HEIGHT, YOKE_ARM_DEPTH]} />
-          <meshStandardMaterial color={darkMetal} metalness={0.6} roughness={0.3} />
-        </mesh>
-        {/* Top bridge */}
-        <mesh position={[0, YOKE_ARM_HEIGHT, 0]}>
-          <boxGeometry args={[YOKE_GAP + YOKE_ARM_WIDTH * 2, YOKE_ARM_WIDTH, YOKE_ARM_DEPTH]} />
-          <meshStandardMaterial color={darkMetal} metalness={0.6} roughness={0.3} />
-        </mesh>
-        {/* Handles */}
-        {[-1, 1].map(side => (
-          <mesh key={`handle-${side}`} position={[side * (YOKE_GAP / 2 + YOKE_ARM_WIDTH + 0.01), YOKE_ARM_HEIGHT * 0.7, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[HANDLE_RADIUS, HANDLE_RADIUS, HANDLE_LENGTH, 8]} />
-            <meshStandardMaterial color="#444" metalness={0.4} roughness={0.5} />
-          </mesh>
-        ))}
+      {/* === YOKE (pan rotation on Y) === */}
+      <group
+        ref={yokeRef}
+        rotation={[0, panRad, 0]}
+        position={yokePart ? yokePart.pivot : [0, 0.12, 0]}
+      >
+        {yokePart && renderPart(yokePart)}
 
-        {/* === HEAD (rotates with tilt only) === */}
-        <group ref={headRef} position={[0, YOKE_ARM_HEIGHT * 0.55, 0]} rotation={[tiltRad, 0, 0]}>
-          {/* Head housing */}
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[HEAD_RADIUS, HEAD_RADIUS * 0.95, HEAD_LENGTH, 32]} />
-            <meshStandardMaterial color={headColor} metalness={0.5} roughness={0.35} />
-          </mesh>
-          {/* Ventilation rings */}
-          {[-0.08, -0.04, 0, 0.04, 0.08].map((z, i) => (
-            <mesh key={`vent-${i}`} position={[0, 0, z]} rotation={[Math.PI / 2, 0, 0]}>
-              <torusGeometry args={[VENT_RING_RADIUS, 0.003, 4, 32]} />
-              <meshStandardMaterial color={ventColor} metalness={0.3} roughness={0.7} />
+        {/* === HEAD (tilt rotation on X) === */}
+        <group
+          ref={headRef}
+          position={headPart ? [
+            headPart.pivot[0] - (yokePart?.pivot[0] ?? 0),
+            headPart.pivot[1] - (yokePart?.pivot[1] ?? 0),
+            headPart.pivot[2] - (yokePart?.pivot[2] ?? 0),
+          ] : [0, 0.034, 0]}
+          rotation={[tiltRad, 0, 0]}
+        >
+          {headPart && renderPart(headPart)}
+
+          {/* Lens glow */}
+          {headPart?.lens && (
+            <mesh position={headPart.lens.position}>
+              <cylinderGeometry args={[headPart.lens.radius, headPart.lens.radius, 0.015, 32]} />
+              <meshStandardMaterial
+                color={headPart.lens.color}
+                transparent
+                opacity={0.7}
+                metalness={0.1}
+                roughness={0.1}
+                emissive={headPart.lens.color}
+                emissiveIntensity={0.3}
+              />
             </mesh>
-          ))}
-          {/* Front lens */}
-          <mesh position={[0, 0, -HEAD_LENGTH / 2 - LENS_DEPTH / 2]}>
-            <cylinderGeometry args={[LENS_RADIUS, LENS_RADIUS, LENS_DEPTH, 32]} />
-            <meshStandardMaterial
-              color={lensColor}
-              transparent
-              opacity={0.7}
-              metalness={0.1}
-              roughness={0.1}
-              emissive={lensColor}
-              emissiveIntensity={0.3}
-            />
-          </mesh>
-          {/* Lens ring */}
-          <mesh position={[0, 0, -HEAD_LENGTH / 2 - LENS_DEPTH]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[LENS_RADIUS + 0.005, 0.005, 8, 32]} />
-            <meshStandardMaterial color="#333" metalness={0.7} roughness={0.2} />
-          </mesh>
-          {/* Back cap */}
-          <mesh position={[0, 0, HEAD_LENGTH / 2 + 0.005]}>
-            <cylinderGeometry args={[HEAD_RADIUS * 0.6, HEAD_RADIUS * 0.5, 0.02, 16]} />
-            <meshStandardMaterial color={darkMetal} metalness={0.5} roughness={0.4} />
-          </mesh>
+          )}
+
           {/* Light beam (visible when selected) */}
           {isSelected && (
-            <mesh position={[0, 0, -HEAD_LENGTH / 2 - 0.5]} rotation={[Math.PI / 2, 0, 0]}>
+            <mesh position={[0, -0.65, 0]}>
               <coneGeometry args={[0.3, 1.0, 16, 1, true]} />
               <meshBasicMaterial
-                color={lensColor}
+                color="#88ccff"
                 transparent
                 opacity={0.08}
                 side={THREE.DoubleSide}
@@ -248,26 +203,32 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
 
       {/* Selection indicator */}
       {isSelected && !transformMode && (
-        <mesh position={[0, YOKE_ARM_HEIGHT / 2 + BASE_HEIGHT, 0]}>
-          <boxGeometry args={[0.4, YOKE_ARM_HEIGHT + 0.1, 0.4]} />
+        <mesh position={[0, 0.2, 0]}>
+          <boxGeometry args={[0.4, 0.5, 0.4]} />
           <meshBasicMaterial color="#00d4ff" transparent opacity={0.1} wireframe />
         </mesh>
       )}
 
-      {/* Rotate target toggle buttons (visible when rotate mode + selected) */}
+      {/* Rotate target indicator */}
       {isSelected && transformMode === 'rotate' && (
-        <group position={[0, YOKE_ARM_HEIGHT + BASE_HEIGHT + COLUMN_HEIGHT + 0.15, 0]}>
-          {/* Visual indicator showing which axis is being rotated */}
-          <mesh position={[0, 0, 0]}>
+        <group position={[0, 0.5, 0]}>
+          <mesh>
             <sphereGeometry args={[0.02, 8, 8]} />
             <meshBasicMaterial color={rotateTarget === 'pan' ? '#4f4' : '#44f'} />
           </mesh>
         </group>
       )}
+
+      {/* Loading placeholder if not loaded yet */}
+      {!loadedFixture && (
+        <mesh position={[0, 0.2, 0]}>
+          <boxGeometry args={[0.2, 0.4, 0.2]} />
+          <meshStandardMaterial color="#666" transparent opacity={0.5} wireframe />
+        </mesh>
+      )}
     </group>
   );
 
-  // Show transform controls attached to the correct sub-part
   if (isSelected && transformMode && transformTarget) {
     return (
       <>
