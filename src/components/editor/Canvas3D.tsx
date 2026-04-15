@@ -847,6 +847,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                     isPlaying={isPlaying}
                     transformMode={transformMode}
                     orbitControlsRef={controlsRef}
+                    fixtureId={obj.fixtureId}
                   />
                 );
               }
