@@ -970,7 +970,7 @@ export const AnimationEditor: React.FC = () => {
           toast.success(`${fixture.name} ajouté en 3D`);
         }}
       />
-
+      <ProjectConfigDialog
         open={projectConfigOpen}
         onOpenChange={setProjectConfigOpen}
         config={state.projectConfig}
