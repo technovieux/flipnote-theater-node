@@ -172,8 +172,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({
                   </MenubarSubContent>
                 </MenubarSub>
                 <MenubarSeparator />
-                <MenubarItem onClick={() => onAddObject3D('spotlight_lyre')}>
-                  💡 Ajouter un spot (Lyre)
+                <MenubarItem onClick={onOpenSpotlightLibrary}>
+                  💡 Ajouter un spot...
                 </MenubarItem>
                 <MenubarSeparator />
                 <MenubarItem onClick={onOpenLibrary}>

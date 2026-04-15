@@ -18,6 +18,8 @@ import { ShapeLibraryDialog } from './ShapeLibraryDialog';
 import { CustomShapeEditor } from './CustomShapeEditor';
 import { FireworkLibraryDialog } from './FireworkLibraryDialog';
 import { SpotlightLibraryDialog } from './SpotlightLibraryDialog';
+import { FixtureLibraryDialog } from './FixtureLibraryDialog';
+import { FixtureDefinition } from '@/lib/fixtureLoader';
 import { useEditorState } from '@/hooks/useEditorState';
 import { ProjectConfigDialog } from './ProjectConfigDialog';
 import { getSunLightInfo } from '@/lib/sunPosition';
@@ -142,6 +144,7 @@ export const AnimationEditor: React.FC = () => {
   const [renderMode, setRenderMode] = useState(false);
   const [fireworkLibraryOpen, setFireworkLibraryOpen] = useState(false);
   const [spotlightLibraryOpen, setSpotlightLibraryOpen] = useState(false);
+  const [fixtureLibraryOpen, setFixtureLibraryOpen] = useState(false);
   const [projectConfigOpen, setProjectConfigOpen] = useState(false);
   const [dmxConnected, setDmxConnected] = useState(false);
   const [dmxRealtime, setDmxRealtime] = useState(false);
@@ -681,7 +684,13 @@ export const AnimationEditor: React.FC = () => {
         onOpenLibrary={() => setLibraryDialogOpen(true)}
         onOpenCustomEditor={() => setCustomEditorOpen(true)}
         onOpenFireworkLibrary={() => setFireworkLibraryOpen(true)}
-        onOpenSpotlightLibrary={() => setSpotlightLibraryOpen(true)}
+        onOpenSpotlightLibrary={() => {
+          if (state.modeSpotlight && !state.mode3D) {
+            setSpotlightLibraryOpen(true);
+          } else {
+            setFixtureLibraryOpen(true);
+          }
+        }}
         renderMode={renderMode}
         onToggleRenderMode={() => setRenderMode(!renderMode)}
         onOpenProjectConfig={() => setProjectConfigOpen(true)}
@@ -953,6 +962,14 @@ export const AnimationEditor: React.FC = () => {
         }}
       />
 
+      <FixtureLibraryDialog
+        open={fixtureLibraryOpen}
+        onOpenChange={setFixtureLibraryOpen}
+        onSelectFixture={(fixture: FixtureDefinition) => {
+          addObject3D('spotlight_lyre', fixture.id);
+          toast.success(`${fixture.name} ajouté en 3D`);
+        }}
+      />
       <ProjectConfigDialog
         open={projectConfigOpen}
         onOpenChange={setProjectConfigOpen}

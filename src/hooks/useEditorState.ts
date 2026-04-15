@@ -296,7 +296,7 @@ export const useEditorState = () => {
     }));
   }, [state.objects.length]);
 
-  const addObject3D = useCallback((type: Shape3DType) => {
+  const addObject3D = useCallback((type: Shape3DType, fixtureId?: string) => {
     const colors = ['#00d4ff', '#ff6b6b', '#4ecdc4', '#ffe66d', '#95e1d3'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     
@@ -339,13 +339,15 @@ export const useEditorState = () => {
       spotlight_lyre: 'Lyre Spot',
     };
     
+    const resolvedFixtureId = fixtureId || (type === 'spotlight_lyre' ? 'lyre_spot_150w' : undefined);
+    
     const newObject: EditorObject3D = {
       id: generateId(),
       name: `${typeNames[type] || type} ${state.objects3D.length + 1}`,
       type,
       properties: { ...default3DProperties, color: randomColor },
       keyframes: [],
-      ...(type === 'spotlight_lyre' ? { fixtureId: 'lyre_spot_150w' } : {}),
+      ...(resolvedFixtureId ? { fixtureId: resolvedFixtureId } : {}),
     };
     
     setState(prev => ({
