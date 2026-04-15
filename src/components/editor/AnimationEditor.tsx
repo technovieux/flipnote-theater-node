@@ -684,7 +684,13 @@ export const AnimationEditor: React.FC = () => {
         onOpenLibrary={() => setLibraryDialogOpen(true)}
         onOpenCustomEditor={() => setCustomEditorOpen(true)}
         onOpenFireworkLibrary={() => setFireworkLibraryOpen(true)}
-        onOpenSpotlightLibrary={() => setSpotlightLibraryOpen(true)}
+        onOpenSpotlightLibrary={() => {
+          if (state.modeSpotlight && !state.mode3D) {
+            setSpotlightLibraryOpen(true);
+          } else {
+            setFixtureLibraryOpen(true);
+          }
+        }}
         renderMode={renderMode}
         onToggleRenderMode={() => setRenderMode(!renderMode)}
         onOpenProjectConfig={() => setProjectConfigOpen(true)}
