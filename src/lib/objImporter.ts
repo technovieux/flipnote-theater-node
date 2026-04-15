@@ -16,6 +16,36 @@ export interface SerializedGeometry {
 }
 
 // Parse OBJ content from a string (for bundled/fetched models)
+// Parse OBJ without normalization - keeps original coordinates
+export const parseOBJContentRaw = (content: string): SerializedGeometry | null => {
+  try {
+    const loader = new OBJLoader();
+    const object = loader.parse(content);
+
+    let geometry: THREE.BufferGeometry | null = null;
+    object.traverse((child) => {
+      if (child instanceof THREE.Mesh && !geometry) {
+        geometry = child.geometry as THREE.BufferGeometry;
+      }
+    });
+
+    if (!geometry) return null;
+
+    const positions = Array.from(geometry.attributes.position.array);
+    const normals = geometry.attributes.normal
+      ? Array.from(geometry.attributes.normal.array)
+      : [];
+    const indices = geometry.index
+      ? Array.from(geometry.index.array)
+      : undefined;
+
+    return { positions, normals, indices };
+  } catch (error) {
+    console.error('Error parsing OBJ content (raw):', error);
+    return null;
+  }
+};
+
 export const parseOBJContent = (content: string): SerializedGeometry | null => {
   try {
     const loader = new OBJLoader();
