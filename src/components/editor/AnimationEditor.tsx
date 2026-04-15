@@ -962,7 +962,15 @@ export const AnimationEditor: React.FC = () => {
         }}
       />
 
-      <ProjectConfigDialog
+      <FixtureLibraryDialog
+        open={fixtureLibraryOpen}
+        onOpenChange={setFixtureLibraryOpen}
+        onSelectFixture={(fixture: FixtureDefinition) => {
+          addObject3D('spotlight_lyre', fixture.id);
+          toast.success(`${fixture.name} ajouté en 3D`);
+        }}
+      />
+
         open={projectConfigOpen}
         onOpenChange={setProjectConfigOpen}
         config={state.projectConfig}
