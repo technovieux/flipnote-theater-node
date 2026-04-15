@@ -345,6 +345,7 @@ export const useEditorState = () => {
       type,
       properties: { ...default3DProperties, color: randomColor },
       keyframes: [],
+      ...(type === 'spotlight_lyre' ? { fixtureId: 'lyre_spot_150w' } : {}),
     };
     
     setState(prev => ({
