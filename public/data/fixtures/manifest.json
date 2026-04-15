@@ -1,0 +1,64 @@
+{
+  "fixtures": [
+    {
+      "id": "lyre_spot_150w",
+      "name": "Lyre Spot 150W",
+      "manufacturer": "Generic",
+      "category": "lyre",
+      "folder": "lyre_spot_150w",
+      "parts": [
+        {
+          "name": "base",
+          "file": "base.obj",
+          "parent": null,
+          "pivot": [0, 0, 0],
+          "rotatable": false,
+          "material": { "color": "#1a1a1a", "metalness": 0.6, "roughness": 0.3 }
+        },
+        {
+          "name": "yoke",
+          "file": "yoke.obj",
+          "parent": "base",
+          "pivot": [0, 0.12, 0],
+          "rotatable": true,
+          "axis": "Y",
+          "range": [-540, 540],
+          "property": "rotationY",
+          "label": "Pan",
+          "material": { "color": "#1a1a1a", "metalness": 0.6, "roughness": 0.3 }
+        },
+        {
+          "name": "head",
+          "file": "head.obj",
+          "parent": "yoke",
+          "pivot": [0, 0.154, 0],
+          "rotatable": true,
+          "axis": "X",
+          "range": [-135, 270],
+          "property": "rotationX",
+          "label": "Tilt",
+          "headOrientation": "horizontal",
+          "material": { "color": "#222222", "metalness": 0.5, "roughness": 0.35 },
+          "lens": {
+            "color": "#88ccff",
+            "emissive": true,
+            "position": [0, -0.165, 0],
+            "radius": 0.085
+          }
+        }
+      ],
+      "channels": [
+        { "name": "Pan", "defaultValue": 128, "type": "position" },
+        { "name": "Pan Fine", "defaultValue": 0, "type": "position" },
+        { "name": "Tilt", "defaultValue": 128, "type": "position" },
+        { "name": "Tilt Fine", "defaultValue": 0, "type": "position" },
+        { "name": "Dimmer", "defaultValue": 0, "type": "dimmer" },
+        { "name": "Stroboscope", "defaultValue": 0, "type": "other" },
+        { "name": "Couleur", "defaultValue": 0, "type": "color" },
+        { "name": "Gobo", "defaultValue": 0, "type": "gobo" },
+        { "name": "Focus", "defaultValue": 128, "type": "other" }
+      ],
+      "dimensions": { "width": 0.3, "height": 0.45, "depth": 0.3 }
+    }
+  ]
+}
