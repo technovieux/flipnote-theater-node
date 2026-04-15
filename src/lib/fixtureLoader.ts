@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { parseOBJContent } from './objImporter';
+import { parseOBJContentRaw } from './objImporter';
 
 export interface FixtureMaterial {
   color: string;
