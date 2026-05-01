@@ -146,30 +146,28 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
       scale={[uniformScale, uniformScale, uniformScale]}
       onPointerDown={handlePointerDown}
     >
-      {/* Convert model's Y-up coordinates to scene's Z-up */}
-      <group rotation={[-Math.PI / 2, 0, 0]}>
-        {/* === BASE (never rotates) === */}
-        {basePart && renderPart(basePart)}
+      {/* === BASE (never rotates) === */}
+      {basePart && renderPart(basePart)}
 
-        {/* === YOKE (pan rotation on model's Y axis = scene vertical) === */}
+      {/* === YOKE (pan = rotation around vertical Y axis only) === */}
+      <group
+        ref={yokeRef}
+        rotation={[0, panRad, 0]}
+        position={yokePart ? yokePart.pivot : [0, 0.12, 0]}
+      >
+        {yokePart && renderPart(yokePart)}
+
+        {/* === HEAD (tilt = rotation around horizontal X axis only) === */}
         <group
-          ref={yokeRef}
-          rotation={[0, panRad, 0]}
-          position={yokePart ? yokePart.pivot : [0, 0.12, 0]}
+          ref={headRef}
+          position={headPart ? [
+            headPart.pivot[0] - (yokePart?.pivot[0] ?? 0),
+            headPart.pivot[1] - (yokePart?.pivot[1] ?? 0),
+            headPart.pivot[2] - (yokePart?.pivot[2] ?? 0),
+          ] : [0, 0.034, 0]}
+          rotation={[tiltRad, 0, 0]}
         >
-          {yokePart && renderPart(yokePart)}
-
-          {/* === HEAD (tilt rotation on model's X axis = horizontal) === */}
-          <group
-            ref={headRef}
-            position={headPart ? [
-              headPart.pivot[0] - (yokePart?.pivot[0] ?? 0),
-              headPart.pivot[1] - (yokePart?.pivot[1] ?? 0),
-              headPart.pivot[2] - (yokePart?.pivot[2] ?? 0),
-            ] : [0, 0.034, 0]}
-            rotation={[tiltRad, 0, 0]}
-          >
-            {headPart && renderPart(headPart)}
+          {headPart && renderPart(headPart)}
 
           {/* Lens glow */}
           {headPart?.lens && (
@@ -200,7 +198,6 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
               />
             </mesh>
           )}
-          </group>
         </group>
       </group>
 
