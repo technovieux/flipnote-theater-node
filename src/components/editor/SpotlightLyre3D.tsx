@@ -90,6 +90,7 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
           } else if (rotateTarget === 'tilt' && headRef.current) {
             onUpdateProperties({
               rotationX: THREE.MathUtils.radToDeg(headRef.current.rotation.x),
+              rotationZ: THREE.MathUtils.radToDeg(headRef.current.rotation.z),
             });
           }
         }
@@ -109,6 +110,7 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
   const uniformScale = (properties.width / 100 + properties.height / 100 + properties.depth / 100) / 3;
   const panRad = THREE.MathUtils.degToRad(properties.rotationY);
   const tiltRad = THREE.MathUtils.degToRad(properties.rotationX);
+  const tiltZRad = THREE.MathUtils.degToRad(properties.rotationZ ?? 0);
 
   const handlePointerDown = (e: any) => {
     e.stopPropagation();
@@ -165,7 +167,7 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
             headPart.pivot[1] - (yokePart?.pivot[1] ?? 0),
             headPart.pivot[2] - (yokePart?.pivot[2] ?? 0),
           ] : [0, 0.034, 0]}
-          rotation={[tiltRad, 0, 0]}
+          rotation={[tiltRad, 0, tiltZRad]}
         >
           {headPart && renderPart(headPart)}
 
@@ -231,10 +233,11 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
 
   if (isSelected && transformMode && transformTarget) {
     const isRotate = transformMode === 'rotate';
-    // Pan = vertical Y axis only, Tilt = horizontal X axis only
+    // Pan = Y axis only (vertical rotation)
+    // Tilt = X and Z axes (horizontal rotation), centered on pan
     const showX = !isRotate || rotateTarget === 'tilt';
     const showY = !isRotate || rotateTarget === 'pan';
-    const showZ = !isRotate;
+    const showZ = !isRotate || rotateTarget === 'tilt';
     return (
       <>
         {content}
@@ -242,6 +245,7 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
           ref={transformControlsRef}
           object={transformTarget}
           mode={isRotate ? 'rotate' : transformMode}
+          space={isRotate && rotateTarget === 'tilt' ? 'local' : 'world'}
           size={0.75}
           showX={showX}
           showY={showY}
