@@ -230,14 +230,22 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
   );
 
   if (isSelected && transformMode && transformTarget) {
+    const isRotate = transformMode === 'rotate';
+    // Pan = vertical Y axis only, Tilt = horizontal X axis only
+    const showX = !isRotate || rotateTarget === 'tilt';
+    const showY = !isRotate || rotateTarget === 'pan';
+    const showZ = !isRotate;
     return (
       <>
         {content}
         <TransformControls
           ref={transformControlsRef}
           object={transformTarget}
-          mode={transformMode === 'rotate' ? 'rotate' : transformMode}
+          mode={isRotate ? 'rotate' : transformMode}
           size={0.75}
+          showX={showX}
+          showY={showY}
+          showZ={showZ}
         />
       </>
     );
