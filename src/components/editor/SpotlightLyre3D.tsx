@@ -90,6 +90,7 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
           } else if (rotateTarget === 'tilt' && headRef.current) {
             onUpdateProperties({
               rotationX: THREE.MathUtils.radToDeg(headRef.current.rotation.x),
+              rotationZ: THREE.MathUtils.radToDeg(headRef.current.rotation.z),
             });
           }
         }
