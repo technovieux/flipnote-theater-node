@@ -175,6 +175,11 @@ export const MenuBar: React.FC<MenuBarProps> = ({
                 <MenubarItem onClick={onOpenSpotlightLibrary}>
                   💡 Ajouter un spot...
                 </MenubarItem>
+                {modeCombined && (
+                  <MenubarItem onClick={onOpenFireworkLibrary}>
+                    🎆 Ajouter un feu d'artifice...
+                  </MenubarItem>
+                )}
                 <MenubarSeparator />
                 <MenubarItem onClick={onOpenLibrary}>
                   📦 Bibliothèque d'objets...
