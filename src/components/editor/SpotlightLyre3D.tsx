@@ -110,6 +110,7 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
   const uniformScale = (properties.width / 100 + properties.height / 100 + properties.depth / 100) / 3;
   const panRad = THREE.MathUtils.degToRad(properties.rotationY);
   const tiltRad = THREE.MathUtils.degToRad(properties.rotationX);
+  const tiltZRad = THREE.MathUtils.degToRad(properties.rotationZ ?? 0);
 
   const handlePointerDown = (e: any) => {
     e.stopPropagation();
@@ -166,7 +167,7 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
             headPart.pivot[1] - (yokePart?.pivot[1] ?? 0),
             headPart.pivot[2] - (yokePart?.pivot[2] ?? 0),
           ] : [0, 0.034, 0]}
-          rotation={[tiltRad, 0, 0]}
+          rotation={[tiltRad, 0, tiltZRad]}
         >
           {headPart && renderPart(headPart)}
 
