@@ -420,6 +420,11 @@ export const useEditorState = () => {
   // Add firework object
   const addFireworkObject = useCallback((product: FireworkProduct, category: FireworkCategory) => {
     const cal = parseInt(product.caliber) || 20;
+    // Compute next free DMX address based on existing fireworks (1 channel each)
+    const usedAddresses = new Set<number>();
+    state.objects3D.forEach(o => { if (o.type === 'firework' && o.dmxAddress) usedAddresses.add(o.dmxAddress); });
+    let nextAddr = 1;
+    while (usedAddresses.has(nextAddr) && nextAddr < 512) nextAddr++;
     const newObject: EditorObject3D = {
       id: generateId(),
       name: `${product.name}`,
@@ -434,6 +439,7 @@ export const useEditorState = () => {
       keyframes: [],
       fireworkProduct: product,
       fireworkCategory: category,
+      dmxAddress: nextAddr,
     };
     
     setState(prev => ({
@@ -442,7 +448,7 @@ export const useEditorState = () => {
       selectedObjectIds: [newObject.id],
       hasUnsavedChanges: true,
     }));
-  }, []);
+  }, [state.objects3D]);
 
   // Add spotlight object
   const addSpotlightObject = useCallback((fixture: SpotlightFixture) => {
