@@ -117,6 +117,18 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
     onSelect();
   };
 
+  const handlePanPointerDown = (e: any) => {
+    e.stopPropagation();
+    setRotateTarget('pan');
+    onSelect();
+  };
+
+  const handleTiltPointerDown = (e: any) => {
+    e.stopPropagation();
+    setRotateTarget('tilt');
+    onSelect();
+  };
+
   const getTransformTarget = () => {
     if (transformMode === 'rotate') {
       return rotateTarget === 'pan' ? yokeRef.current : headRef.current;
@@ -149,17 +161,22 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
       onPointerDown={handlePointerDown}
     >
       {/* === BASE (never rotates) === */}
-      {basePart && renderPart(basePart)}
+      {basePart && (
+        <group onPointerDown={handlePanPointerDown}>
+          {renderPart(basePart)}
+        </group>
+      )}
 
       {/* === YOKE (pan = rotation around vertical Y axis only) === */}
       <group
         ref={yokeRef}
         rotation={[0, panRad, 0]}
         position={yokePart ? yokePart.pivot : [0, 0.12, 0]}
+        onPointerDown={handlePanPointerDown}
       >
         {yokePart && renderPart(yokePart)}
 
-        {/* === HEAD (tilt = rotation around horizontal X axis only) === */}
+        {/* === HEAD (tilt = rotation around local X/Z axes, always centered in pan) === */}
         <group
           ref={headRef}
           position={headPart ? [
@@ -168,6 +185,7 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
             headPart.pivot[2] - (yokePart?.pivot[2] ?? 0),
           ] : [0, 0.034, 0]}
           rotation={[tiltRad, 0, tiltZRad]}
+          onPointerDown={handleTiltPointerDown}
         >
           {headPart && renderPart(headPart)}
 
