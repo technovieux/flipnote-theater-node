@@ -19,6 +19,7 @@ import { CustomShapeEditor } from './CustomShapeEditor';
 import { FireworkLibraryDialog } from './FireworkLibraryDialog';
 import { SpotlightLibraryDialog } from './SpotlightLibraryDialog';
 import { FixtureLibraryDialog } from './FixtureLibraryDialog';
+import { LogicalView } from './LogicalView';
 import { FixtureDefinition } from '@/lib/fixtureLoader';
 import { useEditorState } from '@/hooks/useEditorState';
 import { ProjectConfigDialog } from './ProjectConfigDialog';
@@ -148,6 +149,7 @@ export const AnimationEditor: React.FC = () => {
   const [projectConfigOpen, setProjectConfigOpen] = useState(false);
   const [dmxConnected, setDmxConnected] = useState(false);
   const [dmxRealtime, setDmxRealtime] = useState(false);
+  const [combinedView, setCombinedView] = useState<'logical' | 'physical'>('physical');
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -694,6 +696,8 @@ export const AnimationEditor: React.FC = () => {
         renderMode={renderMode}
         onToggleRenderMode={() => setRenderMode(!renderMode)}
         onOpenProjectConfig={() => setProjectConfigOpen(true)}
+        combinedView={combinedView}
+        onToggleCombinedView={() => setCombinedView(v => v === 'logical' ? 'physical' : 'logical')}
         dmxConnected={dmxConnected}
         dmxRealtime={dmxRealtime}
         onDmxConnect={handleDmxConnect}

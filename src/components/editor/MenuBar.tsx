@@ -44,6 +44,9 @@ interface MenuBarProps {
   renderMode: boolean;
   onToggleRenderMode: () => void;
   onOpenProjectConfig?: () => void;
+  // Combined view toggle (logical/physical)
+  combinedView?: 'logical' | 'physical';
+  onToggleCombinedView?: () => void;
   // DMX
   dmxConnected: boolean;
   dmxRealtime: boolean;
@@ -82,6 +85,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   renderMode,
   onToggleRenderMode,
   onOpenProjectConfig,
+  combinedView,
+  onToggleCombinedView,
   dmxConnected,
   dmxRealtime,
   onDmxConnect,
@@ -274,6 +279,15 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         </MenubarContent>
       </MenubarMenu>
       <div className="flex-1" />
+      {modeCombined && onToggleCombinedView && (
+        <button
+          onClick={onToggleCombinedView}
+          className="px-3 py-1.5 text-sm font-medium rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors mr-1"
+          title="Basculer entre vue logique (2D) et physique (3D)"
+        >
+          {combinedView === 'logical' ? '🧠 Logique' : '🏗️ Physique'}
+        </button>
+      )}
       <button
         onClick={onToggleRenderMode}
         className="px-3 py-1.5 text-sm font-medium rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors"
