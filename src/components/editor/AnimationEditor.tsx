@@ -751,7 +751,17 @@ export const AnimationEditor: React.FC = () => {
                 </>
               )}
               <ResizablePanel defaultSize={renderMode ? 100 : 75} minSize={30}>
-                {state.mode3D ? (
+                {state.modeCombined && combinedView === 'logical' ? (
+                  <LogicalView
+                    spotlights={state.spotlights}
+                    objects3D={state.objects3D}
+                    selectedObjectIds={renderMode ? [] : state.selectedObjectIds}
+                    onSelect={renderMode ? () => {} : selectObject}
+                    currentTime={state.currentTime}
+                    getInterpolatedSpotlightChannels={getInterpolatedSpotlightChannels}
+                    getSpotlightColor={getSpotlightColor}
+                  />
+                ) : state.mode3D ? (
                   <Canvas3D
                     objects={state.objects3D}
                     selectedObjectIds={renderMode ? [] : state.selectedObjectIds}
