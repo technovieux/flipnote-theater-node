@@ -91,7 +91,9 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     const pos = positions[id];
-    dragRef.current = { id, offX: e.clientX - rect.left - pos.x, offY: e.clientY - rect.top - pos.y };
+    const sx = (e.clientX - rect.left + (containerRef.current?.scrollLeft || 0)) / zoom;
+    const sy = (e.clientY - rect.top + (containerRef.current?.scrollTop || 0)) / zoom;
+    dragRef.current = { id, offX: sx - pos.x, offY: sy - pos.y };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
   const onPointerMove = (e: React.PointerEvent) => {
@@ -99,7 +101,9 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     const { id, offX, offY } = dragRef.current;
-    setPositions(p => ({ ...p, [id]: { x: Math.max(0, e.clientX - rect.left - offX), y: Math.max(0, e.clientY - rect.top - offY) } }));
+    const sx = (e.clientX - rect.left + (containerRef.current?.scrollLeft || 0)) / zoom;
+    const sy = (e.clientY - rect.top + (containerRef.current?.scrollTop || 0)) / zoom;
+    setPositions(p => ({ ...p, [id]: { x: Math.max(0, sx - offX), y: Math.max(0, sy - offY) } }));
   };
   const onPointerUp = () => { dragRef.current = null; };
 
