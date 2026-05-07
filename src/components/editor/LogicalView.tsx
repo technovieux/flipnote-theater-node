@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { EditorObject3D, SpotlightEditorObject } from '@/types/editor';
-import { Cable, Lightbulb, Sparkles, Sliders, Plug, Trash2, Plus } from 'lucide-react';
+import { Lightbulb, Sparkles, Sliders, Plug, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface LogicalViewProps {
@@ -19,7 +19,7 @@ const FIRE_WINDOW_MS = 600;
 type NodeKind = 'console' | 'spot' | 'firework';
 interface NodePos { x: number; y: number; }
 interface ConsoleNode { id: string; name: string; outputs: number; }
-interface Cable { id: string; from: string; to: string; }
+interface DmxCable { id: string; from: string; to: string; }
 
 const NODE_W = 180;
 const NODE_H = 120;
@@ -40,7 +40,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
     { id: 'console-1', name: 'Console DMX', outputs: 1 },
   ]);
   const [positions, setPositions] = useState<Record<string, NodePos>>({});
-  const [cables, setCables] = useState<Cable[]>([]);
+  const [cables, setCables] = useState<DmxCable[]>([]);
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
