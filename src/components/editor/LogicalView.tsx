@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { EditorObject3D, SpotlightEditorObject } from '@/types/editor';
-import { Lightbulb, Sparkles, Sliders, Plug, Trash2 } from 'lucide-react';
+import { Lightbulb, Sparkles, Sliders, Plug, Trash2, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface LogicalViewProps {
@@ -20,6 +20,7 @@ type NodeKind = 'console' | 'spot' | 'firework';
 interface NodePos { x: number; y: number; }
 interface ConsoleNode { id: string; name: string; outputs: number; }
 interface DmxCable { id: string; from: string; to: string; }
+type Category = 'console' | 'spot' | 'firework';
 
 const NODE_W = 180;
 const NODE_H = 120;
@@ -43,6 +44,8 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
   const [cables, setCables] = useState<DmxCable[]>([]);
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [category, setCategory] = useState<Category>('console');
+  const [zoom, setZoom] = useState(1);
 
   // Initialize positions for new nodes
   useEffect(() => {
@@ -88,7 +91,9 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     const pos = positions[id];
-    dragRef.current = { id, offX: e.clientX - rect.left - pos.x, offY: e.clientY - rect.top - pos.y };
+    const sx = (e.clientX - rect.left + (containerRef.current?.scrollLeft || 0)) / zoom;
+    const sy = (e.clientY - rect.top + (containerRef.current?.scrollTop || 0)) / zoom;
+    dragRef.current = { id, offX: sx - pos.x, offY: sy - pos.y };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
   const onPointerMove = (e: React.PointerEvent) => {
@@ -96,7 +101,9 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     const { id, offX, offY } = dragRef.current;
-    setPositions(p => ({ ...p, [id]: { x: Math.max(0, e.clientX - rect.left - offX), y: Math.max(0, e.clientY - rect.top - offY) } }));
+    const sx = (e.clientX - rect.left + (containerRef.current?.scrollLeft || 0)) / zoom;
+    const sy = (e.clientY - rect.top + (containerRef.current?.scrollTop || 0)) / zoom;
+    setPositions(p => ({ ...p, [id]: { x: Math.max(0, sx - offX), y: Math.max(0, sy - offY) } }));
   };
   const onPointerUp = () => { dragRef.current = null; };
 
@@ -128,39 +135,138 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
     return { x: p.x + NODE_W / 2, y: p.y + NODE_H / 2 };
   };
 
+  // Cable endpoint: 'in' (left) or 'out' (right) of a node
+  const portPoint = (id: string, side: 'in' | 'out') => {
+    const p = positions[id];
+    if (!p) return { x: 0, y: 0 };
+    return { x: side === 'in' ? p.x : p.x + NODE_W, y: p.y + NODE_H / 2 };
+  };
+
+  // Cable id format: "<from>:<fromSide>-><to>:<toSide>"
+  const parseCable = (cableFrom: string, cableTo: string, cableId: string) => {
+    const [, fSide = 'out', tSide = 'in'] = cableId.match(/:(in|out)->.*:(in|out)$/) || [];
+    return { fromSide: (fSide as 'in' | 'out') || 'out', toSide: (tSide as 'in' | 'out') || 'in' };
+  };
+
+  const startCableFromPort = (id: string, side: 'in' | 'out') => {
+    const key = `${id}:${side}`;
+    setPendingFrom(prev => prev === key ? null : key);
+  };
+  const tryConnectPort = (toId: string, toSide: 'in' | 'out') => {
+    if (!pendingFrom) return;
+    const [fromId, fromSide] = pendingFrom.split(':') as [string, 'in' | 'out'];
+    if (fromId === toId) { setPendingFrom(null); return; }
+    const cableId = `${fromId}:${fromSide}->${toId}:${toSide}`;
+    setCables(prev => {
+      if (prev.some(c => c.id === cableId)) return prev;
+      return [...prev, { id: cableId, from: fromId, to: toId }];
+    });
+    setPendingFrom(null);
+  };
+
+  // Zoom with Ctrl+wheel
+  const onWheel = (e: React.WheelEvent) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    setZoom(z => Math.min(2, Math.max(0.3, z * (e.deltaY < 0 ? 1.1 : 0.9))));
+  };
+
   return (
     <div className="w-full h-full flex bg-muted/20">
       {/* Palette */}
-      <div className="w-56 border-r border-border bg-card p-3 space-y-3 overflow-auto">
-        <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Composants</div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full justify-start gap-2"
-          onClick={() => setConsoles(prev => [...prev, { id: `console-${Date.now()}`, name: `Console ${prev.length + 1}`, outputs: 1 }])}
-        >
-          <Sliders className="h-4 w-4" /> + Console DMX
-        </Button>
-        <div className="text-[11px] text-muted-foreground leading-relaxed pt-2 border-t border-border">
-          <p className="font-semibold mb-1">Câblage</p>
-          <p>1. Clique sur un port <Plug className="inline h-3 w-3" /> pour démarrer un câble.</p>
-          <p>2. Clique sur un autre port pour le connecter.</p>
-          <p className="mt-2 font-semibold">Drag &amp; drop</p>
-          <p>Déplace les composants à la souris.</p>
+      <div className="w-60 border-r border-border bg-card flex flex-col overflow-hidden">
+        <div className="p-3 space-y-2 border-b border-border">
+          <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Catégories</div>
+          <Button
+            variant={category === 'console' ? 'default' : 'outline'}
+            size="sm"
+            className="w-full justify-start gap-2"
+            onClick={() => setCategory('console')}
+          >
+            <Sliders className="h-4 w-4" /> Consoles DMX
+          </Button>
+          <Button
+            variant={category === 'spot' ? 'default' : 'outline'}
+            size="sm"
+            className="w-full justify-start gap-2"
+            onClick={() => setCategory('spot')}
+          >
+            <Lightbulb className="h-4 w-4" /> Projecteurs
+          </Button>
+          <Button
+            variant={category === 'firework' ? 'default' : 'outline'}
+            size="sm"
+            className="w-full justify-start gap-2"
+            onClick={() => setCategory('firework')}
+          >
+            <Sparkles className="h-4 w-4" /> Feux d'artifice
+          </Button>
+        </div>
+        <div className="flex-1 overflow-auto p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+              {category === 'console' ? 'Consoles' : category === 'spot' ? 'Projecteurs' : "Feux d'artifice"}
+            </div>
+            {category === 'console' && (
+              <button
+                onClick={() => setConsoles(prev => [...prev, { id: `console-${Date.now()}`, name: `Console ${prev.length + 1}`, outputs: 1 }])}
+                className="text-xs px-2 py-0.5 rounded bg-primary text-primary-foreground hover:opacity-90"
+              >
+                +
+              </button>
+            )}
+          </div>
+          {category === 'console' && consoles.map(c => (
+            <button
+              key={c.id}
+              onClick={() => onSelect(null)}
+              className="w-full text-left p-2 rounded border border-border bg-background hover:bg-accent text-xs flex items-center gap-2"
+            >
+              <Sliders className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{c.name}</span>
+            </button>
+          ))}
+          {category === 'spot' && spotlights.map(s => (
+            <button
+              key={s.id}
+              onClick={(e) => onSelect(s.id, { ctrlKey: e.ctrlKey, shiftKey: e.shiftKey })}
+              className={`w-full text-left p-2 rounded border text-xs flex items-center gap-2 ${
+                selectedObjectIds.includes(s.id) ? 'border-primary bg-primary/10' : 'border-border bg-background hover:bg-accent'
+              }`}
+            >
+              <Lightbulb className="h-3.5 w-3.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="truncate font-medium">{s.name}</div>
+                <div className="text-[10px] text-muted-foreground truncate">DMX {s.dmxAddress}</div>
+              </div>
+            </button>
+          ))}
+          {category === 'spot' && spotlights.length === 0 && (
+            <div className="text-[11px] text-muted-foreground italic">Aucun projecteur.</div>
+          )}
+          {category === 'firework' && fireworks.map(f => (
+            <button
+              key={f.id}
+              onClick={(e) => onSelect(f.id, { ctrlKey: e.ctrlKey, shiftKey: e.shiftKey })}
+              className={`w-full text-left p-2 rounded border text-xs flex items-center gap-2 ${
+                selectedObjectIds.includes(f.id) ? 'border-primary bg-primary/10' : 'border-border bg-background hover:bg-accent'
+              }`}
+            >
+              <Sparkles className="h-3.5 w-3.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="truncate font-medium">{f.name}</div>
+                <div className="text-[10px] text-muted-foreground truncate">DMX {f.dmxAddress ?? '—'}</div>
+              </div>
+            </button>
+          ))}
+          {category === 'firework' && fireworks.length === 0 && (
+            <div className="text-[11px] text-muted-foreground italic">Aucun feu d'artifice.</div>
+          )}
           {pendingFrom && (
             <div className="mt-3 p-2 rounded bg-amber-500/20 text-amber-200 text-[11px]">
               Câble en cours… clique un port cible (ou re-clique pour annuler).
             </div>
           )}
-        </div>
-        <div className="pt-2 border-t border-border">
-          <div className="text-xs font-semibold mb-1">Légende</div>
-          <div className="text-[11px] text-muted-foreground space-y-1">
-            <div className="flex items-center gap-2"><Sliders className="h-3 w-3" /> Console</div>
-            <div className="flex items-center gap-2"><Lightbulb className="h-3 w-3" /> Projecteur</div>
-            <div className="flex items-center gap-2"><Sparkles className="h-3 w-3" /> Feu d'artifice</div>
-            <div className="flex items-center gap-2 text-destructive">⚠ Conflit DMX</div>
-          </div>
         </div>
       </div>
 
@@ -171,12 +277,32 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
         onClick={() => { onSelect(null); setPendingFrom(null); }}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        onWheel={onWheel}
       >
+        {/* Zoom controls */}
+        <div className="absolute top-2 right-2 z-20 flex flex-col gap-1 bg-card/90 border border-border rounded p-1 shadow">
+          <button onClick={(e) => { e.stopPropagation(); setZoom(z => Math.min(2, z * 1.1)); }} className="p-1 hover:bg-accent rounded" title="Zoom +">
+            <ZoomIn className="h-4 w-4" />
+          </button>
+          <div className="text-[10px] text-center text-muted-foreground font-mono">{Math.round(zoom * 100)}%</div>
+          <button onClick={(e) => { e.stopPropagation(); setZoom(z => Math.max(0.3, z * 0.9)); }} className="p-1 hover:bg-accent rounded" title="Zoom -">
+            <ZoomOut className="h-4 w-4" />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); setZoom(1); }} className="p-1 hover:bg-accent rounded" title="100%">
+            <Maximize2 className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div
+          className="absolute top-0 left-0"
+          style={{ transform: `scale(${zoom})`, transformOrigin: '0 0', width: 3000, height: 2000 }}
+        >
         {/* SVG cables */}
         <svg className="absolute inset-0 pointer-events-none" width="3000" height="2000">
           {cables.map(c => {
-            const a = portCenter(c.from);
-            const b = portCenter(c.to);
+            const { fromSide, toSide } = parseCable(c.from, c.to, c.id);
+            const a = portPoint(c.from, fromSide);
+            const b = portPoint(c.to, toSide);
             const mx = (a.x + b.x) / 2;
             return (
               <g key={c.id}>
@@ -203,7 +329,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
         {/* Console nodes */}
         {consoles.map(c => {
           const pos = positions[c.id] || { x: 40, y: 40 };
-          const isPending = pendingFrom === c.id;
+          const isPending = pendingFrom?.startsWith(c.id + ':');
           return (
             <div
               key={c.id}
@@ -230,7 +356,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
               </div>
               <button
                 onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnect(c.id) : startCableFrom(c.id); }}
+                onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(c.id, 'out') : startCableFromPort(c.id, 'out'); }}
                 className={`absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center bg-card hover:bg-primary hover:text-primary-foreground transition ${isPending ? 'border-amber-500 bg-amber-500 text-black' : 'border-primary'}`}
                 title="DMX OUT"
               >
@@ -246,7 +372,9 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
           const channels = getInterpolatedSpotlightChannels(s, currentTime);
           const color = getSpotlightColor(s, channels);
           const isSelected = selectedObjectIds.includes(s.id);
-          const isPending = pendingFrom === s.id;
+          const pendingIn = pendingFrom === `${s.id}:in`;
+          const pendingOut = pendingFrom === `${s.id}:out`;
+          const isPending = pendingIn || pendingOut;
           const lastChan = s.dmxAddress + s.fixture.channels.length - 1;
           const isConflict = conflicts.has(s.id);
           return (
@@ -279,9 +407,17 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
               </div>
               <button
                 onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnect(s.id) : startCableFrom(s.id); }}
-                className={`absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center bg-card hover:bg-primary hover:text-primary-foreground transition ${isPending ? 'border-amber-500 bg-amber-500 text-black' : 'border-primary'}`}
+                onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(s.id, 'in') : startCableFromPort(s.id, 'in'); }}
+                className={`absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center bg-card hover:bg-primary hover:text-primary-foreground transition ${pendingIn ? 'border-amber-500 bg-amber-500 text-black' : 'border-primary'}`}
                 title="DMX IN"
+              >
+                <Plug className="h-3 w-3" />
+              </button>
+              <button
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(s.id, 'out') : startCableFromPort(s.id, 'out'); }}
+                className={`absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center bg-card hover:bg-primary hover:text-primary-foreground transition ${pendingOut ? 'border-amber-500 bg-amber-500 text-black' : 'border-primary'}`}
+                title="DMX OUT (chaînage)"
               >
                 <Plug className="h-3 w-3" />
               </button>
@@ -298,7 +434,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
             currentTime <= launchTime + FIRE_WINDOW_MS;
           const baseColor = fw.fireworkProduct?.colors[0] || fw.properties.color;
           const isSelected = selectedObjectIds.includes(fw.id);
-          const isPending = pendingFrom === fw.id;
+          const isPending = pendingFrom === `${fw.id}:in`;
           const isConflict = conflicts.has(fw.id);
           return (
             <div
@@ -335,7 +471,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
               </div>
               <button
                 onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnect(fw.id) : startCableFrom(fw.id); }}
+                onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(fw.id, 'in') : startCableFromPort(fw.id, 'in'); }}
                 className={`absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center bg-card hover:bg-primary hover:text-primary-foreground transition ${isPending ? 'border-amber-500 bg-amber-500 text-black' : 'border-primary'}`}
                 title="DMX IN"
               >
@@ -350,6 +486,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
             Ajoute des projecteurs ou des feux d'artifice pour les câbler.
           </div>
         )}
+        </div>
       </div>
     </div>
   );
