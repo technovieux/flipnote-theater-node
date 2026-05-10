@@ -760,6 +760,9 @@ export const AnimationEditor: React.FC = () => {
                     currentTime={state.currentTime}
                     getInterpolatedSpotlightChannels={getInterpolatedSpotlightChannels}
                     getSpotlightColor={getSpotlightColor}
+                    onAddSpotlight={renderMode ? undefined : addSpotlightObject}
+                    onAddFirework={renderMode ? undefined : addFireworkObject}
+                    readOnly={renderMode}
                   />
                 ) : state.mode3D ? (
                   <Canvas3D
