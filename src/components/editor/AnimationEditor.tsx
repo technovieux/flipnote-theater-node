@@ -20,6 +20,7 @@ import { FireworkLibraryDialog } from './FireworkLibraryDialog';
 import { SpotlightLibraryDialog } from './SpotlightLibraryDialog';
 import { FixtureLibraryDialog } from './FixtureLibraryDialog';
 import { LogicalView } from './LogicalView';
+import { PropertiesPanelLogical } from './PropertiesPanelLogical';
 import { FixtureDefinition } from '@/lib/fixtureLoader';
 import { useEditorState } from '@/hooks/useEditorState';
 import { ProjectConfigDialog } from './ProjectConfigDialog';
@@ -94,6 +95,8 @@ export const AnimationEditor: React.FC = () => {
     updateProjectConfig,
     addFireworkObject,
     addSpotlightObject,
+    addObject3DSpotlightFixture,
+    updateObject3DDmxAddress,
     updateSpotlightDmxAddress,
     updateSpotlightPosition,
     updateSpotlightChannelValue,
@@ -753,14 +756,11 @@ export const AnimationEditor: React.FC = () => {
               <ResizablePanel defaultSize={renderMode ? 100 : 75} minSize={30}>
                 {state.modeCombined && combinedView === 'logical' ? (
                   <LogicalView
-                    spotlights={state.spotlights}
                     objects3D={state.objects3D}
                     selectedObjectIds={renderMode ? [] : state.selectedObjectIds}
                     onSelect={renderMode ? () => {} : selectObject}
                     currentTime={state.currentTime}
-                    getInterpolatedSpotlightChannels={getInterpolatedSpotlightChannels}
-                    getSpotlightColor={getSpotlightColor}
-                    onAddSpotlight={renderMode ? undefined : addSpotlightObject}
+                    onAddSpotlight={renderMode ? undefined : addObject3DSpotlightFixture}
                     onAddFirework={renderMode ? undefined : addFireworkObject}
                     readOnly={renderMode}
                   />
