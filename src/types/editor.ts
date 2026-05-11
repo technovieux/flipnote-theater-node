@@ -119,6 +119,7 @@ export interface EditorObject3D {
   fireworkCategory?: FireworkCategory;
   fixtureId?: string; // ID from fixtures manifest for spotlight fixtures
   dmxAddress?: number; // DMX address for fireworks (1-512)
+  spotlightFixture?: SpotlightFixture; // For spotlights added from logical view (combined mode)
 }
 
 export interface Scene {

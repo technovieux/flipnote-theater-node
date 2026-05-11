@@ -473,6 +473,52 @@ export const useEditorState = () => {
     }));
   }, [state.spotlights.length, state.spotlights]);
 
+  // Add a 3D spotlight from a 2D library fixture (used by combined-mode logical view)
+  // Creates an objects3D entry of type 'spotlight_lyre' so it renders in 3D physical view,
+  // ObjectsList3D and Timeline. Channel definitions come from the chosen SpotlightFixture.
+  const addObject3DSpotlightFixture = useCallback((fixture: SpotlightFixture) => {
+    // Compute next free DMX address (avoid overlap with other 3D spotlights and fireworks)
+    const used = new Set<number>();
+    state.objects3D.forEach(o => {
+      if (o.type === 'firework' && o.dmxAddress) used.add(o.dmxAddress);
+      if (o.type === 'spotlight_lyre' && o.dmxAddress && o.spotlightFixture) {
+        for (let i = 0; i < o.spotlightFixture.channels.length; i++) used.add(o.dmxAddress + i);
+      }
+    });
+    const need = fixture.channels.length;
+    let nextAddr = 1;
+    outer: while (nextAddr + need - 1 <= 512) {
+      for (let i = 0; i < need; i++) if (used.has(nextAddr + i)) { nextAddr++; continue outer; }
+      break;
+    }
+    const newObject: EditorObject3D = {
+      id: generateId(),
+      name: `${fixture.name} ${state.objects3D.filter(o => o.type === 'spotlight_lyre').length + 1}`,
+      type: 'spotlight_lyre',
+      properties: { ...default3DProperties, color: '#FFD700' },
+      keyframes: [],
+      fixtureId: 'lyre_spot_150w',
+      spotlightFixture: fixture,
+      dmxAddress: nextAddr,
+    };
+    setState(prev => ({
+      ...prev,
+      objects3D: [newObject, ...prev.objects3D],
+      selectedObjectIds: [newObject.id],
+      hasUnsavedChanges: true,
+    }));
+  }, [state.objects3D]);
+
+  // Update DMX address for a 3D object (spotlight_lyre or firework)
+  const updateObject3DDmxAddress = useCallback((id: string, address: number) => {
+    const clamped = Math.max(1, Math.min(512, Math.round(address)));
+    setState(prev => ({
+      ...prev,
+      hasUnsavedChanges: true,
+      objects3D: prev.objects3D.map(o => o.id === id ? { ...o, dmxAddress: clamped } : o),
+    }));
+  }, []);
+
   const updateSpotlightDmxAddress = useCallback((id: string, address: number) => {
     setState(prev => ({
       ...prev,
@@ -1200,6 +1246,8 @@ export const useEditorState = () => {
     addFireworkObject,
     addSpotlightObject,
     updateSpotlightDmxAddress,
+    addObject3DSpotlightFixture,
+    updateObject3DDmxAddress,
     updateSpotlightPosition,
     updateSpotlightChannelValue,
     getInterpolatedSpotlightChannels,

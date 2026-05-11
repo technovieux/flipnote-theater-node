@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { EditorObject3D, SpotlightEditorObject } from '@/types/editor';
+import { EditorObject3D } from '@/types/editor';
 import { Lightbulb, Sparkles, Sliders, Plug, Trash2, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SpotlightFixture } from '@/types/spotlight';
@@ -7,13 +7,10 @@ import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface LogicalViewProps {
-  spotlights: SpotlightEditorObject[];
   objects3D: EditorObject3D[];
   selectedObjectIds: string[];
   onSelect: (id: string | null, options?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
   currentTime: number;
-  getInterpolatedSpotlightChannels: (spot: SpotlightEditorObject, time: number) => number[];
-  getSpotlightColor: (spot: SpotlightEditorObject, channels: number[]) => string;
   onAddSpotlight?: (fixture: SpotlightFixture) => void;
   onAddFirework?: (product: FireworkProduct, category: FireworkCategory) => void;
   readOnly?: boolean;
@@ -31,18 +28,19 @@ const NODE_W = 180;
 const NODE_H = 120;
 
 export const LogicalView: React.FC<LogicalViewProps> = ({
-  spotlights,
   objects3D,
   selectedObjectIds,
   onSelect,
   currentTime,
-  getInterpolatedSpotlightChannels,
-  getSpotlightColor,
   onAddSpotlight,
   onAddFirework,
   readOnly = false,
 }) => {
   const fireworks = useMemo(() => objects3D.filter(o => o.type === 'firework'), [objects3D]);
+  const spotlights = useMemo(
+    () => objects3D.filter(o => o.type === 'spotlight_lyre' && o.spotlightFixture),
+    [objects3D]
+  );
 
   const [consoles, setConsoles] = useState<ConsoleNode[]>([
     { id: 'console-1', name: 'Console DMX', outputs: 1 },
@@ -90,8 +88,10 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
   const conflicts = useMemo(() => {
     const used: Record<number, string[]> = {};
     spotlights.forEach(s => {
-      for (let i = 0; i < s.fixture.channels.length; i++) {
-        const a = s.dmxAddress + i;
+      const fx = s.spotlightFixture!;
+      const base = s.dmxAddress || 1;
+      for (let i = 0; i < fx.channels.length; i++) {
+        const a = base + i;
         (used[a] ||= []).push(s.id);
       }
     });
@@ -378,13 +378,14 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
             {/* Spotlight nodes */}
             {spotlights.map(s => {
               const pos = positions[s.id] || { x: 320, y: 40 };
-              const channels = getInterpolatedSpotlightChannels(s, currentTime);
-              const color = getSpotlightColor(s, channels);
+              const fx = s.spotlightFixture!;
+              const color = s.properties.color;
               const isSelected = selectedObjectIds.includes(s.id);
               const pendingIn = pendingFrom === `${s.id}:in`;
               const pendingOut = pendingFrom === `${s.id}:out`;
               const isPending = pendingIn || pendingOut;
-              const lastChan = s.dmxAddress + s.fixture.channels.length - 1;
+              const base = s.dmxAddress || 1;
+              const lastChan = base + fx.channels.length - 1;
               const isConflict = conflicts.has(s.id);
               return (
                 <div
@@ -406,9 +407,9 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
                   </div>
                   <div className="p-2 space-y-1">
                     <div className="w-full h-6 rounded transition-colors" style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}` }} />
-                    <div className="text-[10px] text-muted-foreground truncate">{s.fixture.name}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">{fx.name}</div>
                     <div className={`text-[10px] font-mono ${isConflict ? 'text-destructive' : 'text-primary'}`}>
-                      DMX {s.dmxAddress}–{lastChan} {isConflict && '⚠'}
+                      DMX {base}–{lastChan} {isConflict && '⚠'}
                     </div>
                   </div>
                   <button
