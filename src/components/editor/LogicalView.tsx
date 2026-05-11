@@ -1,10 +1,38 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { EditorObject3D } from '@/types/editor';
-import { Lightbulb, Sparkles, Sliders, Plug, Trash2, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Lightbulb, Sparkles, Sliders, Plug, Trash2, ZoomIn, ZoomOut, Maximize2, Mic, Headphones } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SpotlightFixture } from '@/types/spotlight';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+export interface ConsoleSpec {
+  id: string;
+  name: string;
+  manufacturer: string;
+  type: 'dmx' | 'audio' | 'hybrid';
+  dmxIn: number;
+  dmxOut: number;
+  audioIn: number;
+  audioOut: number;
+  description: string;
+}
+
+export interface ConsoleNode {
+  id: string;
+  spec: ConsoleSpec;
+}
+
+export interface LogicalCable {
+  id: string;
+  from: string;
+  to: string;
+}
+
+interface NodePos { x: number; y: number; }
+type Category = 'console' | 'spot' | 'firework';
+type PortSide = 'in' | 'out';
+type PortKind = 'dmx' | 'audio';
 
 interface LogicalViewProps {
   objects3D: EditorObject3D[];
@@ -14,18 +42,39 @@ interface LogicalViewProps {
   onAddSpotlight?: (fixture: SpotlightFixture) => void;
   onAddFirework?: (product: FireworkProduct, category: FireworkCategory) => void;
   readOnly?: boolean;
+  consoles: ConsoleNode[];
+  setConsoles: React.Dispatch<React.SetStateAction<ConsoleNode[]>>;
+  positions: Record<string, NodePos>;
+  setPositions: React.Dispatch<React.SetStateAction<Record<string, NodePos>>>;
+  cables: LogicalCable[];
+  setCables: React.Dispatch<React.SetStateAction<LogicalCable[]>>;
 }
 
 const FIRE_WINDOW_MS = 600;
+const NODE_W = 200;
+const PORT_ROW_H = 22;
+const HEADER_H = 36;
+const BODY_MIN = 40;
 
-interface NodePos { x: number; y: number; }
-interface ConsoleNode { id: string; name: string; outputs: number; }
-interface DmxCable { id: string; from: string; to: string; }
-type Category = 'console' | 'spot' | 'firework';
-type PortSide = 'in' | 'out';
+// Compute height for a console node based on its port counts
+const consoleHeight = (s: ConsoleSpec) => {
+  const rows = Math.max(s.dmxIn + s.dmxOut, s.audioIn > 0 || s.audioOut > 0 ? 1 : 0)
+    + (s.audioIn + s.audioOut > 0 ? Math.max(s.audioIn, s.audioOut) : 0);
+  // Use max of left-side rows vs right-side rows
+  const leftRows = (s.dmxIn > 0 ? 1 : 0) + (s.audioIn > 0 ? 1 : 0);
+  const rightRows = (s.dmxOut > 0 ? 1 : 0) + (s.audioOut > 0 ? 1 : 0);
+  const portRows = Math.max(leftRows, rightRows, 1);
+  return HEADER_H + BODY_MIN + portRows * PORT_ROW_H + 8;
+};
 
-const NODE_W = 180;
-const NODE_H = 120;
+const FIXTURE_H = 120;
+
+const buildPortKey = (id: string, kind: PortKind, side: PortSide, idx: number) =>
+  `${id}::${kind}::${side}::${idx}`;
+const parsePortKey = (key: string) => {
+  const [id, kind, side, idxStr] = key.split('::');
+  return { id, kind: kind as PortKind, side: side as PortSide, idx: parseInt(idxStr, 10) };
+};
 
 export const LogicalView: React.FC<LogicalViewProps> = ({
   objects3D,
@@ -35,6 +84,12 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
   onAddSpotlight,
   onAddFirework,
   readOnly = false,
+  consoles,
+  setConsoles,
+  positions,
+  setPositions,
+  cables,
+  setCables,
 }) => {
   const fireworks = useMemo(() => objects3D.filter(o => o.type === 'firework'), [objects3D]);
   const spotlights = useMemo(
@@ -42,28 +97,26 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
     [objects3D]
   );
 
-  const [consoles, setConsoles] = useState<ConsoleNode[]>([
-    { id: 'console-1', name: 'Console DMX', outputs: 1 },
-  ]);
-  const [positions, setPositions] = useState<Record<string, NodePos>>({});
-  const [cables, setCables] = useState<DmxCable[]>([]);
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [category, setCategory] = useState<Category>('console');
   const [zoom, setZoom] = useState(1);
 
-  // Library data
+  const [consoleLib, setConsoleLib] = useState<ConsoleSpec[]>([]);
   const [fixtureLib, setFixtureLib] = useState<SpotlightFixture[]>([]);
   const [fireworkLib, setFireworkLib] = useState<FireworkProduct[]>([]);
 
   useEffect(() => {
+    if (consoleLib.length === 0) {
+      fetch('/data/consoles.json').then(r => r.json()).then(setConsoleLib).catch(console.error);
+    }
     if (category === 'spot' && fixtureLib.length === 0) {
       fetch('/data/spotlight_fixtures.json').then(r => r.json()).then(setFixtureLib).catch(console.error);
     }
     if (category === 'firework' && fireworkLib.length === 0) {
       fetch('/data/consumer_fireworks.json').then(r => r.json()).then(setFireworkLib).catch(console.error);
     }
-  }, [category, fixtureLib.length, fireworkLib.length]);
+  }, [category, consoleLib.length, fixtureLib.length, fireworkLib.length]);
 
   // Initialize positions for new nodes
   useEffect(() => {
@@ -71,18 +124,18 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
       const next = { ...prev };
       let changed = false;
       consoles.forEach((c, i) => {
-        if (!next[c.id]) { next[c.id] = { x: 40, y: 40 + i * (NODE_H + 30) }; changed = true; }
+        if (!next[c.id]) { next[c.id] = { x: 40, y: 40 + i * 200 }; changed = true; }
       });
       spotlights.forEach((s, i) => {
-        if (!next[s.id]) { next[s.id] = { x: 320 + (i % 3) * (NODE_W + 30), y: 40 + Math.floor(i / 3) * (NODE_H + 30) }; changed = true; }
+        if (!next[s.id]) { next[s.id] = { x: 360 + (i % 3) * (NODE_W + 30), y: 40 + Math.floor(i / 3) * (FIXTURE_H + 30) }; changed = true; }
       });
       fireworks.forEach((f, i) => {
         const row = Math.floor(i / 3);
-        if (!next[f.id]) { next[f.id] = { x: 320 + (i % 3) * (NODE_W + 30), y: 40 + (Math.ceil(spotlights.length / 3) + row) * (NODE_H + 30) }; changed = true; }
+        if (!next[f.id]) { next[f.id] = { x: 360 + (i % 3) * (NODE_W + 30), y: 40 + (Math.ceil(spotlights.length / 3) + row) * (FIXTURE_H + 30) }; changed = true; }
       });
       return changed ? next : prev;
     });
-  }, [consoles, spotlights, fireworks]);
+  }, [consoles, spotlights, fireworks, setPositions]);
 
   // DMX conflict detection
   const conflicts = useMemo(() => {
@@ -90,10 +143,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
     spotlights.forEach(s => {
       const fx = s.spotlightFixture!;
       const base = s.dmxAddress || 1;
-      for (let i = 0; i < fx.channels.length; i++) {
-        const a = base + i;
-        (used[a] ||= []).push(s.id);
-      }
+      for (let i = 0; i < fx.channels.length; i++) (used[base + i] ||= []).push(s.id);
     });
     fireworks.forEach(f => {
       if (f.dmxAddress) (used[f.dmxAddress] ||= []).push(f.id);
@@ -106,12 +156,12 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
   // Drag handling
   const dragRef = useRef<{ id: string; offX: number; offY: number } | null>(null);
   const onNodePointerDown = (e: React.PointerEvent, id: string) => {
-    if (readOnly) return;
-    if (pendingFrom) return;
+    if (readOnly || pendingFrom) return;
     e.stopPropagation();
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     const pos = positions[id];
+    if (!pos) return;
     const sx = (e.clientX - rect.left + (containerRef.current?.scrollLeft || 0)) / zoom;
     const sy = (e.clientY - rect.top + (containerRef.current?.scrollTop || 0)) / zoom;
     dragRef.current = { id, offX: sx - pos.x, offY: sy - pos.y };
@@ -133,30 +183,48 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
     setCables(prev => prev.filter(c => c.id !== id));
   };
 
-  const portPoint = (id: string, side: PortSide) => {
-    const p = positions[id];
-    if (!p) return { x: 0, y: 0 };
-    return { x: side === 'in' ? p.x : p.x + NODE_W, y: p.y + NODE_H / 2 };
+  // Build a map of port positions (offset within each node) for both consoles and fixtures
+  const getPortAbsolute = (key: string): { x: number; y: number } | null => {
+    const { id, kind, side, idx } = parsePortKey(key);
+    const pos = positions[id];
+    if (!pos) return null;
+
+    // Console node?
+    const c = consoles.find(c => c.id === id);
+    if (c) {
+      const s = c.spec;
+      // Left side: row 0 = dmx in (if any), row 1 (or 0) = audio in start
+      // Right side: row 0 = dmx out, row 1 = audio out start
+      if (side === 'in') {
+        // Stack: dmx_in rows, then audio_in rows
+        const yOff = HEADER_H + 8 + idx * PORT_ROW_H + PORT_ROW_H / 2;
+        return { x: pos.x, y: pos.y + yOff };
+      } else {
+        const yOff = HEADER_H + 8 + idx * PORT_ROW_H + PORT_ROW_H / 2;
+        return { x: pos.x + NODE_W, y: pos.y + yOff };
+      }
+    }
+
+    // Fixture (spotlight or firework): single port mid-height
+    return {
+      x: side === 'in' ? pos.x : pos.x + NODE_W,
+      y: pos.y + FIXTURE_H / 2,
+    };
   };
 
-  const parseCable = (cableId: string) => {
-    const m = cableId.match(/:(in|out)->.*:(in|out)$/);
-    return { fromSide: (m?.[1] as PortSide) || 'out', toSide: (m?.[2] as PortSide) || 'in' };
-  };
-
-  const startCableFromPort = (id: string, side: PortSide) => {
+  const startCableFromPort = (key: string) => {
     if (readOnly) return;
-    const key = `${id}:${side}`;
     setPendingFrom(prev => prev === key ? null : key);
   };
-  const tryConnectPort = (toId: string, toSide: PortSide) => {
+  const tryConnectPort = (toKey: string) => {
     if (readOnly || !pendingFrom) return;
-    const [fromId, fromSide] = pendingFrom.split(':') as [string, PortSide];
-    if (fromId === toId) { setPendingFrom(null); return; }
-    // Disallow same-direction port connections (in↔in or out↔out)
-    if (fromSide === toSide) { setPendingFrom(null); return; }
-    const cableId = `${fromId}:${fromSide}->${toId}:${toSide}`;
-    setCables(prev => prev.some(c => c.id === cableId) ? prev : [...prev, { id: cableId, from: fromId, to: toId }]);
+    const from = parsePortKey(pendingFrom);
+    const to = parsePortKey(toKey);
+    if (from.id === to.id) { setPendingFrom(null); return; }
+    if (from.kind !== to.kind) { setPendingFrom(null); return; }
+    if (from.side === to.side) { setPendingFrom(null); return; }
+    const cableId = `${pendingFrom}->${toKey}`;
+    setCables(prev => prev.some(c => c.id === cableId) ? prev : [...prev, { id: cableId, from: from.id, to: to.id }]);
     setPendingFrom(null);
   };
 
@@ -168,6 +236,39 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
 
   const portClickable = !readOnly;
 
+  const addConsole = (spec: ConsoleSpec) => {
+    setConsoles(prev => [...prev, { id: `console-${Date.now()}-${Math.random().toString(36).slice(2,7)}`, spec }]);
+  };
+
+  const removeConsole = (id: string) => {
+    setConsoles(prev => prev.filter(c => c.id !== id));
+    setCables(prev => prev.filter(cb => cb.from !== id && cb.to !== id));
+  };
+
+  // Render a single port button
+  const PortButton: React.FC<{
+    nodeId: string; kind: PortKind; side: PortSide; idx: number;
+    label: string;
+  }> = ({ nodeId, kind, side, idx, label }) => {
+    const key = buildPortKey(nodeId, kind, side, idx);
+    const isPending = pendingFrom === key;
+    const Icon = kind === 'dmx' ? Plug : (side === 'in' ? Mic : Headphones);
+    const colorClass = kind === 'dmx' ? 'border-primary' : 'border-emerald-500';
+    const pendingClass = kind === 'dmx' ? 'border-amber-500 bg-amber-500 text-black' : 'border-amber-500 bg-amber-500 text-black';
+    return (
+      <button
+        disabled={!portClickable}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(key) : startCableFromPort(key); }}
+        className={`absolute ${side === 'in' ? '-left-3' : '-right-3'} w-6 h-6 rounded-full border-2 flex items-center justify-center bg-card hover:bg-accent transition ${isPending ? pendingClass : colorClass} disabled:opacity-60 disabled:cursor-not-allowed`}
+        title={label}
+        style={{ top: HEADER_H + 8 + idx * PORT_ROW_H }}
+      >
+        <Icon className="h-3 w-3" />
+      </button>
+    );
+  };
+
   return (
     <TooltipProvider delayDuration={200}>
     <div className="w-full h-full flex bg-muted/20">
@@ -176,7 +277,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
         <div className="p-3 space-y-2 border-b border-border">
           <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Catégories</div>
           <Button variant={category === 'console' ? 'default' : 'outline'} size="sm" className="w-full justify-start gap-2" onClick={() => setCategory('console')}>
-            <Sliders className="h-4 w-4" /> Consoles DMX
+            <Sliders className="h-4 w-4" /> Consoles
           </Button>
           <Button variant={category === 'spot' ? 'default' : 'outline'} size="sm" className="w-full justify-start gap-2" onClick={() => setCategory('spot')}>
             <Lightbulb className="h-4 w-4" /> Projecteurs
@@ -187,29 +288,48 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
         </div>
         <div className="flex-1 overflow-auto p-3">
           <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">
-            {category === 'console' ? 'Consoles' : category === 'spot' ? 'Bibliothèque projecteurs' : "Bibliothèque feux"}
+            {category === 'console' ? 'Bibliothèque consoles' : category === 'spot' ? 'Bibliothèque projecteurs' : 'Bibliothèque feux'}
           </div>
 
           {category === 'console' && (
             <div className="grid grid-cols-2 gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    disabled={readOnly}
-                    onClick={() => setConsoles(prev => [...prev, { id: `console-${Date.now()}`, name: `Console ${prev.length + 1}`, outputs: 1 }])}
-                    className="aspect-square rounded border border-dashed border-primary/60 bg-background hover:bg-primary/10 flex flex-col items-center justify-center text-[10px] gap-1 disabled:opacity-50"
-                  >
-                    <Sliders className="h-5 w-5 text-primary" />
-                    <span className="font-medium">+ Console</span>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <div className="text-xs">
-                    <div className="font-semibold">Console DMX</div>
-                    <div className="text-muted-foreground">1 univers · 512 canaux</div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
+              {consoleLib.map(c => {
+                const TypeIcon = c.type === 'audio' ? Mic : c.type === 'hybrid' ? Sliders : Plug;
+                return (
+                  <Tooltip key={c.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        disabled={readOnly}
+                        onClick={() => addConsole(c)}
+                        className="aspect-square rounded border border-border bg-background hover:bg-accent hover:border-primary flex flex-col items-center justify-center p-1.5 gap-1 text-center disabled:opacity-50"
+                      >
+                        <TypeIcon className="h-5 w-5 text-primary" />
+                        <span className="text-[10px] font-medium leading-tight line-clamp-2">{c.name}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs">
+                      <div className="text-xs space-y-1">
+                        <div className="font-semibold">{c.name}</div>
+                        <div className="text-muted-foreground">{c.manufacturer}</div>
+                        <div className="capitalize">Type : {c.type}</div>
+                        {(c.dmxIn > 0 || c.dmxOut > 0) && (
+                          <div className="flex items-center gap-1"><Plug className="h-3 w-3" /> DMX : {c.dmxIn} IN / {c.dmxOut} OUT</div>
+                        )}
+                        {c.audioIn > 0 && (
+                          <div className="flex items-center gap-1"><Mic className="h-3 w-3" /> Audio IN : {c.audioIn}</div>
+                        )}
+                        {c.audioOut > 0 && (
+                          <div className="flex items-center gap-1"><Headphones className="h-3 w-3" /> Audio OUT : {c.audioOut}</div>
+                        )}
+                        <div className="text-[10px] text-muted-foreground italic mt-1">{c.description}</div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+              {consoleLib.length === 0 && (
+                <div className="col-span-2 text-[11px] text-muted-foreground italic">Chargement…</div>
+              )}
             </div>
           )}
 
@@ -281,7 +401,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
 
           {pendingFrom && !readOnly && (
             <div className="mt-3 p-2 rounded bg-amber-500/20 text-amber-200 text-[11px]">
-              Câble en cours… clique un port cible compatible (IN↔OUT).
+              Câble en cours… clique un port compatible (même type, sens opposé).
             </div>
           )}
           {readOnly && (
@@ -307,16 +427,19 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
             style={{ transform: `scale(${zoom})`, transformOrigin: '0 0', width: 3000, height: 2000 }}
           >
             <svg className="absolute inset-0 pointer-events-none" width="3000" height="2000">
-              {cables.map(c => {
-                const { fromSide, toSide } = parseCable(c.id);
-                const a = portPoint(c.from, fromSide);
-                const b = portPoint(c.to, toSide);
+              {cables.map(cab => {
+                const [fromKey, toKey] = cab.id.split('->');
+                const a = getPortAbsolute(fromKey);
+                const b = getPortAbsolute(toKey);
+                if (!a || !b) return null;
+                const { kind } = parsePortKey(fromKey);
+                const stroke = kind === 'audio' ? 'hsl(142 71% 45%)' : 'hsl(var(--primary))';
                 const mx = (a.x + b.x) / 2;
                 return (
-                  <g key={c.id}>
+                  <g key={cab.id}>
                     <path
                       d={`M ${a.x} ${a.y} C ${mx} ${a.y}, ${mx} ${b.y}, ${b.x} ${b.y}`}
-                      stroke="hsl(var(--primary))"
+                      stroke={stroke}
                       strokeWidth={3}
                       fill="none"
                       className="opacity-80"
@@ -328,7 +451,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
                         r={8}
                         fill="hsl(var(--destructive))"
                         className="pointer-events-auto cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); removeCable(c.id); }}
+                        onClick={(e) => { e.stopPropagation(); removeCable(cab.id); }}
                       />
                     )}
                   </g>
@@ -339,50 +462,69 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
             {/* Console nodes */}
             {consoles.map(c => {
               const pos = positions[c.id] || { x: 40, y: 40 };
-              const isPending = pendingFrom?.startsWith(c.id + ':');
+              const s = c.spec;
+              const h = consoleHeight(s);
+              const TypeIcon = s.type === 'audio' ? Mic : s.type === 'hybrid' ? Sliders : Plug;
+
+              // Build IN ports (left): dmx then audio
+              const inPorts: { kind: PortKind; idx: number; label: string }[] = [];
+              for (let i = 0; i < s.dmxIn; i++) inPorts.push({ kind: 'dmx', idx: i, label: `DMX IN ${i + 1}` });
+              for (let i = 0; i < s.audioIn; i++) inPorts.push({ kind: 'audio', idx: i, label: `Audio IN ${i + 1}` });
+              const outPorts: { kind: PortKind; idx: number; label: string }[] = [];
+              for (let i = 0; i < s.dmxOut; i++) outPorts.push({ kind: 'dmx', idx: i, label: `DMX OUT ${i + 1}` });
+              for (let i = 0; i < s.audioOut; i++) outPorts.push({ kind: 'audio', idx: i, label: `Audio OUT ${i + 1}` });
+
+              const portRows = Math.max(inPorts.length, outPorts.length, 1);
+              const nodeH = HEADER_H + 8 + portRows * PORT_ROW_H + 8;
+
               return (
                 <div
                   key={c.id}
-                  className={`absolute rounded-lg border-2 bg-card shadow-md select-none ${isPending ? 'border-amber-500 ring-2 ring-amber-500/50' : 'border-primary'}`}
-                  style={{ left: pos.x, top: pos.y, width: NODE_W, height: NODE_H }}
+                  className="absolute rounded-lg border-2 bg-card shadow-md select-none border-primary"
+                  style={{ left: pos.x, top: pos.y, width: NODE_W, height: nodeH }}
                   onPointerDown={(e) => onNodePointerDown(e, c.id)}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="flex items-center justify-between p-2 border-b border-border bg-primary/10 rounded-t-md">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold">
-                      <Sliders className="h-3.5 w-3.5" /> {c.name}
+                  <div className="flex items-center justify-between p-2 border-b border-border bg-primary/10 rounded-t-md" style={{ height: HEADER_H }}>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold truncate">
+                      <TypeIcon className="h-3.5 w-3.5" /> {s.name}
                     </div>
-                    {consoles.length > 1 && !readOnly && (
+                    {!readOnly && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); setConsoles(prev => prev.filter(x => x.id !== c.id)); setCables(prev => prev.filter(cb => cb.from !== c.id && cb.to !== c.id)); }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); removeConsole(c.id); }}
                         className="text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
                     )}
                   </div>
-                  <div className="p-2 text-[11px] text-muted-foreground">Univers 1 · 512 canaux</div>
-                  <button
-                    disabled={!portClickable}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(c.id, 'out') : startCableFromPort(c.id, 'out'); }}
-                    className={`absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center bg-card hover:bg-primary hover:text-primary-foreground transition ${isPending ? 'border-amber-500 bg-amber-500 text-black' : 'border-primary'} disabled:opacity-60 disabled:cursor-not-allowed`}
-                    title="DMX OUT"
-                  >
-                    <Plug className="h-3 w-3" />
-                  </button>
+                  <div className="px-2 pt-1 text-[10px] text-muted-foreground truncate">{s.manufacturer}</div>
+                  <div className="px-2 pb-1 text-[10px] text-muted-foreground space-y-0.5">
+                    {(s.dmxIn + s.dmxOut > 0) && <div>DMX : {s.dmxIn}/{s.dmxOut}</div>}
+                    {(s.audioIn + s.audioOut > 0) && <div>Audio : {s.audioIn}/{s.audioOut}</div>}
+                  </div>
+
+                  {inPorts.map(p => (
+                    <PortButton key={`in-${p.kind}-${p.idx}`} nodeId={c.id} kind={p.kind} side="in" idx={inPorts.indexOf(p)} label={p.label} />
+                  ))}
+                  {outPorts.map(p => (
+                    <PortButton key={`out-${p.kind}-${p.idx}`} nodeId={c.id} kind={p.kind} side="out" idx={outPorts.indexOf(p)} label={p.label} />
+                  ))}
                 </div>
               );
             })}
 
             {/* Spotlight nodes */}
             {spotlights.map(s => {
-              const pos = positions[s.id] || { x: 320, y: 40 };
+              const pos = positions[s.id] || { x: 360, y: 40 };
               const fx = s.spotlightFixture!;
               const color = s.properties.color;
               const isSelected = selectedObjectIds.includes(s.id);
-              const pendingIn = pendingFrom === `${s.id}:in`;
-              const pendingOut = pendingFrom === `${s.id}:out`;
+              const inKey = buildPortKey(s.id, 'dmx', 'in', 0);
+              const outKey = buildPortKey(s.id, 'dmx', 'out', 0);
+              const pendingIn = pendingFrom === inKey;
+              const pendingOut = pendingFrom === outKey;
               const isPending = pendingIn || pendingOut;
               const base = s.dmxAddress || 1;
               const lastChan = base + fx.channels.length - 1;
@@ -396,7 +538,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
                     : isConflict ? 'border-destructive'
                     : 'border-border'
                   }`}
-                  style={{ left: pos.x, top: pos.y, width: NODE_W, height: NODE_H }}
+                  style={{ left: pos.x, top: pos.y, width: NODE_W, height: FIXTURE_H }}
                   onPointerDown={(e) => onNodePointerDown(e, s.id)}
                   onClick={(e) => { e.stopPropagation(); onSelect(s.id, { ctrlKey: e.ctrlKey, shiftKey: e.shiftKey }); }}
                 >
@@ -415,7 +557,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
                   <button
                     disabled={!portClickable}
                     onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(s.id, 'in') : startCableFromPort(s.id, 'in'); }}
+                    onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(inKey) : startCableFromPort(inKey); }}
                     className={`absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center bg-card hover:bg-primary hover:text-primary-foreground transition ${pendingIn ? 'border-amber-500 bg-amber-500 text-black' : 'border-primary'} disabled:opacity-60 disabled:cursor-not-allowed`}
                     title="DMX IN"
                   >
@@ -424,7 +566,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
                   <button
                     disabled={!portClickable}
                     onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(s.id, 'out') : startCableFromPort(s.id, 'out'); }}
+                    onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(outKey) : startCableFromPort(outKey); }}
                     className={`absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center bg-card hover:bg-primary hover:text-primary-foreground transition ${pendingOut ? 'border-amber-500 bg-amber-500 text-black' : 'border-primary'} disabled:opacity-60 disabled:cursor-not-allowed`}
                     title="DMX OUT (chaînage)"
                   >
@@ -436,12 +578,13 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
 
             {/* Firework nodes */}
             {fireworks.map(fw => {
-              const pos = positions[fw.id] || { x: 320, y: 200 };
+              const pos = positions[fw.id] || { x: 360, y: 200 };
               const launchTime = fw.keyframes[0]?.time;
               const isFiring = launchTime !== undefined && currentTime >= launchTime && currentTime <= launchTime + FIRE_WINDOW_MS;
               const baseColor = fw.fireworkProduct?.colors[0] || fw.properties.color;
               const isSelected = selectedObjectIds.includes(fw.id);
-              const isPending = pendingFrom === `${fw.id}:in`;
+              const inKey = buildPortKey(fw.id, 'dmx', 'in', 0);
+              const isPending = pendingFrom === inKey;
               const isConflict = conflicts.has(fw.id);
               return (
                 <div
@@ -452,7 +595,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
                     : isConflict ? 'border-destructive'
                     : 'border-border'
                   }`}
-                  style={{ left: pos.x, top: pos.y, width: NODE_W, height: NODE_H }}
+                  style={{ left: pos.x, top: pos.y, width: NODE_W, height: FIXTURE_H }}
                   onPointerDown={(e) => onNodePointerDown(e, fw.id)}
                   onClick={(e) => { e.stopPropagation(); onSelect(fw.id, { ctrlKey: e.ctrlKey, shiftKey: e.shiftKey }); }}
                 >
@@ -476,7 +619,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
                   <button
                     disabled={!portClickable}
                     onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(fw.id, 'in') : startCableFromPort(fw.id, 'in'); }}
+                    onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(inKey) : startCableFromPort(inKey); }}
                     className={`absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center bg-card hover:bg-primary hover:text-primary-foreground transition ${isPending ? 'border-amber-500 bg-amber-500 text-black' : 'border-primary'} disabled:opacity-60 disabled:cursor-not-allowed`}
                     title="DMX IN"
                   >
@@ -486,9 +629,9 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
               );
             })}
 
-            {(spotlights.length === 0 && fireworks.length === 0) && (
+            {(consoles.length === 0 && spotlights.length === 0 && fireworks.length === 0) && (
               <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground italic pointer-events-none">
-                Ajoute des projecteurs ou des feux d'artifice depuis la bibliothèque.
+                Ajoute une console, des projecteurs ou des feux d'artifice depuis la bibliothèque.
               </div>
             )}
           </div>
