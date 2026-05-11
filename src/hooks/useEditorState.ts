@@ -1246,6 +1246,8 @@ export const useEditorState = () => {
     addFireworkObject,
     addSpotlightObject,
     updateSpotlightDmxAddress,
+    addObject3DSpotlightFixture,
+    updateObject3DDmxAddress,
     updateSpotlightPosition,
     updateSpotlightChannelValue,
     getInterpolatedSpotlightChannels,
