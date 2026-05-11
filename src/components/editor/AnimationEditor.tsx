@@ -827,7 +827,13 @@ export const AnimationEditor: React.FC = () => {
               {state.showProperties && !renderMode && (
                 <>
                   <ResizablePanel defaultSize={30} minSize={20}>
-                    {state.modeSpotlight ? (
+                    {state.modeCombined && combinedView === 'logical' ? (
+                      <PropertiesPanelLogical
+                        selectedObjects={state.objects3D.filter(o => state.selectedObjectIds.includes(o.id))}
+                        onUpdateDmxAddress={updateObject3DDmxAddress}
+                        onUpdateColor={(id, color) => updateObject3DProperties(id, { color })}
+                      />
+                    ) : state.modeSpotlight ? (
                       <PropertiesPanelSpotlight
                         selectedSpotlights={selectedSpotlightData}
                         onUpdateDmxAddress={updateSpotlightDmxAddress}
