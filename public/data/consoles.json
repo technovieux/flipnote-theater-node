@@ -1,0 +1,145 @@
+[
+  {
+    "id": "grandma3-full",
+    "name": "grandMA3 Full-Size",
+    "manufacturer": "MA Lighting",
+    "type": "dmx",
+    "dmxIn": 1,
+    "dmxOut": 8,
+    "audioIn": 0,
+    "audioOut": 0,
+    "description": "Console DMX professionnelle haut de gamme. 8 univers DMX en sortie."
+  },
+  {
+    "id": "grandma3-light",
+    "name": "grandMA3 Light",
+    "manufacturer": "MA Lighting",
+    "type": "dmx",
+    "dmxIn": 1,
+    "dmxOut": 4,
+    "audioIn": 0,
+    "audioOut": 0,
+    "description": "Version compacte de la grandMA3. 4 univers DMX."
+  },
+  {
+    "id": "chamsys-magicq-mq500",
+    "name": "MagicQ MQ500 Stadium",
+    "manufacturer": "ChamSys",
+    "type": "dmx",
+    "dmxIn": 1,
+    "dmxOut": 6,
+    "audioIn": 0,
+    "audioOut": 0,
+    "description": "Console DMX stade et grands événements."
+  },
+  {
+    "id": "avolites-tiger-touch-ii",
+    "name": "Tiger Touch II",
+    "manufacturer": "Avolites",
+    "type": "dmx",
+    "dmxIn": 1,
+    "dmxOut": 4,
+    "audioIn": 0,
+    "audioOut": 0,
+    "description": "Console DMX tactile polyvalente."
+  },
+  {
+    "id": "etc-ion-xe",
+    "name": "Ion Xe",
+    "manufacturer": "ETC",
+    "type": "dmx",
+    "dmxIn": 1,
+    "dmxOut": 2,
+    "audioIn": 0,
+    "audioOut": 0,
+    "description": "Console DMX théâtrale 2 univers."
+  },
+  {
+    "id": "behringer-x32",
+    "name": "X32",
+    "manufacturer": "Behringer",
+    "type": "audio",
+    "dmxIn": 0,
+    "dmxOut": 0,
+    "audioIn": 32,
+    "audioOut": 16,
+    "description": "Console de mixage audio numérique 32 entrées / 16 sorties."
+  },
+  {
+    "id": "yamaha-cl5",
+    "name": "CL5",
+    "manufacturer": "Yamaha",
+    "type": "audio",
+    "dmxIn": 0,
+    "dmxOut": 0,
+    "audioIn": 72,
+    "audioOut": 35,
+    "description": "Console de mixage audio numérique professionnelle."
+  },
+  {
+    "id": "allen-heath-sq6",
+    "name": "SQ-6",
+    "manufacturer": "Allen & Heath",
+    "type": "audio",
+    "dmxIn": 0,
+    "dmxOut": 0,
+    "audioIn": 48,
+    "audioOut": 36,
+    "description": "Console de mixage audio numérique compacte."
+  },
+  {
+    "id": "soundcraft-vi3000",
+    "name": "Vi3000",
+    "manufacturer": "Soundcraft",
+    "type": "audio",
+    "dmxIn": 0,
+    "dmxOut": 0,
+    "audioIn": 64,
+    "audioOut": 32,
+    "description": "Console audio live numérique haut de gamme."
+  },
+  {
+    "id": "midas-m32",
+    "name": "M32",
+    "manufacturer": "Midas",
+    "type": "audio",
+    "dmxIn": 0,
+    "dmxOut": 0,
+    "audioIn": 32,
+    "audioOut": 16,
+    "description": "Console de mixage audio numérique professionnelle."
+  },
+  {
+    "id": "onyx-nx-wing",
+    "name": "NX Wing",
+    "manufacturer": "Obsidian Control",
+    "type": "hybrid",
+    "dmxIn": 1,
+    "dmxOut": 4,
+    "audioIn": 2,
+    "audioOut": 2,
+    "description": "Console hybride DMX et audio pour spectacles intégrés."
+  },
+  {
+    "id": "showmaster-hybrid-pro",
+    "name": "ShowMaster Hybrid Pro",
+    "manufacturer": "Work Pro",
+    "type": "hybrid",
+    "dmxIn": 1,
+    "dmxOut": 2,
+    "audioIn": 8,
+    "audioOut": 4,
+    "description": "Console hybride lumière + audio pour petits événements."
+  },
+  {
+    "id": "stagetec-aurus-platinum",
+    "name": "Aurus Platinum",
+    "manufacturer": "Stage Tec",
+    "type": "hybrid",
+    "dmxIn": 2,
+    "dmxOut": 4,
+    "audioIn": 96,
+    "audioOut": 48,
+    "description": "Console hybride professionnelle broadcast et live."
+  }
+]
