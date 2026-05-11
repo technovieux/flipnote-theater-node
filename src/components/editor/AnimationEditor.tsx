@@ -153,6 +153,11 @@ export const AnimationEditor: React.FC = () => {
   const [dmxConnected, setDmxConnected] = useState(false);
   const [dmxRealtime, setDmxRealtime] = useState(false);
   const [combinedView, setCombinedView] = useState<'logical' | 'physical'>('physical');
+  // Persistent logical-view state (consoles, node positions, cables) — kept here
+  // so cabling survives switching to physical/3D view and back.
+  const [logicalConsoles, setLogicalConsoles] = useState<import('./LogicalView').ConsoleNode[]>([]);
+  const [logicalPositions, setLogicalPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [logicalCables, setLogicalCables] = useState<import('./LogicalView').LogicalCable[]>([]);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -763,6 +768,12 @@ export const AnimationEditor: React.FC = () => {
                     onAddSpotlight={renderMode ? undefined : addObject3DSpotlightFixture}
                     onAddFirework={renderMode ? undefined : addFireworkObject}
                     readOnly={renderMode}
+                    consoles={logicalConsoles}
+                    setConsoles={setLogicalConsoles}
+                    positions={logicalPositions}
+                    setPositions={setLogicalPositions}
+                    cables={logicalCables}
+                    setCables={setLogicalCables}
                   />
                 ) : state.mode3D ? (
                   <Canvas3D
