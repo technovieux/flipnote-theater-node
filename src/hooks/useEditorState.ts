@@ -266,6 +266,10 @@ export const useEditorState = () => {
     setState(prev => ({ ...prev, modeCombined, mode3D: modeCombined, modeFireworks: false, modeSpotlight: false, selectedObjectIds: [] }));
   }, []);
 
+  const setModeDrone = useCallback((modeDrone: boolean) => {
+    setState(prev => ({ ...prev, modeDrone, mode3D: modeDrone, modeCombined: false, modeFireworks: false, modeSpotlight: false, selectedObjectIds: [] }));
+  }, []);
+
   const updateProjectConfig = useCallback((config: Partial<import('@/types/editor').ProjectConfig>) => {
     setState(prev => ({ ...prev, projectConfig: { ...prev.projectConfig, ...config }, hasUnsavedChanges: true }));
   }, []);
