@@ -762,14 +762,15 @@ export const AnimationEditor: React.FC = () => {
                 </>
               )}
               <ResizablePanel defaultSize={renderMode ? 100 : 75} minSize={30}>
-                {state.modeCombined && combinedView === 'logical' ? (
+                {(state.modeCombined || state.modeDrone) && combinedView === 'logical' ? (
                   <LogicalView
                     objects3D={state.objects3D}
                     selectedObjectIds={renderMode ? [] : state.selectedObjectIds}
                     onSelect={renderMode ? () => {} : selectObject}
                     currentTime={state.currentTime}
-                    onAddSpotlight={renderMode ? undefined : addObject3DSpotlightFixture}
-                    onAddFirework={renderMode ? undefined : addFireworkObject}
+                    onAddSpotlight={renderMode || state.modeDrone ? undefined : addObject3DSpotlightFixture}
+                    onAddFirework={renderMode || state.modeDrone ? undefined : addFireworkObject}
+                    droneMode={state.modeDrone}
                     readOnly={renderMode}
                     consoles={logicalConsoles}
                     setConsoles={setLogicalConsoles}
@@ -841,7 +842,7 @@ export const AnimationEditor: React.FC = () => {
               {state.showProperties && !renderMode && (
                 <>
                   <ResizablePanel defaultSize={30} minSize={20}>
-                    {state.modeCombined && combinedView === 'logical' ? (
+                    {(state.modeCombined || state.modeDrone) && combinedView === 'logical' ? (
                       <PropertiesPanelLogical
                         selectedObjects={state.objects3D.filter(o => state.selectedObjectIds.includes(o.id))}
                         onUpdateDmxAddress={updateObject3DDmxAddress}
