@@ -19,8 +19,7 @@ export type Shape3DType =
   // Spotlight fixtures
   | 'spotlight_lyre';
 
-export type EditorMode = '2d' | '3d' | 'fireworks' | 'spotlight' | 'combined';
-// 'drone' is handled like a sub-flavor of combined (no spots, no pyro, plus drones)
+export type EditorMode = '2d' | '3d' | 'fireworks' | 'spotlight' | 'combined' | 'drone';
 
 export interface ProjectConfig {
   startTime: string; // HH:MM format
