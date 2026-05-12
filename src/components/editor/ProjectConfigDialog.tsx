@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ProjectConfig } from '@/types/editor';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -52,6 +53,7 @@ export const ProjectConfigDialog: React.FC<ProjectConfigDialogProps> = ({
   const [lat, setLat] = useState(config.latitude);
   const [lng, setLng] = useState(config.longitude);
   const [locationName, setLocationName] = useState(config.locationName);
+  const [dynamicLighting, setDynamicLighting] = useState(config.dynamicLighting !== false);
 
   useEffect(() => {
     if (open) {
@@ -60,6 +62,7 @@ export const ProjectConfigDialog: React.FC<ProjectConfigDialogProps> = ({
       setLat(config.latitude);
       setLng(config.longitude);
       setLocationName(config.locationName);
+      setDynamicLighting(config.dynamicLighting !== false);
     }
   }, [open, config]);
 
@@ -70,6 +73,7 @@ export const ProjectConfigDialog: React.FC<ProjectConfigDialogProps> = ({
       latitude: lat,
       longitude: lng,
       locationName,
+      dynamicLighting,
     });
     onOpenChange(false);
   };
@@ -131,8 +135,16 @@ export const ProjectConfigDialog: React.FC<ProjectConfigDialogProps> = ({
           </div>
 
           <div className="p-3 bg-muted rounded-md text-sm text-muted-foreground">
-            💡 La luminosité ambiante de la scène 3D sera calculée automatiquement en fonction de la date, l'heure et la position géographique choisies.
+            💡 La luminosité ambiante de la scène 3D peut être calculée automatiquement en fonction de la date, l'heure et la position géographique choisies.
           </div>
+
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <Checkbox
+              checked={dynamicLighting}
+              onCheckedChange={(c) => setDynamicLighting(c === true)}
+            />
+            <span className="text-sm">Afficher la luminosité dynamique (soleil/heure/géo)</span>
+          </label>
         </div>
 
         <DialogFooter>
