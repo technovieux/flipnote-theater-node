@@ -99,12 +99,14 @@ const initialState: EditorState = {
   modeFireworks: false,
   modeSpotlight: false,
   modeCombined: false,
+  modeDrone: false,
   projectConfig: {
     startTime: '21:00',
     startDate: new Date().toISOString().split('T')[0],
     latitude: 48.8566,
     longitude: 2.3522,
     locationName: 'Paris, France',
+    dynamicLighting: true,
   },
   hasUnsavedChanges: false,
 };
