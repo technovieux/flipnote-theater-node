@@ -20,6 +20,7 @@ export type Shape3DType =
   | 'spotlight_lyre';
 
 export type EditorMode = '2d' | '3d' | 'fireworks' | 'spotlight' | 'combined';
+// 'drone' is handled like a sub-flavor of combined (no spots, no pyro, plus drones)
 
 export interface ProjectConfig {
   startTime: string; // HH:MM format
@@ -27,6 +28,8 @@ export interface ProjectConfig {
   latitude: number;
   longitude: number;
   locationName: string;
+  /** When false, the 3D scene uses static dark studio lighting instead of date/time/geo-based sun simulation. */
+  dynamicLighting?: boolean;
 }
 
 
