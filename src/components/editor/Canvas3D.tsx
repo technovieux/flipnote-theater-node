@@ -844,10 +844,15 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
             <CameraTracker controlsRef={controlsRef} />
             <CameraController controlsRef={controlsRef} mode={navMode} />
             <ambientLight intensity={sunLight ? sunLight.ambientIntensity : 0.5} color={sunLight ? sunLight.color : '#ffffff'} />
-            <directionalLight position={[10, 10, 5]} intensity={sunLight ? sunLight.directionalIntensity : 1} color={sunLight ? sunLight.color : '#ffffff'} castShadow />
-            <pointLight position={[-10, -10, -5]} intensity={sunLight ? sunLight.ambientIntensity * 0.5 : 0.5} />
-            
-            <Environment preset="studio" />
+            {sunLight ? (
+              <SunSky sunLight={sunLight} />
+            ) : (
+              <>
+                <directionalLight position={[10, 10, 5]} intensity={1} color="#ffffff" castShadow />
+                <pointLight position={[-10, -10, -5]} intensity={0.5} />
+                <Environment preset="studio" />
+              </>
+            )}
             
             {/* Grid on XY plane (Z-up) */}
             <Grid
