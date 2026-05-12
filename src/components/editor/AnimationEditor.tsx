@@ -784,7 +784,7 @@ export const AnimationEditor: React.FC = () => {
                     getInterpolatedProperties={getInterpolatedProperties3D}
                     currentTime={state.currentTime}
                     isPlaying={state.isPlaying}
-                    sunLight={state.modeCombined ? getSunLightInfo(
+                    sunLight={(state.modeCombined || state.modeDrone) && state.projectConfig.dynamicLighting !== false ? getSunLightInfo(
                       state.projectConfig.latitude,
                       state.projectConfig.longitude,
                       state.projectConfig.startDate,
