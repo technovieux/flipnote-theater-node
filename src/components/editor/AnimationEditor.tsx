@@ -393,6 +393,8 @@ export const AnimationEditor: React.FC = () => {
       setModeSpotlight(true);
     } else if (mode === 'combined') {
       setModeCombined(true);
+    } else if (mode === 'drone') {
+      setModeDrone(true);
     } else {
       setMode3D(mode === '3d');
     }
