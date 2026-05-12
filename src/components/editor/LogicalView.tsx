@@ -1,7 +1,8 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { EditorObject3D } from '@/types/editor';
-import { Lightbulb, Sparkles, Sliders, Plug, Trash2, ZoomIn, ZoomOut, Maximize2, Mic, Headphones } from 'lucide-react';
+import { Lightbulb, Sparkles, Sliders, Plug, Trash2, ZoomIn, ZoomOut, Maximize2, Mic, Headphones, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { SpotlightFixture } from '@/types/spotlight';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -48,6 +49,8 @@ interface LogicalViewProps {
   setPositions: React.Dispatch<React.SetStateAction<Record<string, NodePos>>>;
   cables: LogicalCable[];
   setCables: React.Dispatch<React.SetStateAction<LogicalCable[]>>;
+  /** When true, hides spot and firework categories (drone mode). */
+  droneMode?: boolean;
 }
 
 const FIRE_WINDOW_MS = 600;
