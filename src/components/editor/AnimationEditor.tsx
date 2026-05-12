@@ -692,7 +692,7 @@ export const AnimationEditor: React.FC = () => {
         mode3D={state.mode3D}
         modeFireworks={state.modeFireworks}
         modeSpotlight={state.modeSpotlight}
-        modeCombined={state.modeCombined}
+        modeCombined={state.modeCombined || state.modeDrone}
         hasSelectedObject={state.selectedObjectIds.length > 0}
         onOpenLibrary={() => setLibraryDialogOpen(true)}
         onOpenCustomEditor={() => setCustomEditorOpen(true)}
