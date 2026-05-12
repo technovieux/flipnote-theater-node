@@ -93,6 +93,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
   setPositions,
   cables,
   setCables,
+  droneMode = false,
 }) => {
   const fireworks = useMemo(() => objects3D.filter(o => o.type === 'firework'), [objects3D]);
   const spotlights = useMemo(
