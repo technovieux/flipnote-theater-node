@@ -1248,6 +1248,7 @@ export const useEditorState = () => {
     setModeFireworks,
     setModeSpotlight,
     setModeCombined,
+    setModeDrone,
     updateProjectConfig,
     addFireworkObject,
     addSpotlightObject,
