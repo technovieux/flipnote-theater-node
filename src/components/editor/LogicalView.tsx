@@ -289,17 +289,27 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
           <Button variant={category === 'console' ? 'default' : 'outline'} size="sm" className="w-full justify-start gap-2" onClick={() => setCategory('console')}>
             <Sliders className="h-4 w-4" /> Consoles
           </Button>
-          <Button variant={category === 'spot' ? 'default' : 'outline'} size="sm" className="w-full justify-start gap-2" onClick={() => setCategory('spot')}>
-            <Lightbulb className="h-4 w-4" /> Projecteurs
-          </Button>
-          <Button variant={category === 'firework' ? 'default' : 'outline'} size="sm" className="w-full justify-start gap-2" onClick={() => setCategory('firework')}>
-            <Sparkles className="h-4 w-4" /> Feux d'artifice
-          </Button>
+          {!droneMode && (
+            <>
+              <Button variant={category === 'spot' ? 'default' : 'outline'} size="sm" className="w-full justify-start gap-2" onClick={() => setCategory('spot')}>
+                <Lightbulb className="h-4 w-4" /> Projecteurs
+              </Button>
+              <Button variant={category === 'firework' ? 'default' : 'outline'} size="sm" className="w-full justify-start gap-2" onClick={() => setCategory('firework')}>
+                <Sparkles className="h-4 w-4" /> Feux d'artifice
+              </Button>
+            </>
+          )}
+          <div className="relative pt-1">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 mt-0.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher…"
+              className="h-8 pl-7 text-xs"
+            />
+          </div>
         </div>
         <div className="flex-1 overflow-auto p-3">
-          <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">
-            {category === 'console' ? 'Bibliothèque consoles' : category === 'spot' ? 'Bibliothèque projecteurs' : 'Bibliothèque feux'}
-          </div>
 
           {category === 'console' && (
             <div className="grid grid-cols-2 gap-2">
