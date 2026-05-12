@@ -160,6 +160,7 @@ export interface EditorState {
   modeFireworks: boolean;
   modeSpotlight: boolean;
   modeCombined: boolean;
+  modeDrone: boolean;
   projectConfig: ProjectConfig;
   hasUnsavedChanges: boolean;
 }
