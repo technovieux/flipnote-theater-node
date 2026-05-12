@@ -12,6 +12,42 @@ import * as THREE from 'three';
 
 import { SunLightInfo } from '@/lib/sunPosition';
 
+// Component to render a sky background + visible sun sphere driven by SunLightInfo.
+const SunSky: React.FC<{ sunLight: SunLightInfo }> = ({ sunLight }) => {
+  const { scene } = useThree();
+  useEffect(() => {
+    scene.background = new THREE.Color(sunLight.skyColor);
+    return () => {
+      scene.background = null;
+    };
+  }, [scene, sunLight.skyColor]);
+
+  // Editor (Z-up) -> Three (Y-up): (x, z, -y)
+  const dist = 30;
+  const sunPos: [number, number, number] = [
+    sunLight.direction.x * dist,
+    sunLight.direction.z * dist,
+    -sunLight.direction.y * dist,
+  ];
+
+  return (
+    <>
+      {sunLight.isDay && (
+        <mesh position={sunPos}>
+          <sphereGeometry args={[1.2, 24, 24]} />
+          <meshBasicMaterial color={sunLight.color} />
+        </mesh>
+      )}
+      <directionalLight
+        position={sunPos}
+        intensity={sunLight.directionalIntensity}
+        color={sunLight.color}
+        castShadow
+      />
+    </>
+  );
+};
+
 interface Canvas3DProps {
   objects: EditorObject3D[];
   selectedObjectIds: string[];
@@ -808,10 +844,15 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
             <CameraTracker controlsRef={controlsRef} />
             <CameraController controlsRef={controlsRef} mode={navMode} />
             <ambientLight intensity={sunLight ? sunLight.ambientIntensity : 0.5} color={sunLight ? sunLight.color : '#ffffff'} />
-            <directionalLight position={[10, 10, 5]} intensity={sunLight ? sunLight.directionalIntensity : 1} color={sunLight ? sunLight.color : '#ffffff'} castShadow />
-            <pointLight position={[-10, -10, -5]} intensity={sunLight ? sunLight.ambientIntensity * 0.5 : 0.5} />
-            
-            <Environment preset="studio" />
+            {sunLight ? (
+              <SunSky sunLight={sunLight} />
+            ) : (
+              <>
+                <directionalLight position={[10, 10, 5]} intensity={1} color="#ffffff" castShadow />
+                <pointLight position={[-10, -10, -5]} intensity={0.5} />
+                <Environment preset="studio" />
+              </>
+            )}
             
             {/* Grid on XY plane (Z-up) */}
             <Grid

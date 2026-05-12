@@ -6,13 +6,23 @@ export interface SunLightInfo {
   color: string; // hex color for the light
   ambientIntensity: number;
   directionalIntensity: number;
+  /** Sun direction in scene coords (Z-up). Vector pointing FROM scene origin TOWARD the sun. */
+  direction: { x: number; y: number; z: number };
+  /** Sun elevation in degrees (positive = above horizon). */
+  elevation: number;
+  /** Sun azimuth in degrees (0 = north, 90 = east). */
+  azimuth: number;
+  /** Sky background color (hex). */
+  skyColor: string;
+  /** Whether sun is visible above the horizon. */
+  isDay: boolean;
 }
 
 function toJulianDate(date: Date): number {
   return date.getTime() / 86400000 + 2440587.5;
 }
 
-function getSolarElevation(lat: number, lon: number, date: Date): number {
+function getSolarPosition(lat: number, lon: number, date: Date): { elevation: number; azimuth: number } {
   const jd = toJulianDate(date);
   const n = jd - 2451545.0;
   
@@ -35,7 +45,24 @@ function getSolarElevation(lat: number, lon: number, date: Date): number {
   
   // Solar elevation
   const sinAlt = Math.sin(latRad) * Math.sin(dec) + Math.cos(latRad) * Math.cos(dec) * Math.cos(ha);
-  return Math.asin(sinAlt) * 180 / Math.PI;
+  const alt = Math.asin(sinAlt);
+  // Azimuth (measured from north, clockwise)
+  const cosAz = (Math.sin(dec) - Math.sin(alt) * Math.sin(latRad)) / (Math.cos(alt) * Math.cos(latRad));
+  let az = Math.acos(Math.max(-1, Math.min(1, cosAz)));
+  if (Math.sin(ha) > 0) az = 2 * Math.PI - az;
+  return { elevation: alt * 180 / Math.PI, azimuth: az * 180 / Math.PI };
+}
+
+function sunDirection(elevationDeg: number, azimuthDeg: number) {
+  // Z-up scene: +X east, +Y north, +Z up
+  const elRad = elevationDeg * Math.PI / 180;
+  const azRad = azimuthDeg * Math.PI / 180;
+  const cosEl = Math.cos(elRad);
+  return {
+    x: cosEl * Math.sin(azRad),  // east component
+    y: cosEl * Math.cos(azRad),  // north component
+    z: Math.sin(elRad),          // up
+  };
 }
 
 export function getSunLightInfo(
@@ -52,9 +79,11 @@ export function getSunLightInfo(
   // Add playback time
   date.setTime(date.getTime() + playbackTimeMs);
   
-  const elevation = getSolarElevation(latitude, longitude, date);
+  const { elevation, azimuth } = getSolarPosition(latitude, longitude, date);
+  const direction = sunDirection(Math.max(elevation, -2), azimuth);
+  const isDay = elevation > 0;
   
-  // Map elevation to lighting
+  // Map elevation to lighting + sky color
   if (elevation > 10) {
     // Daytime
     const t = Math.min(1, (elevation - 10) / 40);
@@ -63,6 +92,11 @@ export function getSunLightInfo(
       color: '#ffffff',
       ambientIntensity: 0.4 + 0.3 * t,
       directionalIntensity: 0.8 + 0.4 * t,
+      direction,
+      elevation,
+      azimuth,
+      skyColor: t > 0.5 ? '#87ceeb' : '#9ec9e8',
+      isDay,
     };
   } else if (elevation > -6) {
     // Golden hour / civil twilight
@@ -70,11 +104,20 @@ export function getSunLightInfo(
     const r = Math.round(255);
     const g = Math.round(180 + 75 * t);
     const b = Math.round(100 + 155 * t);
+    // sky: orange-red near horizon, fading to blue
+    const skyR = Math.round(255 * (1 - t * 0.5));
+    const skyG = Math.round(140 + 60 * t);
+    const skyB = Math.round(100 + 130 * t);
     return {
       intensity: 0.15 + 0.45 * t,
       color: `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`,
       ambientIntensity: 0.1 + 0.3 * t,
       directionalIntensity: 0.2 + 0.6 * t,
+      direction,
+      elevation,
+      azimuth,
+      skyColor: `#${skyR.toString(16).padStart(2,'0')}${skyG.toString(16).padStart(2,'0')}${skyB.toString(16).padStart(2,'0')}`,
+      isDay,
     };
   } else if (elevation > -18) {
     // Nautical/astronomical twilight
@@ -84,6 +127,11 @@ export function getSunLightInfo(
       color: '#1a1a3a',
       ambientIntensity: 0.02 + 0.08 * t,
       directionalIntensity: 0.0 + 0.2 * t,
+      direction,
+      elevation,
+      azimuth,
+      skyColor: `#${Math.round(10 + 30 * t).toString(16).padStart(2,'0')}${Math.round(15 + 30 * t).toString(16).padStart(2,'0')}${Math.round(40 + 40 * t).toString(16).padStart(2,'0')}`,
+      isDay,
     };
   } else {
     // Night
@@ -92,6 +140,11 @@ export function getSunLightInfo(
       color: '#0a0a1a',
       ambientIntensity: 0.02,
       directionalIntensity: 0.0,
+      direction,
+      elevation,
+      azimuth,
+      skyColor: '#05060f',
+      isDay,
     };
   }
 }
