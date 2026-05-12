@@ -105,6 +105,12 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [category, setCategory] = useState<Category>('console');
   const [zoom, setZoom] = useState(1);
+  const [search, setSearch] = useState('');
+
+  // Drone mode: lock category to console (drones will be added as 1-DMX consoles in a later iteration)
+  useEffect(() => {
+    if (droneMode && category !== 'console') setCategory('console');
+  }, [droneMode, category]);
 
   const [consoleLib, setConsoleLib] = useState<ConsoleSpec[]>([]);
   const [fixtureLib, setFixtureLib] = useState<SpotlightFixture[]>([]);
