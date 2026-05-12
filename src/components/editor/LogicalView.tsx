@@ -1,7 +1,8 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { EditorObject3D } from '@/types/editor';
-import { Lightbulb, Sparkles, Sliders, Plug, Trash2, ZoomIn, ZoomOut, Maximize2, Mic, Headphones } from 'lucide-react';
+import { Lightbulb, Sparkles, Sliders, Plug, Trash2, ZoomIn, ZoomOut, Maximize2, Mic, Headphones, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { SpotlightFixture } from '@/types/spotlight';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -48,6 +49,8 @@ interface LogicalViewProps {
   setPositions: React.Dispatch<React.SetStateAction<Record<string, NodePos>>>;
   cables: LogicalCable[];
   setCables: React.Dispatch<React.SetStateAction<LogicalCable[]>>;
+  /** When true, hides spot and firework categories (drone mode). */
+  droneMode?: boolean;
 }
 
 const FIRE_WINDOW_MS = 600;
@@ -90,6 +93,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
   setPositions,
   cables,
   setCables,
+  droneMode = false,
 }) => {
   const fireworks = useMemo(() => objects3D.filter(o => o.type === 'firework'), [objects3D]);
   const spotlights = useMemo(
@@ -101,6 +105,12 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [category, setCategory] = useState<Category>('console');
   const [zoom, setZoom] = useState(1);
+  const [search, setSearch] = useState('');
+
+  // Drone mode: lock category to console (drones will be added as 1-DMX consoles in a later iteration)
+  useEffect(() => {
+    if (droneMode && category !== 'console') setCategory('console');
+  }, [droneMode, category]);
 
   const [consoleLib, setConsoleLib] = useState<ConsoleSpec[]>([]);
   const [fixtureLib, setFixtureLib] = useState<SpotlightFixture[]>([]);
@@ -279,21 +289,33 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
           <Button variant={category === 'console' ? 'default' : 'outline'} size="sm" className="w-full justify-start gap-2" onClick={() => setCategory('console')}>
             <Sliders className="h-4 w-4" /> Consoles
           </Button>
-          <Button variant={category === 'spot' ? 'default' : 'outline'} size="sm" className="w-full justify-start gap-2" onClick={() => setCategory('spot')}>
-            <Lightbulb className="h-4 w-4" /> Projecteurs
-          </Button>
-          <Button variant={category === 'firework' ? 'default' : 'outline'} size="sm" className="w-full justify-start gap-2" onClick={() => setCategory('firework')}>
-            <Sparkles className="h-4 w-4" /> Feux d'artifice
-          </Button>
+          {!droneMode && (
+            <>
+              <Button variant={category === 'spot' ? 'default' : 'outline'} size="sm" className="w-full justify-start gap-2" onClick={() => setCategory('spot')}>
+                <Lightbulb className="h-4 w-4" /> Projecteurs
+              </Button>
+              <Button variant={category === 'firework' ? 'default' : 'outline'} size="sm" className="w-full justify-start gap-2" onClick={() => setCategory('firework')}>
+                <Sparkles className="h-4 w-4" /> Feux d'artifice
+              </Button>
+            </>
+          )}
+          <div className="relative pt-1">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 mt-0.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher…"
+              className="h-8 pl-7 text-xs"
+            />
+          </div>
         </div>
         <div className="flex-1 overflow-auto p-3">
-          <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">
-            {category === 'console' ? 'Bibliothèque consoles' : category === 'spot' ? 'Bibliothèque projecteurs' : 'Bibliothèque feux'}
-          </div>
 
           {category === 'console' && (
             <div className="grid grid-cols-2 gap-2">
-              {consoleLib.map(c => {
+              {consoleLib
+                .filter(c => !search || `${c.name} ${c.manufacturer}`.toLowerCase().includes(search.toLowerCase()))
+                .map(c => {
                 const TypeIcon = c.type === 'audio' ? Mic : c.type === 'hybrid' ? Sliders : Plug;
                 return (
                   <Tooltip key={c.id}>
@@ -335,7 +357,9 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
 
           {category === 'spot' && (
             <div className="grid grid-cols-2 gap-2">
-              {fixtureLib.map((f, idx) => (
+              {fixtureLib
+                .filter(f => !search || `${f.name} ${f.manufacturer}`.toLowerCase().includes(search.toLowerCase()))
+                .map((f, idx) => (
                 <Tooltip key={`${f.manufacturer}-${f.name}-${idx}`}>
                   <TooltipTrigger asChild>
                     <button
@@ -367,7 +391,9 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
 
           {category === 'firework' && (
             <div className="grid grid-cols-2 gap-2">
-              {fireworkLib.map((p, idx) => (
+              {fireworkLib
+                .filter(p => !search || `${p.name} ${p.manufacturer} ${p.reference}`.toLowerCase().includes(search.toLowerCase()))
+                .map((p, idx) => (
                 <Tooltip key={`${p.reference}-${idx}`}>
                   <TooltipTrigger asChild>
                     <button

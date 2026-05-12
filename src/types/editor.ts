@@ -19,7 +19,7 @@ export type Shape3DType =
   // Spotlight fixtures
   | 'spotlight_lyre';
 
-export type EditorMode = '2d' | '3d' | 'fireworks' | 'spotlight' | 'combined';
+export type EditorMode = '2d' | '3d' | 'fireworks' | 'spotlight' | 'combined' | 'drone';
 
 export interface ProjectConfig {
   startTime: string; // HH:MM format
@@ -27,6 +27,8 @@ export interface ProjectConfig {
   latitude: number;
   longitude: number;
   locationName: string;
+  /** When false, the 3D scene uses static dark studio lighting instead of date/time/geo-based sun simulation. */
+  dynamicLighting?: boolean;
 }
 
 
@@ -157,6 +159,7 @@ export interface EditorState {
   modeFireworks: boolean;
   modeSpotlight: boolean;
   modeCombined: boolean;
+  modeDrone: boolean;
   projectConfig: ProjectConfig;
   hasUnsavedChanges: boolean;
 }

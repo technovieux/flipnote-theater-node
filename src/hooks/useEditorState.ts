@@ -99,12 +99,14 @@ const initialState: EditorState = {
   modeFireworks: false,
   modeSpotlight: false,
   modeCombined: false,
+  modeDrone: false,
   projectConfig: {
     startTime: '21:00',
     startDate: new Date().toISOString().split('T')[0],
     latitude: 48.8566,
     longitude: 2.3522,
     locationName: 'Paris, France',
+    dynamicLighting: true,
   },
   hasUnsavedChanges: false,
 };
@@ -262,6 +264,10 @@ export const useEditorState = () => {
 
   const setModeCombined = useCallback((modeCombined: boolean) => {
     setState(prev => ({ ...prev, modeCombined, mode3D: modeCombined, modeFireworks: false, modeSpotlight: false, selectedObjectIds: [] }));
+  }, []);
+
+  const setModeDrone = useCallback((modeDrone: boolean) => {
+    setState(prev => ({ ...prev, modeDrone, mode3D: modeDrone, modeCombined: false, modeFireworks: false, modeSpotlight: false, selectedObjectIds: [] }));
   }, []);
 
   const updateProjectConfig = useCallback((config: Partial<import('@/types/editor').ProjectConfig>) => {
@@ -1242,6 +1248,7 @@ export const useEditorState = () => {
     setModeFireworks,
     setModeSpotlight,
     setModeCombined,
+    setModeDrone,
     updateProjectConfig,
     addFireworkObject,
     addSpotlightObject,
