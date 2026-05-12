@@ -12,6 +12,42 @@ import * as THREE from 'three';
 
 import { SunLightInfo } from '@/lib/sunPosition';
 
+// Component to render a sky background + visible sun sphere driven by SunLightInfo.
+const SunSky: React.FC<{ sunLight: SunLightInfo }> = ({ sunLight }) => {
+  const { scene } = useThree();
+  useEffect(() => {
+    scene.background = new THREE.Color(sunLight.skyColor);
+    return () => {
+      scene.background = null;
+    };
+  }, [scene, sunLight.skyColor]);
+
+  // Editor (Z-up) -> Three (Y-up): (x, z, -y)
+  const dist = 30;
+  const sunPos: [number, number, number] = [
+    sunLight.direction.x * dist,
+    sunLight.direction.z * dist,
+    -sunLight.direction.y * dist,
+  ];
+
+  return (
+    <>
+      {sunLight.isDay && (
+        <mesh position={sunPos}>
+          <sphereGeometry args={[1.2, 24, 24]} />
+          <meshBasicMaterial color={sunLight.color} />
+        </mesh>
+      )}
+      <directionalLight
+        position={sunPos}
+        intensity={sunLight.directionalIntensity}
+        color={sunLight.color}
+        castShadow
+      />
+    </>
+  );
+};
+
 interface Canvas3DProps {
   objects: EditorObject3D[];
   selectedObjectIds: string[];
