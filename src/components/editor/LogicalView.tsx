@@ -313,7 +313,9 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
 
           {category === 'console' && (
             <div className="grid grid-cols-2 gap-2">
-              {consoleLib.map(c => {
+              {consoleLib
+                .filter(c => !search || `${c.name} ${c.manufacturer}`.toLowerCase().includes(search.toLowerCase()))
+                .map(c => {
                 const TypeIcon = c.type === 'audio' ? Mic : c.type === 'hybrid' ? Sliders : Plug;
                 return (
                   <Tooltip key={c.id}>
@@ -355,7 +357,9 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
 
           {category === 'spot' && (
             <div className="grid grid-cols-2 gap-2">
-              {fixtureLib.map((f, idx) => (
+              {fixtureLib
+                .filter(f => !search || `${f.name} ${f.manufacturer}`.toLowerCase().includes(search.toLowerCase()))
+                .map((f, idx) => (
                 <Tooltip key={`${f.manufacturer}-${f.name}-${idx}`}>
                   <TooltipTrigger asChild>
                     <button
@@ -387,7 +391,9 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
 
           {category === 'firework' && (
             <div className="grid grid-cols-2 gap-2">
-              {fireworkLib.map((p, idx) => (
+              {fireworkLib
+                .filter(p => !search || `${p.name} ${p.manufacturer} ${p.reference}`.toLowerCase().includes(search.toLowerCase()))
+                .map((p, idx) => (
                 <Tooltip key={`${p.reference}-${idx}`}>
                   <TooltipTrigger asChild>
                     <button
