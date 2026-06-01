@@ -1301,6 +1301,8 @@ export const useEditorState = () => {
     addSpotlightObject,
     updateSpotlightDmxAddress,
     addObject3DSpotlightFixture,
+    addDroneObject,
+    setObjectAnchors,
     updateObject3DDmxAddress,
     updateSpotlightPosition,
     updateSpotlightChannelValue,
