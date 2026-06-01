@@ -34,6 +34,16 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
   const yokeRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
   const transformControlsRef = useRef<any>(null);
+  const spotLightRef = useRef<THREE.SpotLight>(null);
+  const spotTargetRef = useRef<THREE.Object3D>(null);
+
+  // Bind the spotLight's target so the beam actually follows the head orientation
+  useEffect(() => {
+    if (spotLightRef.current && spotTargetRef.current) {
+      spotLightRef.current.target = spotTargetRef.current;
+      spotLightRef.current.target.updateMatrixWorld();
+    }
+  }, [loadedFixture]);
 
   const [rotateTarget, setRotateTarget] = useState<'pan' | 'tilt'>('pan');
   const [loadedFixture, setLoadedFixture] = useState<LoadedFixture | null>(null);
@@ -224,8 +234,8 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
 
           {/* Real Three.js spotLight projecting on the scene */}
           <spotLight
+            ref={spotLightRef}
             position={[0, -0.18, 0]}
-            target-position={[0, -10, 0]}
             color={lightColor}
             intensity={lightIntensity}
             angle={Math.PI / 7}
@@ -234,6 +244,8 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
             decay={1.2}
             castShadow
           />
+          {/* Spot light target — sits below the head in local space so the beam points down the head's local -Y axis */}
+          <object3D ref={spotTargetRef} position={[0, -10, 0]} />
         </group>
       </group>
 
