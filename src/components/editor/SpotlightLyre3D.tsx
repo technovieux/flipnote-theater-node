@@ -37,6 +37,9 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
   const spotLightRef = useRef<THREE.SpotLight>(null);
   const spotTargetRef = useRef<THREE.Object3D>(null);
 
+  const [rotateTarget, setRotateTarget] = useState<'pan' | 'tilt'>('pan');
+  const [loadedFixture, setLoadedFixture] = useState<LoadedFixture | null>(null);
+
   // Bind the spotLight's target so the beam actually follows the head orientation
   useEffect(() => {
     if (spotLightRef.current && spotTargetRef.current) {
@@ -44,9 +47,6 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
       spotLightRef.current.target.updateMatrixWorld();
     }
   }, [loadedFixture]);
-
-  const [rotateTarget, setRotateTarget] = useState<'pan' | 'tilt'>('pan');
-  const [loadedFixture, setLoadedFixture] = useState<LoadedFixture | null>(null);
 
   // Load the fixture OBJ parts
   useEffect(() => {
