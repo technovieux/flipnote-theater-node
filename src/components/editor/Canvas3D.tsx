@@ -839,6 +839,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
         <Canvas
           camera={{ position: [5, 5, 5], fov: 50, up: [0, 1, 0] }}
           onPointerMissed={handleBackgroundClick}
+          shadows
         >
           <Suspense fallback={null}>
             <CameraTracker controlsRef={controlsRef} />
