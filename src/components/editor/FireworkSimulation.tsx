@@ -318,14 +318,24 @@ const FireworkEffect: React.FC<{
         </points>
       )}
 
-      {/* Burst flash */}
-      {!ground && progress > riseFraction && progress < riseFraction + 0.1 && (
+      {/* Burst light: colored point light that illuminates the scene during the explosion */}
+      {!ground && progress > riseFraction && (
         <pointLight
           position={[0, riseHeight, 0]}
+          color={colors[Math.floor((progress * colors.length)) % colors.length]}
+          intensity={Math.max(0, 25 * (1 - (progress - riseFraction) / (1 - riseFraction)))}
+          distance={riseHeight * 4}
+          decay={1.5}
+        />
+      )}
+      {/* Fountain glow light */}
+      {ground && progress > 0 && progress < 1 && (
+        <pointLight
+          position={[0, 0.3, 0]}
           color={colors[0]}
-          intensity={10 * (1 - (progress - riseFraction) / 0.1)}
-          distance={riseHeight * 2}
-          decay={2}
+          intensity={Math.max(0, 8 * (1 - progress))}
+          distance={6}
+          decay={1.5}
         />
       )}
     </group>

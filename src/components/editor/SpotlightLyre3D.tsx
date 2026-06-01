@@ -143,6 +143,10 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
   const yokePart = loadedFixture?.parts.find(p => p.name === 'yoke');
   const headPart = loadedFixture?.parts.find(p => p.name === 'head');
 
+  // Real colored light: use object's color, with intensity from opacity (0-100 -> 0-1)
+  const lightColor = properties.color || '#ffffff';
+  const lightIntensity = Math.max(0.05, (properties.opacity ?? 100) / 100) * 6;
+
   const renderPart = (part: LoadedFixturePart) => (
     <mesh geometry={part.geometry}>
       <meshStandardMaterial
@@ -194,30 +198,42 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
             <mesh position={headPart.lens.position}>
               <cylinderGeometry args={[headPart.lens.radius, headPart.lens.radius, 0.015, 32]} />
               <meshStandardMaterial
-                color={headPart.lens.color}
+                color={lightColor}
                 transparent
                 opacity={0.7}
                 metalness={0.1}
                 roughness={0.1}
-                emissive={headPart.lens.color}
-                emissiveIntensity={0.3}
+                emissive={lightColor}
+                emissiveIntensity={1.2}
               />
             </mesh>
           )}
 
-          {/* Light beam (visible when selected) */}
-          {isSelected && (
-            <mesh position={[0, -0.65, 0]}>
-              <coneGeometry args={[0.3, 1.0, 16, 1, true]} />
-              <meshBasicMaterial
-                color="#88ccff"
-                transparent
-                opacity={0.08}
-                side={THREE.DoubleSide}
-                depthWrite={false}
-              />
-            </mesh>
-          )}
+          {/* Volumetric light beam (always visible, colored) */}
+          <mesh position={[0, -1.2, 0]} rotation={[0, 0, 0]}>
+            <coneGeometry args={[0.55, 2.2, 24, 1, true]} />
+            <meshBasicMaterial
+              color={lightColor}
+              transparent
+              opacity={0.18}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+            />
+          </mesh>
+
+          {/* Real Three.js spotLight projecting on the scene */}
+          <spotLight
+            position={[0, -0.18, 0]}
+            target-position={[0, -10, 0]}
+            color={lightColor}
+            intensity={lightIntensity}
+            angle={Math.PI / 7}
+            penumbra={0.35}
+            distance={40}
+            decay={1.2}
+            castShadow
+          />
         </group>
       </group>
 
