@@ -36,11 +36,13 @@ interface MenuBarProps {
   modeFireworks?: boolean;
   modeSpotlight?: boolean;
   modeCombined?: boolean;
+  modeDrone?: boolean;
   hasSelectedObject: boolean;
   onOpenLibrary: () => void;
   onOpenCustomEditor: () => void;
   onOpenFireworkLibrary?: () => void;
   onOpenSpotlightLibrary?: () => void;
+  onOpenDroneLibrary?: () => void;
   renderMode: boolean;
   onToggleRenderMode: () => void;
   onOpenProjectConfig?: () => void;
@@ -77,11 +79,13 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   modeFireworks,
   modeSpotlight,
   modeCombined,
+  modeDrone,
   hasSelectedObject,
   onOpenLibrary,
   onOpenCustomEditor,
   onOpenFireworkLibrary,
   onOpenSpotlightLibrary,
+  onOpenDroneLibrary,
   renderMode,
   onToggleRenderMode,
   onOpenProjectConfig,
@@ -177,12 +181,19 @@ export const MenuBar: React.FC<MenuBarProps> = ({
                   </MenubarSubContent>
                 </MenubarSub>
                 <MenubarSeparator />
-                <MenubarItem onClick={onOpenSpotlightLibrary}>
-                  💡 Ajouter un spot...
-                </MenubarItem>
-                {modeCombined && (
+                {!modeDrone && (
+                  <MenubarItem onClick={onOpenSpotlightLibrary}>
+                    💡 Ajouter un spot...
+                  </MenubarItem>
+                )}
+                {modeCombined && !modeDrone && (
                   <MenubarItem onClick={onOpenFireworkLibrary}>
                     🎆 Ajouter un feu d'artifice...
+                  </MenubarItem>
+                )}
+                {modeDrone && (
+                  <MenubarItem onClick={onOpenDroneLibrary}>
+                    🛸 Ajouter un drone...
                   </MenubarItem>
                 )}
                 <MenubarSeparator />
