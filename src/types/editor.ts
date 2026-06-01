@@ -1,5 +1,6 @@
 import { FireworkProduct, FireworkCategory } from './fireworks';
 import { SpotlightFixture, SpotlightKeyframe } from './spotlight';
+import { DroneProduct, Anchor } from './drone';
 export type ShapeType = 'rectangle' | 'circle' | 'triangle';
 export type Shape3DType = 
   | 'cube' | 'sphere' | 'cylinder' | 'cone' | 'torus'
@@ -17,7 +18,9 @@ export type Shape3DType =
   // Fireworks
   | 'firework'
   // Spotlight fixtures
-  | 'spotlight_lyre';
+  | 'spotlight_lyre'
+  // Drones (drone mode)
+  | 'drone';
 
 export type EditorMode = '2d' | '3d' | 'fireworks' | 'spotlight' | 'combined' | 'drone';
 
@@ -122,6 +125,9 @@ export interface EditorObject3D {
   fixtureId?: string; // ID from fixtures manifest for spotlight fixtures
   dmxAddress?: number; // DMX address for fireworks (1-512)
   spotlightFixture?: SpotlightFixture; // For spotlights added from logical view (combined mode)
+  droneProduct?: DroneProduct; // For drones added in drone mode
+  /** Geometric anchors (in local mesh space) attached to this 3D object — used by drone mode. */
+  anchors?: Anchor[];
 }
 
 export interface Scene {

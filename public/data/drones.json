@@ -1,0 +1,74 @@
+[
+  {
+    "id": "shooting_star",
+    "name": "Shooting Star",
+    "manufacturer": "Intel",
+    "weight": 330,
+    "diameter": 384,
+    "ledColor": "RGBW",
+    "maxSpeed": 3,
+    "flightTime": 20,
+    "battery": "LiPo 2S 2800mAh",
+    "description": "Drone de spectacle officiel utilisé pour les shows aériens d'envergure."
+  },
+  {
+    "id": "swarm_v2",
+    "name": "Swarm V2",
+    "manufacturer": "SkyMagic",
+    "weight": 280,
+    "diameter": 350,
+    "ledColor": "RGB",
+    "maxSpeed": 4,
+    "flightTime": 18,
+    "battery": "LiPo 3S 2200mAh",
+    "description": "Drone léger optimisé pour les essaims chorégraphiés en intérieur ou extérieur."
+  },
+  {
+    "id": "ehang_egret",
+    "name": "Egret-1",
+    "manufacturer": "EHang",
+    "weight": 400,
+    "diameter": 420,
+    "ledColor": "RGBAW",
+    "maxSpeed": 5,
+    "flightTime": 22,
+    "battery": "LiPo 4S 3000mAh",
+    "description": "Drone haut de gamme avec LED 5 couleurs pour rendu fidèle des nuances."
+  },
+  {
+    "id": "verge_aero",
+    "name": "Verge Pro",
+    "manufacturer": "Verge Aero",
+    "weight": 310,
+    "diameter": 360,
+    "ledColor": "RGB",
+    "maxSpeed": 6,
+    "flightTime": 25,
+    "battery": "LiPo 4S 3300mAh",
+    "description": "Drone professionnel équipé de GPS-RTK pour positionnement centimétrique."
+  },
+  {
+    "id": "highgreat_q",
+    "name": "Quasar Q1",
+    "manufacturer": "HighGreat",
+    "weight": 250,
+    "diameter": 320,
+    "ledColor": "RGBW",
+    "maxSpeed": 4,
+    "flightTime": 16,
+    "battery": "LiPo 2S 2100mAh",
+    "description": "Mini-drone compact utilisé pour shows à grande densité."
+  },
+  {
+    "id": "damoda_atom",
+    "name": "Atom 88",
+    "manufacturer": "Damoda",
+    "weight": 88,
+    "diameter": 180,
+    "ledColor": "RGB",
+    "maxSpeed": 2,
+    "flightTime": 8,
+    "battery": "LiPo 1S 750mAh",
+    "description": "Micro-drone d'intérieur, idéal pour shows en salles fermées."
+  }
+]

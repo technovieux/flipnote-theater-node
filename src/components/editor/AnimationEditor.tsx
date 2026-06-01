@@ -19,6 +19,7 @@ import { CustomShapeEditor } from './CustomShapeEditor';
 import { FireworkLibraryDialog } from './FireworkLibraryDialog';
 import { SpotlightLibraryDialog } from './SpotlightLibraryDialog';
 import { FixtureLibraryDialog } from './FixtureLibraryDialog';
+import { DroneLibraryDialog } from './DroneLibraryDialog';
 import { LogicalView } from './LogicalView';
 import { PropertiesPanelLogical } from './PropertiesPanelLogical';
 import { FixtureDefinition } from '@/lib/fixtureLoader';
@@ -97,6 +98,8 @@ export const AnimationEditor: React.FC = () => {
     addFireworkObject,
     addSpotlightObject,
     addObject3DSpotlightFixture,
+    addDroneObject,
+    setObjectAnchors,
     updateObject3DDmxAddress,
     updateSpotlightDmxAddress,
     updateSpotlightPosition,
@@ -150,6 +153,7 @@ export const AnimationEditor: React.FC = () => {
   const [fireworkLibraryOpen, setFireworkLibraryOpen] = useState(false);
   const [spotlightLibraryOpen, setSpotlightLibraryOpen] = useState(false);
   const [fixtureLibraryOpen, setFixtureLibraryOpen] = useState(false);
+  const [droneLibraryOpen, setDroneLibraryOpen] = useState(false);
   const [projectConfigOpen, setProjectConfigOpen] = useState(false);
   const [dmxConnected, setDmxConnected] = useState(false);
   const [dmxRealtime, setDmxRealtime] = useState(false);
@@ -693,6 +697,7 @@ export const AnimationEditor: React.FC = () => {
         modeFireworks={state.modeFireworks}
         modeSpotlight={state.modeSpotlight}
         modeCombined={state.modeCombined || state.modeDrone}
+        modeDrone={state.modeDrone}
         hasSelectedObject={state.selectedObjectIds.length > 0}
         onOpenLibrary={() => setLibraryDialogOpen(true)}
         onOpenCustomEditor={() => setCustomEditorOpen(true)}
@@ -704,6 +709,7 @@ export const AnimationEditor: React.FC = () => {
             setFixtureLibraryOpen(true);
           }
         }}
+        onOpenDroneLibrary={() => setDroneLibraryOpen(true)}
         renderMode={renderMode}
         onToggleRenderMode={() => setRenderMode(!renderMode)}
         onOpenProjectConfig={() => setProjectConfigOpen(true)}
@@ -795,6 +801,8 @@ export const AnimationEditor: React.FC = () => {
                       state.projectConfig.startTime,
                       state.currentTime
                     ) : null}
+                    droneMode={state.modeDrone}
+                    onSetAnchors={renderMode ? undefined : setObjectAnchors}
                   />
                 ) : state.modeSpotlight ? (
                   <Canvas
@@ -1006,6 +1014,14 @@ export const AnimationEditor: React.FC = () => {
         onSelectFixture={(fixture: FixtureDefinition) => {
           addObject3D('spotlight_lyre', fixture.id);
           toast.success(`${fixture.name} ajouté en 3D`);
+        }}
+      />
+      <DroneLibraryDialog
+        open={droneLibraryOpen}
+        onOpenChange={setDroneLibraryOpen}
+        onSelect={(product) => {
+          addDroneObject(product);
+          toast.success(`${product.name} ajouté`);
         }}
       />
       <ProjectConfigDialog
