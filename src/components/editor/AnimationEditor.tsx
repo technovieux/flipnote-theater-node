@@ -1016,6 +1016,14 @@ export const AnimationEditor: React.FC = () => {
           toast.success(`${fixture.name} ajouté en 3D`);
         }}
       />
+      <DroneLibraryDialog
+        open={droneLibraryOpen}
+        onOpenChange={setDroneLibraryOpen}
+        onSelect={(product) => {
+          addDroneObject(product);
+          toast.success(`${product.name} ajouté`);
+        }}
+      />
       <ProjectConfigDialog
         open={projectConfigOpen}
         onOpenChange={setProjectConfigOpen}
