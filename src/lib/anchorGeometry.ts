@@ -54,14 +54,6 @@ export const getLocalGeometry = (obj: EditorObject3D): THREE.BufferGeometry | nu
   }
 };
 
-// Convert a non-indexed geometry to indexed unique vertices so we have distinct vertex/edge/face indices.
-const toIndexed = (g: THREE.BufferGeometry): THREE.BufferGeometry => {
-  const merged = THREE.BufferGeometryUtils
-    ? (THREE.BufferGeometryUtils as any).mergeVertices(g)
-    : g;
-  return merged;
-};
-
 const dedupVertices = (g: THREE.BufferGeometry): { positions: THREE.Vector3[]; faces: number[][] } => {
   const posAttr = g.getAttribute('position') as THREE.BufferAttribute;
   const idx = g.getIndex();
