@@ -4,6 +4,10 @@ import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport, Transform
 import { EditorObject3D, Object3DProperties, CameraPosition, CustomGeometry, OBJGeometry } from '@/types/editor';
 import { FireworkSimulation } from './FireworkSimulation';
 import { SpotlightLyre3D } from './SpotlightLyre3D';
+import { Drone3D } from './Drone3D';
+import { AnchorEditor } from './AnchorEditor';
+import { anchorWorldPosition } from '@/lib/anchorGeometry';
+import { Anchor } from '@/types/drone';
 import { setCameraPosition } from '@/hooks/useEditorState';
 import { Move, ZoomIn, ZoomOut, RotateCcw, Hand, MousePointer, Move3d, RotateCw, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -57,6 +61,10 @@ interface Canvas3DProps {
   currentTime: number;
   isPlaying: boolean;
   sunLight?: SunLightInfo | null;
+  /** When true, exposes the anchor editor on selected non-drone 3D objects. */
+  droneMode?: boolean;
+  /** Callback to update an object's anchors (drone mode). */
+  onSetAnchors?: (id: string, anchors: Anchor[]) => void;
 }
 
 type TransformMode = 'translate' | 'rotate' | 'scale' | null;
@@ -709,6 +717,8 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
   currentTime,
   isPlaying,
   sunLight,
+  droneMode = false,
+  onSetAnchors,
 }) => {
   const controlsRef = useRef<any>(null);
   const [navMode, setNavMode] = useState<'select' | 'pan' | 'rotate'>('select');
@@ -716,6 +726,13 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
   const [cameraState, setCameraState] = useState({ zoom: 1 });
   
   const selectedObject = objects.find(obj => selectedObjectIds.includes(obj.id));
+  const [anchorEditorOpen, setAnchorEditorOpen] = useState(false);
+  const anchorEditableObject = droneMode && selectedObject && selectedObject.type !== 'drone' && selectedObject.type !== 'spotlight_lyre' && selectedObject.type !== 'firework' ? selectedObject : null;
+
+  // Close anchor editor when selection becomes non-editable
+  useEffect(() => {
+    if (!anchorEditableObject) setAnchorEditorOpen(false);
+  }, [anchorEditableObject]);
 
   // Reset transform mode when selection changes
   useEffect(() => {
@@ -836,6 +853,22 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
           onTransformModeChange={setTransformMode}
           hasSelection={selectedObjectIds.length > 0}
         />
+        {/* Drone-mode anchor editor toggle */}
+        {anchorEditableObject && !anchorEditorOpen && (
+          <button
+            onClick={() => setAnchorEditorOpen(true)}
+            className="absolute top-2 left-2 z-20 px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
+          >
+            Définir ancrages…
+          </button>
+        )}
+        {anchorEditableObject && anchorEditorOpen && onSetAnchors && (
+          <AnchorEditor
+            object={anchorEditableObject}
+            onSetAnchors={(id, a) => onSetAnchors(id, a || [])}
+            onClose={() => setAnchorEditorOpen(false)}
+          />
+        )}
         <Canvas
           camera={{ position: [5, 5, 5], fov: 50, up: [0, 1, 0] }}
           onPointerMissed={handleBackgroundClick}
@@ -893,6 +926,19 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                   />
                 );
               }
+
+              // Render drone with dedicated component
+              if (obj.type === 'drone') {
+                return (
+                  <Drone3D
+                    key={obj.id}
+                    object={obj}
+                    properties={props}
+                    isSelected={selectedObjectIds.includes(obj.id)}
+                    onSelect={() => onSelect(obj.id)}
+                  />
+                );
+              }
               
               return (
                 <Shape3D
@@ -909,6 +955,31 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                   transformMode={transformMode}
                   orbitControlsRef={controlsRef}
                 />
+              );
+            })}
+
+            {/* Anchor visualization (drone mode) — small colored crosses at each anchor position */}
+            {droneMode && objects.map((obj) => {
+              if (!obj.anchors || obj.anchors.length === 0) return null;
+              const props = isPlaying
+                ? getInterpolatedProperties(obj, currentTime)
+                : (selectedObjectIds.includes(obj.id) ? obj.properties : getInterpolatedProperties(obj, currentTime));
+              // Use object's properties for transform; anchorWorldPosition uses obj.properties so we pass a temp object
+              const transient = { ...obj, properties: props } as EditorObject3D;
+              const isSel = selectedObjectIds.includes(obj.id);
+              const color = isSel ? '#00d4ff' : '#ffaa00';
+              return (
+                <group key={`anchors-${obj.id}`}>
+                  {obj.anchors.map((a) => {
+                    const [wx, wy, wz] = anchorWorldPosition(transient, a);
+                    return (
+                      <mesh key={a.id} position={[wx, wy, wz]}>
+                        <sphereGeometry args={[0.04, 8, 8]} />
+                        <meshBasicMaterial color={color} />
+                      </mesh>
+                    );
+                  })}
+                </group>
               );
             })}
             
