@@ -19,6 +19,7 @@ import {
 } from '@/types/editor';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
 import { SpotlightFixture, SpotlightKeyframe } from '@/types/spotlight';
+import { DroneProduct, Anchor } from '@/types/drone';
 import { FlptProject, base64ToFile } from '@/lib/fileOperations';
 import { interpolateColor } from '@/lib/colorUtils';
 
@@ -514,6 +515,52 @@ export const useEditorState = () => {
       hasUnsavedChanges: true,
     }));
   }, [state.objects3D]);
+
+  // Add a drone object (drone mode)
+  const addDroneObject = useCallback((product: DroneProduct) => {
+    // Compute next free DMX address (drones use 1 channel each, but typically 4-6 for RGB+dim; we use 4)
+    const channelsNeeded = product.ledColor === 'RGB' ? 4 : product.ledColor === 'RGBW' ? 5 : product.ledColor === 'RGBAW' ? 6 : 2;
+    const used = new Set<number>();
+    state.objects3D.forEach(o => {
+      if (o.dmxAddress) used.add(o.dmxAddress);
+    });
+    let nextAddr = 1;
+    while (used.has(nextAddr) && nextAddr < 512) nextAddr++;
+
+    const count = state.objects3D.filter(o => o.type === 'drone').length + 1;
+    const newObject: EditorObject3D = {
+      id: generateId(),
+      name: `${product.name} ${count}`,
+      type: 'drone',
+      properties: {
+        ...default3DProperties,
+        color: '#00d4ff',
+        // small visual scale — drones are tiny
+        width: 20, height: 20, depth: 20,
+        // spawn slightly above ground so they don't sit at origin
+        z: 200 + count * 30,
+        x: (count - 1) * 40,
+      },
+      keyframes: [],
+      droneProduct: product,
+      dmxAddress: nextAddr,
+    };
+    setState(prev => ({
+      ...prev,
+      objects3D: [newObject, ...prev.objects3D],
+      selectedObjectIds: [newObject.id],
+      hasUnsavedChanges: true,
+    }));
+  }, [state.objects3D]);
+
+  // Replace anchors on a 3D object (drone-mode geometric anchors)
+  const setObjectAnchors = useCallback((id: string, anchors: Anchor[] | undefined) => {
+    setState(prev => ({
+      ...prev,
+      hasUnsavedChanges: true,
+      objects3D: prev.objects3D.map(o => o.id === id ? { ...o, anchors } : o),
+    }));
+  }, []);
 
   // Update DMX address for a 3D object (spotlight_lyre or firework)
   const updateObject3DDmxAddress = useCallback((id: string, address: number) => {
