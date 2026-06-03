@@ -1,110 +1,119 @@
-# Plan d'implémentation
+# Plan — Mode Drone : assignations temporelles & trajectoires
 
-Deux gros chantiers : (A) améliorations sur l'existant, (B) nouveau **mode Drone**.
-
----
-
-## A. Améliorations
-
-### A1. Case "Afficher la luminosité dynamique"
-- Ajouter `dynamicLighting: boolean` (défaut `true`) dans `ProjectConfig` (`src/types/editor.ts`).
-- Ajouter une checkbox dans `ProjectConfigDialog.tsx` (onglet Projet du mode Combiné).
-- Dans `Canvas3D.tsx` : si `dynamicLighting === false`, ne pas calculer `sunLight`, garder le rendu sombre par défaut (lights actuelles + `studio` env).
-- Persistance via le state existant + `.flpt`.
-
-### A2. Lumières réelles spots & feux + projection colorée
-- Spots (`SpotlightLyre3D`) : ajouter un vrai `<spotLight>` Three.js attaché à la tête, color = couleur calculée depuis les canaux DMX (R/G/B ou couleur fixe), `castShadow`, `angle`, `penumbra`. Activer `receiveShadow` sur le sol et objets cibles.
-- Feux d'artifices : pendant l'explosion, ajouter `<pointLight>` éphémère à la position du burst, couleur = couleur du feu, intensité décroissante.
-- Activer `shadowMap` sur le `<Canvas>` et `receiveShadow` sur les meshes statiques pour que les zones éclairées prennent réellement la teinte des sources.
-
-### A3. Barre de recherche dans LogicalView
-Remplacer les boutons « Bibliothèque consoles/projecteurs/feux » par un seul `<Input>` + `Popover`/liste filtrée :
-- Tape pour filtrer parmi consoles + spots + feux (selon catégorie sélectionnée).
-- Click sur un résultat = ajout direct (équivalent au flux actuel des dialogs).
-- Garde les 3 boutons de catégorie (consoles / spots / feux) au-dessus.
+## Objectif
+Permettre d'assigner chaque drone à un ancrage d'une forme à un instant T de la timeline, visualiser ces assignations dans la vue logique, et animer physiquement les drones le long de trajectoires pointillées sans collision.
 
 ---
 
-## B. Mode Drone
+## 1. Modèle de données (`src/types/drone.ts` + `editor.ts`)
 
-### B1. Activation
-- Le bouton existe déjà sur le Welcome screen → câbler `mode: 'drone'`.
-- `EditorMode` += `'drone'`, `modeDrone: boolean` dans `EditorState`.
-- Copie de la logique du mode Combiné **sans** spots ni feux d'artifices. Garde : 3D, logical view, timeline, projectConfig, soleil dynamique.
+Ajouter :
+```ts
+// Une assignation = "à temps t, drone D doit être à l'ancrage A de la forme F"
+interface DroneAssignment {
+  id: string;
+  droneId: string;       // EditorObject3D.id du drone
+  shapeId: string;       // EditorObject3D.id de la forme porteuse d'ancrages
+  anchorId: string;      // Anchor.id dans shape.anchors
+  time: number;          // ms sur la timeline
+}
+```
 
-### B2. Bibliothèque de drones
-- Nouveau fichier `public/data/drones.json` avec quelques modèles (DJI-like : nom, masse, LED color capability, autonomie, vitesse max).
-- Nouveau type `DroneProduct` dans `src/types/drone.ts`.
-- Nouveau `DroneLibraryDialog.tsx` (calqué sur `SpotlightLibraryDialog`).
-- Représentation 3D simple (sphère + croix LED) ou OBJ.
+Stockage : `EditorState.droneAssignments: DroneAssignment[]`.
 
-### B3. Points d'ancrage sur formes 3D
-Nouveau composant `AnchorEditor` activé via bouton « Définir ancrages » sur un objet 3D sélectionné en mode Drone :
-- Modes de sélection : **Sommets / Arêtes / Faces** (toggle).
-- Click sur un élément géométrique → input « diviser en N points » → génère N positions équidistantes le long de l'arête, ou un grille NxN sur la face, ou ajoute le vertex.
-- Chaque ancrage stocké comme `Anchor { id, parentObjectId, position: vec3, sourceType, sourceIndex }`.
-- Affichés en 3D comme petites croix (`+` style sprite ou `LineSegments`).
-- Dans `ObjectsList3D`, sous-arborescence : chaque objet 3D avec ancrages a des enfants `Zone N` (groupes d'ancrages d'une même opération de division).
+Chaque forme reçoit aussi `shapeTime?: number` (ms) : moment où la forme doit être "dessinée" (tous ses ancrages occupés).
 
-### B4. Vue Logique en mode Drone
-- Catégories de la barre de recherche : **Drones** (= consoles 1 DMX) | **Zones** (= sous-objets/animations).
-- Chaque drone ajouté = nœud type "console 1 entrée DMX".
-- Chaque zone ajoutée = nœud avec **N ports** (N = nombre d'ancrages).
-- Câbler drone → port d'une zone définit l'attribution drone/ancrage.
-- L'ordre des zones (ordre d'apparition dans le canvas logique ou index) définit l'ordre temporel de visite.
+---
 
-### B5. Animation physique des drones
-Dans `useEditorState` / nouveau hook `useDroneAnimation` :
-- Pour chaque keyframe d'un objet/zone dans la timeline → temps cible où **tous les drones de cette zone** doivent être à leurs ancrages.
-- Propriété "Durée de stationnement (s)" remplace l'adresse DMX dans `PropertiesPanelLogical` quand l'objet logique est une zone.
-- Interpolation linéaire entre positions précédente et suivante de chaque drone, en respectant son port assigné.
-- Rendu en mode physique : drones se déplacent vers leur ancrage, restent N secondes, puis vers la zone suivante.
+## 2. Vue Logique (mode drone) — `LogicalView.tsx`
 
-### B6. Propriétés en mode logique drone
-- Nœud drone : nom, ID DMX (1 canal).
-- Nœud zone : nom, **durée stationnement (s)** au lieu d'adresse DMX.
+Refonte en mode drone :
+- **Colonne gauche** : liste des drones (un nœud par drone, 1 sortie).
+- **Colonne droite** : liste des formes 3D ayant des ancrages. Chaque forme = un nœud avec **N entrées** (une par ancrage) et **N sorties** symétriques. Le nœud affiche son `shapeTime` éditable.
+- **Câblage** : tirer du drone vers une entrée d'ancrage crée une `DroneAssignment` au temps = `shapeTime` de la forme cible.
+- Plusieurs câbles partant du même drone vers différentes formes = trajectoire ordonnée par `shapeTime`.
+
+Rendu simple : nœuds positionnables, câbles SVG (réutilise le style existant de LogicalView).
+
+---
+
+## 3. Propriétés (`PropertiesPanelLogical.tsx`)
+
+Quand le nœud sélectionné est :
+- **Drone** : nom, modèle, vitesse max (lecture seule depuis `droneProduct`).
+- **Forme** : champ "Instant de la forme (s)" — édite `shapeTime`.
+- **Assignation (clic sur câble)** : éditeur de temps de l'assignation (par défaut = shapeTime).
+
+---
+
+## 4. Timeline — `Timeline.tsx`
+
+Pour chaque drone, afficher une piste avec des marqueurs aux temps d'assignation. Cliquer = sélectionne l'assignation. Glisser = change `time`.
+
+---
+
+## 5. Animation physique — nouveau `src/hooks/useDroneAnimation.ts`
+
+À chaque frame (selon `currentTime`) :
+1. Pour chaque drone, trier ses assignations par `time`.
+2. Trouver l'intervalle `[t_prev, t_next]` encadrant `currentTime`.
+3. Position cible = interpolation linéaire (eased) entre l'ancrage précédent (worldspace) et le suivant.
+4. **Évitement de collisions** : algorithme simple — pour chaque paire de drones, si distance < `safeRadius` (≈ 2× diamètre), appliquer une force de répulsion perpendiculaire au mouvement (steering). Itérer 2-3 fois par frame.
+5. Écrire la position calculée dans un store éphémère `droneRuntimePositions` (Map<id, vec3>) consommé par `Drone3D`.
+
+Coordonnées d'ancrage → monde : appliquer la transformation de la forme (position + rotation + scale) à `anchor.position`.
+
+---
+
+## 6. Trajectoires pointillées — `Canvas3D.tsx`
+
+Nouveau composant `DroneTrajectory3D` : pour chaque drone, tracer une `Line` (drei) pointillée passant par tous ses ancrages assignés dans l'ordre temporel. Matériau : `LineDashedMaterial` couleur = couleur LED du drone.
+
+Visible uniquement quand mode drone actif. Le segment actuellement parcouru est mis en surbrillance (couleur pleine).
+
+---
+
+## 7. Drone3D — mise à jour
+
+Lit sa position runtime depuis le store si le mode physique est actif, sinon utilise `properties.x/y/z` (mode édition).
 
 ---
 
 ## Détails techniques
 
 ### Fichiers à créer
-- `public/data/drones.json`
-- `src/types/drone.ts`
-- `src/components/editor/DroneLibraryDialog.tsx`
-- `src/components/editor/AnchorEditor.tsx`
-- `src/components/editor/Drone3D.tsx`
-- `src/hooks/useDroneAnimation.ts`
+- `src/hooks/useDroneAnimation.ts` (boucle d'animation + collision avoidance)
+- `src/components/editor/DroneTrajectory3D.tsx` (rendu pointillés)
+- `src/lib/droneCollision.ts` (steering / répulsion)
 
 ### Fichiers à modifier
-- `src/types/editor.ts` (ProjectConfig.dynamicLighting, EditorMode 'drone', modeDrone, Anchor type, sub-objects in EditorObject3D)
-- `src/components/editor/ProjectConfigDialog.tsx` (checkbox)
-- `src/components/editor/Canvas3D.tsx` (gate sunLight, shadowMap)
-- `src/components/editor/SpotlightLyre3D.tsx` (vrai spotLight coloré)
-- `src/components/editor/FireworkSimulation.tsx` (pointLight burst)
-- `src/components/editor/LogicalView.tsx` (search bar, mode drone categories)
-- `src/components/editor/PropertiesPanelLogical.tsx` (durée stationnement)
-- `src/components/editor/ObjectsList3D.tsx` (sous-objets ancrages)
-- `src/components/editor/AnimationEditor.tsx` (router mode drone)
-- `src/components/editor/WelcomeDialog.tsx` (câbler bouton drone)
-- `src/hooks/useEditorState.ts` (nouveaux states + actions)
-- `src/lib/fileOperations.ts` (sauvegarde .flpt v1.5 avec drones/anchors)
+- `src/types/drone.ts` (DroneAssignment)
+- `src/types/editor.ts` (EditorState.droneAssignments, EditorObject3D.shapeTime)
+- `src/hooks/useEditorState.ts` (CRUD assignments, shapeTime)
+- `src/components/editor/LogicalView.tsx` (rendu drones/formes/câbles en mode drone)
+- `src/components/editor/PropertiesPanelLogical.tsx` (édition shapeTime, assignment time)
+- `src/components/editor/Timeline.tsx` (pistes d'assignations drone)
+- `src/components/editor/Canvas3D.tsx` (intègre DroneTrajectory3D + runtime positions)
+- `src/components/editor/Drone3D.tsx` (lecture runtime)
+- `src/lib/fileOperations.ts` (sauvegarde .flpt avec assignments)
 
-### Ordre d'implémentation
-1. A1 (rapide, isolé)
-2. A3 (UI seule)
-3. A2 (rendu 3D)
-4. B1 + B2 (squelette mode drone + lib)
-5. B3 (ancrages, le plus complexe)
-6. B4 (logique)
-7. B5 + B6 (animation + propriétés)
+### Algorithme évitement de collisions (résumé)
+```
+for each drone d:
+  target = interpolate(prev_anchor, next_anchor, t)
+  for each other drone o:
+    delta = d.pos - o.pos
+    if |delta| < safeRadius:
+      target += normalize(delta) * (safeRadius - |delta|) * 0.5
+  d.pos = lerp(d.pos, target, dampingFactor)
+```
+
+Pas de pathfinding global pour v1 — uniquement répulsion locale, suffisant tant que la densité reste raisonnable.
 
 ---
 
 ## Points à confirmer
-- **Représentation visuelle des drones** : sphère LED simple générée, ou un OBJ (genre quadcopter) ? → je pars sur sphère + croix LED procédurale, plus léger.
-- **Division des faces** : grille uniforme NxN, ou N points en spirale/aléatoire ? → grille uniforme.
-- **Trajectoires** : ligne droite entre ancrages successifs (pas d'évitement de collisions) → OK pour v1.
-- **Une seule "passe" de drones par zone** : nombre de drones doit ≤ nombre d'ancrages. Si moins de drones que d'ancrages, certains ports restent libres ; si plus, l'excès est ignoré.
-
-Je peux ajuster ces choix avant de coder si tu préfères autre chose.
+1. **Création d'assignations** : uniquement via la vue logique (drag-drop drone→ancrage) ? Ou aussi via clic direct sur un ancrage en 3D quand un drone est sélectionné ?
+2. **shapeTime par défaut** : 0 ms, ou réparti automatiquement (forme 1 à 1s, forme 2 à 2s…) ?
+3. **Collision** : rayon de sécurité fixe (ex. 1m) ou basé sur le diamètre du drone × facteur ?
+4. **Si plus de drones que d'ancrages** dans une forme : les drones excédentaires restent à leur position précédente, OK ?

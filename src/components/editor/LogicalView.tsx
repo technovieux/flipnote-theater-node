@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { EditorObject3D } from '@/types/editor';
-import { Lightbulb, Sparkles, Sliders, Plug, Trash2, ZoomIn, ZoomOut, Maximize2, Mic, Headphones, Search } from 'lucide-react';
+import { DroneAssignment } from '@/types/drone';
+import { Lightbulb, Sparkles, Sliders, Plug, Trash2, ZoomIn, ZoomOut, Maximize2, Mic, Headphones, Search, Plane, Boxes } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SpotlightFixture } from '@/types/spotlight';
@@ -51,6 +52,10 @@ interface LogicalViewProps {
   setCables: React.Dispatch<React.SetStateAction<LogicalCable[]>>;
   /** When true, hides spot and firework categories (drone mode). */
   droneMode?: boolean;
+  /** Drone-mode assignments (drone -> anchor of shape, at time t). */
+  droneAssignments?: DroneAssignment[];
+  onAddDroneAssignment?: (droneId: string, shapeId: string, anchorId: string, time?: number) => void;
+  onRemoveDroneAssignment?: (id: string) => void;
 }
 
 const FIRE_WINDOW_MS = 600;
@@ -94,11 +99,19 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
   cables,
   setCables,
   droneMode = false,
+  droneAssignments = [],
+  onAddDroneAssignment,
+  onRemoveDroneAssignment,
 }) => {
   const fireworks = useMemo(() => objects3D.filter(o => o.type === 'firework'), [objects3D]);
   const spotlights = useMemo(
     () => objects3D.filter(o => o.type === 'spotlight_lyre' && o.spotlightFixture),
     [objects3D]
+  );
+  const drones = useMemo(() => objects3D.filter(o => o.type === 'drone'), [objects3D]);
+  const anchorShapes = useMemo(
+    () => objects3D.filter(o => o.type !== 'drone' && o.type !== 'spotlight_lyre' && o.type !== 'firework' && o.anchors && o.anchors.length > 0),
+    [objects3D],
   );
 
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
@@ -143,9 +156,15 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
         const row = Math.floor(i / 3);
         if (!next[f.id]) { next[f.id] = { x: 360 + (i % 3) * (NODE_W + 30), y: 40 + (Math.ceil(spotlights.length / 3) + row) * (FIXTURE_H + 30) }; changed = true; }
       });
+      drones.forEach((d, i) => {
+        if (!next[d.id]) { next[d.id] = { x: 40, y: 40 + i * 90 }; changed = true; }
+      });
+      anchorShapes.forEach((s, i) => {
+        if (!next[s.id]) { next[s.id] = { x: 360, y: 40 + i * 240 }; changed = true; }
+      });
       return changed ? next : prev;
     });
-  }, [consoles, spotlights, fireworks, setPositions]);
+  }, [consoles, spotlights, fireworks, drones, anchorShapes, setPositions]);
 
   // DMX conflict detection
   const conflicts = useMemo(() => {
@@ -191,6 +210,22 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
   const removeCable = (id: string) => {
     if (readOnly) return;
     setCables(prev => prev.filter(c => c.id !== id));
+    // Drone-mode: also remove the matching assignment (if any)
+    if (droneMode && onRemoveDroneAssignment) {
+      const [fromKey, toKey] = id.split('->');
+      const from = parsePortKey(fromKey);
+      const to = parsePortKey(toKey);
+      const droneEnd = drones.some(d => d.id === from.id) ? from : (drones.some(d => d.id === to.id) ? to : null);
+      const shapeEnd = anchorShapes.find(s => s.id === from.id) ? from : (anchorShapes.find(s => s.id === to.id) ? to : null);
+      if (droneEnd && shapeEnd) {
+        const shape = anchorShapes.find(s => s.id === shapeEnd.id);
+        const anchor = shape?.anchors?.[shapeEnd.idx];
+        if (anchor) {
+          const match = droneAssignments.find(a => a.droneId === droneEnd.id && a.shapeId === shapeEnd.id && a.anchorId === anchor.id);
+          if (match) onRemoveDroneAssignment(match.id);
+        }
+      }
+    }
   };
 
   // Build a map of port positions (offset within each node) for both consoles and fixtures
@@ -215,6 +250,14 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
       }
     }
 
+    // Drone or anchor-shape node? Stacked ports.
+    const isDrone = drones.some(d => d.id === id);
+    const isAnchorShape = anchorShapes.some(s => s.id === id);
+    if (isDrone || isAnchorShape) {
+      const yOff = HEADER_H + 8 + idx * PORT_ROW_H + PORT_ROW_H / 2;
+      return { x: side === 'in' ? pos.x : pos.x + NODE_W, y: pos.y + yOff };
+    }
+
     // Fixture (spotlight or firework): single port mid-height
     return {
       x: side === 'in' ? pos.x : pos.x + NODE_W,
@@ -235,6 +278,17 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
     if (from.side === to.side) { setPendingFrom(null); return; }
     const cableId = `${pendingFrom}->${toKey}`;
     setCables(prev => prev.some(c => c.id === cableId) ? prev : [...prev, { id: cableId, from: from.id, to: to.id }]);
+
+    // Drone-mode: if this cable links a drone to a shape-anchor port, record an assignment
+    if (droneMode && onAddDroneAssignment) {
+      const droneEnd = drones.some(d => d.id === from.id) ? from : (drones.some(d => d.id === to.id) ? to : null);
+      const shapeEnd = anchorShapes.find(s => s.id === from.id) ? from : (anchorShapes.find(s => s.id === to.id) ? to : null);
+      if (droneEnd && shapeEnd && droneEnd.id !== shapeEnd.id) {
+        const shape = anchorShapes.find(s => s.id === shapeEnd.id);
+        const anchor = shape?.anchors?.[shapeEnd.idx];
+        if (anchor) onAddDroneAssignment(droneEnd.id, shapeEnd.id, anchor.id);
+      }
+    }
     setPendingFrom(null);
   };
 
@@ -282,7 +336,8 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
   return (
     <TooltipProvider delayDuration={200}>
     <div className="w-full h-full flex bg-muted/20">
-      {/* Palette */}
+      {/* Palette (hidden in drone mode — drones and shapes are added from the menu bar / 3D canvas) */}
+      {!droneMode && (
       <div className="w-64 border-r border-border bg-card flex flex-col overflow-hidden">
         <div className="p-3 space-y-2 border-b border-border">
           <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Catégories</div>
@@ -437,6 +492,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
           )}
         </div>
       </div>
+      )}
 
       {/* Canvas wrapper (for sticky zoom controls) */}
       <div className="relative flex-1 overflow-hidden">
@@ -656,8 +712,111 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
             })}
 
             {(consoles.length === 0 && spotlights.length === 0 && fireworks.length === 0) && (
-              <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground italic pointer-events-none">
-                Ajoute une console, des projecteurs ou des feux d'artifice depuis la bibliothèque.
+              !droneMode && (
+                <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground italic pointer-events-none">
+                  Ajoute une console, des projecteurs ou des feux d'artifice depuis la bibliothèque.
+                </div>
+              )
+            )}
+
+            {/* Drone nodes (drone mode) — left column, 1 DMX out port */}
+            {droneMode && drones.map(d => {
+              const pos = positions[d.id] || { x: 40, y: 40 };
+              const isSelected = selectedObjectIds.includes(d.id);
+              const outKey = buildPortKey(d.id, 'dmx', 'out', 0);
+              const pendingOut = pendingFrom === outKey;
+              const color = d.properties.color || '#88ccff';
+              const nodeH = HEADER_H + 8 + PORT_ROW_H + 8 + 24;
+              return (
+                <div
+                  key={d.id}
+                  className={`absolute rounded-lg border-2 bg-card shadow-md select-none ${
+                    pendingOut ? 'border-amber-500 ring-2 ring-amber-500/50'
+                    : isSelected ? 'border-primary ring-2 ring-primary/40'
+                    : 'border-border'
+                  }`}
+                  style={{ left: pos.x, top: pos.y, width: NODE_W, height: nodeH }}
+                  onPointerDown={(e) => onNodePointerDown(e, d.id)}
+                  onClick={(e) => { e.stopPropagation(); onSelect(d.id, { ctrlKey: e.ctrlKey, shiftKey: e.shiftKey }); }}
+                >
+                  <div className="flex items-center justify-between p-2 border-b border-border rounded-t-md" style={{ height: HEADER_H }}>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold truncate">
+                      <Plane className="h-3.5 w-3.5" style={{ color }} /> {d.name}
+                    </div>
+                  </div>
+                  <div className="px-2 py-1 text-[10px] text-muted-foreground truncate">
+                    {d.droneProduct?.manufacturer || ''}
+                  </div>
+                  <button
+                    disabled={!portClickable}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(outKey) : startCableFromPort(outKey); }}
+                    className={`absolute -right-3 w-6 h-6 rounded-full border-2 flex items-center justify-center bg-card hover:bg-accent transition ${pendingOut ? 'border-amber-500 bg-amber-500 text-black' : 'border-primary'} disabled:opacity-60 disabled:cursor-not-allowed`}
+                    title="Sortie drone"
+                    style={{ top: HEADER_H + 8 + 0 * PORT_ROW_H }}
+                  >
+                    <Plug className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+
+            {/* Anchor-shape nodes (drone mode) — right column, N input ports = anchors */}
+            {droneMode && anchorShapes.map(shape => {
+              const pos = positions[shape.id] || { x: 360, y: 40 };
+              const anchors = shape.anchors || [];
+              const isSelected = selectedObjectIds.includes(shape.id);
+              const nodeH = HEADER_H + 8 + Math.max(1, anchors.length) * PORT_ROW_H + 8 + 28;
+              return (
+                <div
+                  key={shape.id}
+                  className={`absolute rounded-lg border-2 bg-card shadow-md select-none ${
+                    isSelected ? 'border-primary ring-2 ring-primary/40' : 'border-border'
+                  }`}
+                  style={{ left: pos.x, top: pos.y, width: NODE_W, height: nodeH }}
+                  onPointerDown={(e) => onNodePointerDown(e, shape.id)}
+                  onClick={(e) => { e.stopPropagation(); onSelect(shape.id, { ctrlKey: e.ctrlKey, shiftKey: e.shiftKey }); }}
+                >
+                  <div className="flex items-center justify-between p-2 border-b border-border rounded-t-md" style={{ height: HEADER_H }}>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold truncate">
+                      <Boxes className="h-3.5 w-3.5 text-primary" /> {shape.name}
+                    </div>
+                  </div>
+                  <div className="px-2 py-1 text-[10px] text-muted-foreground space-y-0.5">
+                    <div>{anchors.length} ancrage(s)</div>
+                    <div className="text-primary font-mono">
+                      t = {((shape.shapeTime ?? 0) / 1000).toFixed(2)}s
+                    </div>
+                  </div>
+                  {anchors.map((a, idx) => {
+                    const key = buildPortKey(shape.id, 'dmx', 'in', idx);
+                    const isPendingPort = pendingFrom === key;
+                    const assigned = droneAssignments.some(ass => ass.shapeId === shape.id && ass.anchorId === a.id);
+                    return (
+                      <button
+                        key={a.id}
+                        disabled={!portClickable}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(key) : startCableFromPort(key); }}
+                        className={`absolute -left-3 w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-mono bg-card hover:bg-accent transition ${
+                          isPendingPort ? 'border-amber-500 bg-amber-500 text-black'
+                          : assigned ? 'border-emerald-500 text-emerald-500'
+                          : 'border-primary text-primary'
+                        } disabled:opacity-60 disabled:cursor-not-allowed`}
+                        title={`Ancrage ${idx + 1} (${a.source})`}
+                        style={{ top: HEADER_H + 8 + idx * PORT_ROW_H }}
+                      >
+                        {idx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
+
+            {droneMode && drones.length === 0 && anchorShapes.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground italic pointer-events-none text-center px-8">
+                Ajoute des drones (bibliothèque) et des formes 3D avec ancrages depuis la vue physique.
               </div>
             )}
           </div>

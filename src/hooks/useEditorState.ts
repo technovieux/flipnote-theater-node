@@ -19,7 +19,7 @@ import {
 } from '@/types/editor';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
 import { SpotlightFixture, SpotlightKeyframe } from '@/types/spotlight';
-import { DroneProduct, Anchor } from '@/types/drone';
+import { DroneProduct, Anchor, DroneAssignment } from '@/types/drone';
 import { FlptProject, base64ToFile } from '@/lib/fileOperations';
 import { interpolateColor } from '@/lib/colorUtils';
 
@@ -110,6 +110,7 @@ const initialState: EditorState = {
     dynamicLighting: true,
   },
   hasUnsavedChanges: false,
+  droneAssignments: [],
 };
 
 export const useEditorState = () => {
@@ -559,6 +560,50 @@ export const useEditorState = () => {
       ...prev,
       hasUnsavedChanges: true,
       objects3D: prev.objects3D.map(o => o.id === id ? { ...o, anchors } : o),
+    }));
+  }, []);
+
+  // Drone mode — set the "draw time" for a shape (all assigned drones must reach their anchors at this time)
+  const setShapeTime = useCallback((id: string, time: number) => {
+    setState(prev => ({
+      ...prev,
+      hasUnsavedChanges: true,
+      objects3D: prev.objects3D.map(o => o.id === id ? { ...o, shapeTime: Math.max(0, Math.round(time)) } : o),
+    }));
+  }, []);
+
+  // Drone mode — assignment CRUD
+  const addDroneAssignment = useCallback((droneId: string, shapeId: string, anchorId: string, time?: number) => {
+    setState(prev => {
+      const shape = prev.objects3D.find(o => o.id === shapeId);
+      const resolvedTime = time ?? shape?.shapeTime ?? prev.currentTime;
+      // Prevent duplicates of the same anchor for the same drone at the same time
+      const exists = prev.droneAssignments.some(a => a.droneId === droneId && a.shapeId === shapeId && a.anchorId === anchorId);
+      if (exists) return prev;
+      const assignment: DroneAssignment = {
+        id: generateId(),
+        droneId,
+        shapeId,
+        anchorId,
+        time: resolvedTime,
+      };
+      return { ...prev, droneAssignments: [...prev.droneAssignments, assignment], hasUnsavedChanges: true };
+    });
+  }, []);
+
+  const removeDroneAssignment = useCallback((id: string) => {
+    setState(prev => ({
+      ...prev,
+      droneAssignments: prev.droneAssignments.filter(a => a.id !== id),
+      hasUnsavedChanges: true,
+    }));
+  }, []);
+
+  const updateDroneAssignmentTime = useCallback((id: string, time: number) => {
+    setState(prev => ({
+      ...prev,
+      droneAssignments: prev.droneAssignments.map(a => a.id === id ? { ...a, time: Math.max(0, Math.round(time)) } : a),
+      hasUnsavedChanges: true,
     }));
   }, []);
 
@@ -1303,6 +1348,10 @@ export const useEditorState = () => {
     addObject3DSpotlightFixture,
     addDroneObject,
     setObjectAnchors,
+    setShapeTime,
+    addDroneAssignment,
+    removeDroneAssignment,
+    updateDroneAssignmentTime,
     updateObject3DDmxAddress,
     updateSpotlightPosition,
     updateSpotlightChannelValue,
