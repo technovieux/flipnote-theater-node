@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { EditorObject3D } from '@/types/editor';
-import { Lightbulb, Sparkles, Sliders, Plug, Trash2, ZoomIn, ZoomOut, Maximize2, Mic, Headphones, Search } from 'lucide-react';
+import { DroneAssignment } from '@/types/drone';
+import { Lightbulb, Sparkles, Sliders, Plug, Trash2, ZoomIn, ZoomOut, Maximize2, Mic, Headphones, Search, Plane, Boxes } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SpotlightFixture } from '@/types/spotlight';
@@ -51,6 +52,10 @@ interface LogicalViewProps {
   setCables: React.Dispatch<React.SetStateAction<LogicalCable[]>>;
   /** When true, hides spot and firework categories (drone mode). */
   droneMode?: boolean;
+  /** Drone-mode assignments (drone -> anchor of shape, at time t). */
+  droneAssignments?: DroneAssignment[];
+  onAddDroneAssignment?: (droneId: string, shapeId: string, anchorId: string, time?: number) => void;
+  onRemoveDroneAssignment?: (id: string) => void;
 }
 
 const FIRE_WINDOW_MS = 600;
@@ -94,11 +99,19 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
   cables,
   setCables,
   droneMode = false,
+  droneAssignments = [],
+  onAddDroneAssignment,
+  onRemoveDroneAssignment,
 }) => {
   const fireworks = useMemo(() => objects3D.filter(o => o.type === 'firework'), [objects3D]);
   const spotlights = useMemo(
     () => objects3D.filter(o => o.type === 'spotlight_lyre' && o.spotlightFixture),
     [objects3D]
+  );
+  const drones = useMemo(() => objects3D.filter(o => o.type === 'drone'), [objects3D]);
+  const anchorShapes = useMemo(
+    () => objects3D.filter(o => o.type !== 'drone' && o.type !== 'spotlight_lyre' && o.type !== 'firework' && o.anchors && o.anchors.length > 0),
+    [objects3D],
   );
 
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
