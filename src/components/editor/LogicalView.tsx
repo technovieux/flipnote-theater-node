@@ -210,6 +210,22 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
   const removeCable = (id: string) => {
     if (readOnly) return;
     setCables(prev => prev.filter(c => c.id !== id));
+    // Drone-mode: also remove the matching assignment (if any)
+    if (droneMode && onRemoveDroneAssignment) {
+      const [fromKey, toKey] = id.split('->');
+      const from = parsePortKey(fromKey);
+      const to = parsePortKey(toKey);
+      const droneEnd = drones.some(d => d.id === from.id) ? from : (drones.some(d => d.id === to.id) ? to : null);
+      const shapeEnd = anchorShapes.find(s => s.id === from.id) ? from : (anchorShapes.find(s => s.id === to.id) ? to : null);
+      if (droneEnd && shapeEnd) {
+        const shape = anchorShapes.find(s => s.id === shapeEnd.id);
+        const anchor = shape?.anchors?.[shapeEnd.idx];
+        if (anchor) {
+          const match = droneAssignments.find(a => a.droneId === droneEnd.id && a.shapeId === shapeEnd.id && a.anchorId === anchor.id);
+          if (match) onRemoveDroneAssignment(match.id);
+        }
+      }
+    }
   };
 
   // Build a map of port positions (offset within each node) for both consoles and fixtures
