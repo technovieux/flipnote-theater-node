@@ -710,8 +710,111 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
             })}
 
             {(consoles.length === 0 && spotlights.length === 0 && fireworks.length === 0) && (
-              <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground italic pointer-events-none">
-                Ajoute une console, des projecteurs ou des feux d'artifice depuis la bibliothèque.
+              !droneMode && (
+                <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground italic pointer-events-none">
+                  Ajoute une console, des projecteurs ou des feux d'artifice depuis la bibliothèque.
+                </div>
+              )
+            )}
+
+            {/* Drone nodes (drone mode) — left column, 1 DMX out port */}
+            {droneMode && drones.map(d => {
+              const pos = positions[d.id] || { x: 40, y: 40 };
+              const isSelected = selectedObjectIds.includes(d.id);
+              const outKey = buildPortKey(d.id, 'dmx', 'out', 0);
+              const pendingOut = pendingFrom === outKey;
+              const color = d.properties.color || '#88ccff';
+              const nodeH = HEADER_H + 8 + PORT_ROW_H + 8 + 24;
+              return (
+                <div
+                  key={d.id}
+                  className={`absolute rounded-lg border-2 bg-card shadow-md select-none ${
+                    pendingOut ? 'border-amber-500 ring-2 ring-amber-500/50'
+                    : isSelected ? 'border-primary ring-2 ring-primary/40'
+                    : 'border-border'
+                  }`}
+                  style={{ left: pos.x, top: pos.y, width: NODE_W, height: nodeH }}
+                  onPointerDown={(e) => onNodePointerDown(e, d.id)}
+                  onClick={(e) => { e.stopPropagation(); onSelect(d.id, { ctrlKey: e.ctrlKey, shiftKey: e.shiftKey }); }}
+                >
+                  <div className="flex items-center justify-between p-2 border-b border-border rounded-t-md" style={{ height: HEADER_H }}>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold truncate">
+                      <Plane className="h-3.5 w-3.5" style={{ color }} /> {d.name}
+                    </div>
+                  </div>
+                  <div className="px-2 py-1 text-[10px] text-muted-foreground truncate">
+                    {d.droneProduct?.manufacturer || ''}
+                  </div>
+                  <button
+                    disabled={!portClickable}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(outKey) : startCableFromPort(outKey); }}
+                    className={`absolute -right-3 w-6 h-6 rounded-full border-2 flex items-center justify-center bg-card hover:bg-accent transition ${pendingOut ? 'border-amber-500 bg-amber-500 text-black' : 'border-primary'} disabled:opacity-60 disabled:cursor-not-allowed`}
+                    title="Sortie drone"
+                    style={{ top: HEADER_H + 8 + 0 * PORT_ROW_H }}
+                  >
+                    <Plug className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+
+            {/* Anchor-shape nodes (drone mode) — right column, N input ports = anchors */}
+            {droneMode && anchorShapes.map(shape => {
+              const pos = positions[shape.id] || { x: 360, y: 40 };
+              const anchors = shape.anchors || [];
+              const isSelected = selectedObjectIds.includes(shape.id);
+              const nodeH = HEADER_H + 8 + Math.max(1, anchors.length) * PORT_ROW_H + 8 + 28;
+              return (
+                <div
+                  key={shape.id}
+                  className={`absolute rounded-lg border-2 bg-card shadow-md select-none ${
+                    isSelected ? 'border-primary ring-2 ring-primary/40' : 'border-border'
+                  }`}
+                  style={{ left: pos.x, top: pos.y, width: NODE_W, height: nodeH }}
+                  onPointerDown={(e) => onNodePointerDown(e, shape.id)}
+                  onClick={(e) => { e.stopPropagation(); onSelect(shape.id, { ctrlKey: e.ctrlKey, shiftKey: e.shiftKey }); }}
+                >
+                  <div className="flex items-center justify-between p-2 border-b border-border rounded-t-md" style={{ height: HEADER_H }}>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold truncate">
+                      <Boxes className="h-3.5 w-3.5 text-primary" /> {shape.name}
+                    </div>
+                  </div>
+                  <div className="px-2 py-1 text-[10px] text-muted-foreground space-y-0.5">
+                    <div>{anchors.length} ancrage(s)</div>
+                    <div className="text-primary font-mono">
+                      t = {((shape.shapeTime ?? 0) / 1000).toFixed(2)}s
+                    </div>
+                  </div>
+                  {anchors.map((a, idx) => {
+                    const key = buildPortKey(shape.id, 'dmx', 'in', idx);
+                    const isPendingPort = pendingFrom === key;
+                    const assigned = droneAssignments.some(ass => ass.shapeId === shape.id && ass.anchorId === a.id);
+                    return (
+                      <button
+                        key={a.id}
+                        disabled={!portClickable}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); pendingFrom ? tryConnectPort(key) : startCableFromPort(key); }}
+                        className={`absolute -left-3 w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-mono bg-card hover:bg-accent transition ${
+                          isPendingPort ? 'border-amber-500 bg-amber-500 text-black'
+                          : assigned ? 'border-emerald-500 text-emerald-500'
+                          : 'border-primary text-primary'
+                        } disabled:opacity-60 disabled:cursor-not-allowed`}
+                        title={`Ancrage ${idx + 1} (${a.source})`}
+                        style={{ top: HEADER_H + 8 + idx * PORT_ROW_H }}
+                      >
+                        {idx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
+
+            {droneMode && drones.length === 0 && anchorShapes.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground italic pointer-events-none text-center px-8">
+                Ajoute des drones (bibliothèque) et des formes 3D avec ancrages depuis la vue physique.
               </div>
             )}
           </div>
