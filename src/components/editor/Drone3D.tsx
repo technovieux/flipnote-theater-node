@@ -7,11 +7,13 @@ interface Drone3DProps {
   properties: Object3DProperties;
   isSelected: boolean;
   onSelect: () => void;
+  /** Optional runtime position override (drone-mode physical playback). */
+  runtimePosition?: [number, number, number];
 }
 
-export const Drone3D: React.FC<Drone3DProps> = ({ object, properties, isSelected, onSelect }) => {
+export const Drone3D: React.FC<Drone3DProps> = ({ object, properties, isSelected, onSelect, runtimePosition }) => {
   // Editor (Z-up) -> Three (Y-up): (x, z, -y)
-  const position: [number, number, number] = [
+  const position: [number, number, number] = runtimePosition ?? [
     properties.x / 100,
     properties.z / 100,
     -properties.y / 100,
