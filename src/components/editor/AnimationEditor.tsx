@@ -52,6 +52,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { saveProject, saveProjectAs, openProject, clearCurrentFile, FlptProject, EmbeddedOBJModel } from '@/lib/fileOperations';
 import { SpotlightEditorObject } from '@/types/editor';
+import { computeDronePositions, computeDroneTrajectories } from '@/lib/droneCollision';
 
 // Derive display color from spotlight channel values
 const getSpotlightColor = (spot: SpotlightEditorObject, channelValues: number[]): string => {
@@ -100,6 +101,9 @@ export const AnimationEditor: React.FC = () => {
     addObject3DSpotlightFixture,
     addDroneObject,
     setObjectAnchors,
+    setShapeTime,
+    addDroneAssignment,
+    removeDroneAssignment,
     updateObject3DDmxAddress,
     updateSpotlightDmxAddress,
     updateSpotlightPosition,
