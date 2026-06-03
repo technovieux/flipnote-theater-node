@@ -156,9 +156,15 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
         const row = Math.floor(i / 3);
         if (!next[f.id]) { next[f.id] = { x: 360 + (i % 3) * (NODE_W + 30), y: 40 + (Math.ceil(spotlights.length / 3) + row) * (FIXTURE_H + 30) }; changed = true; }
       });
+      drones.forEach((d, i) => {
+        if (!next[d.id]) { next[d.id] = { x: 40, y: 40 + i * 90 }; changed = true; }
+      });
+      anchorShapes.forEach((s, i) => {
+        if (!next[s.id]) { next[s.id] = { x: 360, y: 40 + i * 240 }; changed = true; }
+      });
       return changed ? next : prev;
     });
-  }, [consoles, spotlights, fireworks, setPositions]);
+  }, [consoles, spotlights, fireworks, drones, anchorShapes, setPositions]);
 
   // DMX conflict detection
   const conflicts = useMemo(() => {
@@ -228,6 +234,14 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
       }
     }
 
+    // Drone or anchor-shape node? Stacked ports.
+    const isDrone = drones.some(d => d.id === id);
+    const isAnchorShape = anchorShapes.some(s => s.id === id);
+    if (isDrone || isAnchorShape) {
+      const yOff = HEADER_H + 8 + idx * PORT_ROW_H + PORT_ROW_H / 2;
+      return { x: side === 'in' ? pos.x : pos.x + NODE_W, y: pos.y + yOff };
+    }
+
     // Fixture (spotlight or firework): single port mid-height
     return {
       x: side === 'in' ? pos.x : pos.x + NODE_W,
@@ -248,6 +262,17 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
     if (from.side === to.side) { setPendingFrom(null); return; }
     const cableId = `${pendingFrom}->${toKey}`;
     setCables(prev => prev.some(c => c.id === cableId) ? prev : [...prev, { id: cableId, from: from.id, to: to.id }]);
+
+    // Drone-mode: if this cable links a drone to a shape-anchor port, record an assignment
+    if (droneMode && onAddDroneAssignment) {
+      const droneEnd = drones.some(d => d.id === from.id) ? from : (drones.some(d => d.id === to.id) ? to : null);
+      const shapeEnd = anchorShapes.find(s => s.id === from.id) ? from : (anchorShapes.find(s => s.id === to.id) ? to : null);
+      if (droneEnd && shapeEnd && droneEnd.id !== shapeEnd.id) {
+        const shape = anchorShapes.find(s => s.id === shapeEnd.id);
+        const anchor = shape?.anchors?.[shapeEnd.idx];
+        if (anchor) onAddDroneAssignment(droneEnd.id, shapeEnd.id, anchor.id);
+      }
+    }
     setPendingFrom(null);
   };
 
