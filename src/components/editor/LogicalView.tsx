@@ -492,6 +492,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
           )}
         </div>
       </div>
+      )}
 
       {/* Canvas wrapper (for sticky zoom controls) */}
       <div className="relative flex-1 overflow-hidden">
