@@ -1,6 +1,6 @@
 import { FireworkProduct, FireworkCategory } from './fireworks';
 import { SpotlightFixture, SpotlightKeyframe } from './spotlight';
-import { DroneProduct, Anchor } from './drone';
+import { DroneProduct, Anchor, DroneAssignment } from './drone';
 export type ShapeType = 'rectangle' | 'circle' | 'triangle';
 export type Shape3DType = 
   | 'cube' | 'sphere' | 'cylinder' | 'cone' | 'torus'
@@ -128,6 +128,8 @@ export interface EditorObject3D {
   droneProduct?: DroneProduct; // For drones added in drone mode
   /** Geometric anchors (in local mesh space) attached to this 3D object — used by drone mode. */
   anchors?: Anchor[];
+  /** Drone mode only — time (ms) at which this shape must be fully drawn by the assigned drones. */
+  shapeTime?: number;
 }
 
 export interface Scene {
@@ -168,4 +170,6 @@ export interface EditorState {
   modeDrone: boolean;
   projectConfig: ProjectConfig;
   hasUnsavedChanges: boolean;
+  /** Drone mode only — assignments of drones to anchors at specific times. */
+  droneAssignments: DroneAssignment[];
 }
