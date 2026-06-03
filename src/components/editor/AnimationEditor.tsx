@@ -788,6 +788,9 @@ export const AnimationEditor: React.FC = () => {
                     setPositions={setLogicalPositions}
                     cables={logicalCables}
                     setCables={setLogicalCables}
+                    droneAssignments={state.droneAssignments}
+                    onAddDroneAssignment={renderMode ? undefined : addDroneAssignment}
+                    onRemoveDroneAssignment={renderMode ? undefined : removeDroneAssignment}
                   />
                 ) : state.mode3D ? (
                   <Canvas3D
@@ -807,6 +810,17 @@ export const AnimationEditor: React.FC = () => {
                     ) : null}
                     droneMode={state.modeDrone}
                     onSetAnchors={renderMode ? undefined : setObjectAnchors}
+                    droneRuntimePositions={state.modeDrone ? computeDronePositions(
+                      state.objects3D.filter(o => o.type === 'drone'),
+                      state.objects3D.filter(o => o.anchors && o.anchors.length > 0),
+                      state.droneAssignments,
+                      state.currentTime,
+                    ) : undefined}
+                    droneTrajectories={state.modeDrone ? computeDroneTrajectories(
+                      state.objects3D.filter(o => o.type === 'drone'),
+                      state.objects3D.filter(o => o.anchors && o.anchors.length > 0),
+                      state.droneAssignments,
+                    ) : undefined}
                   />
                 ) : state.modeSpotlight ? (
                   <Canvas
@@ -859,6 +873,7 @@ export const AnimationEditor: React.FC = () => {
                         selectedObjects={state.objects3D.filter(o => state.selectedObjectIds.includes(o.id))}
                         onUpdateDmxAddress={updateObject3DDmxAddress}
                         onUpdateColor={(id, color) => updateObject3DProperties(id, { color })}
+                        onUpdateShapeTime={state.modeDrone ? setShapeTime : undefined}
                       />
                     ) : state.modeSpotlight ? (
                       <PropertiesPanelSpotlight
