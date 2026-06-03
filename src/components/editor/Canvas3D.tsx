@@ -1,6 +1,7 @@
 import React, { useRef, useState, Suspense, useEffect, useMemo } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport, TransformControls } from '@react-three/drei';
+import { Line } from '@react-three/drei';
 import { EditorObject3D, Object3DProperties, CameraPosition, CustomGeometry, OBJGeometry } from '@/types/editor';
 import { FireworkSimulation } from './FireworkSimulation';
 import { SpotlightLyre3D } from './SpotlightLyre3D';
@@ -65,6 +66,10 @@ interface Canvas3DProps {
   droneMode?: boolean;
   /** Callback to update an object's anchors (drone mode). */
   onSetAnchors?: (id: string, anchors: Anchor[]) => void;
+  /** Drone runtime positions keyed by drone object id (overrides static placement). */
+  droneRuntimePositions?: Map<string, [number, number, number]>;
+  /** Trajectory polylines to render as dashed lines per drone. */
+  droneTrajectories?: { droneId: string; color: string; points: [number, number, number][] }[];
 }
 
 type TransformMode = 'translate' | 'rotate' | 'scale' | null;
@@ -719,6 +724,8 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
   sunLight,
   droneMode = false,
   onSetAnchors,
+  droneRuntimePositions,
+  droneTrajectories,
 }) => {
   const controlsRef = useRef<any>(null);
   const [navMode, setNavMode] = useState<'select' | 'pan' | 'rotate'>('select');
@@ -936,6 +943,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                     properties={props}
                     isSelected={selectedObjectIds.includes(obj.id)}
                     onSelect={() => onSelect(obj.id)}
+                    runtimePosition={droneRuntimePositions?.get(obj.id)}
                   />
                 );
               }
@@ -980,6 +988,24 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                     );
                   })}
                 </group>
+              );
+            })}
+
+            {/* Drone trajectories (drone mode) — dashed polylines per drone */}
+            {droneMode && droneTrajectories?.map(({ droneId, color, points }) => {
+              if (points.length < 2) return null;
+              return (
+                <Line
+                  key={`traj-${droneId}`}
+                  points={points}
+                  color={color}
+                  lineWidth={1.5}
+                  dashed
+                  dashSize={0.15}
+                  gapSize={0.1}
+                  transparent
+                  opacity={0.85}
+                />
               );
             })}
             
