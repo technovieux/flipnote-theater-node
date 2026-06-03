@@ -336,7 +336,8 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
   return (
     <TooltipProvider delayDuration={200}>
     <div className="w-full h-full flex bg-muted/20">
-      {/* Palette */}
+      {/* Palette (hidden in drone mode — drones and shapes are added from the menu bar / 3D canvas) */}
+      {!droneMode && (
       <div className="w-64 border-r border-border bg-card flex flex-col overflow-hidden">
         <div className="p-3 space-y-2 border-b border-border">
           <div className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">Catégories</div>
