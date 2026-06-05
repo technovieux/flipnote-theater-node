@@ -788,10 +788,10 @@ export const AnimationEditor: React.FC = () => {
                     readOnly={renderMode}
                     consoles={logicalConsoles}
                     setConsoles={setLogicalConsoles}
-                    positions={logicalPositions}
-                    setPositions={setLogicalPositions}
-                    cables={logicalCables}
-                    setCables={setLogicalCables}
+                    positions={state.modeDrone ? droneLogicalPositions : logicalPositions}
+                    setPositions={state.modeDrone ? setDroneLogicalPositions : setLogicalPositions}
+                    cables={state.modeDrone ? droneLogicalCables : logicalCables}
+                    setCables={state.modeDrone ? setDroneLogicalCables : setLogicalCables}
                     droneAssignments={state.droneAssignments}
                     onAddDroneAssignment={renderMode ? undefined : addDroneAssignment}
                     onRemoveDroneAssignment={renderMode ? undefined : removeDroneAssignment}
