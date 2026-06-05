@@ -17,6 +17,23 @@ import * as THREE from 'three';
 
 import { SunLightInfo } from '@/lib/sunPosition';
 
+// Tracks camera yaw and rotates an HTML compass needle so it always points to world North.
+// Scene convention: +X east, +Y north, +Z up. SunSky maps to Three.js coords as (x, z, -y),
+// so world-north in Three.js space is the -Z direction.
+const CompassTracker: React.FC<{ needleRef: React.RefObject<HTMLDivElement> }> = ({ needleRef }) => {
+  const { camera } = useThree();
+  const fwd = useRef(new THREE.Vector3());
+  useFrame(() => {
+    if (!needleRef.current) return;
+    camera.getWorldDirection(fwd.current);
+    // Project on the horizontal plane (Three.js XZ) and compute the angle so that
+    // looking north (-Z) keeps the needle pointing up.
+    const angle = Math.atan2(-fwd.current.x, -fwd.current.z); // radians, CCW positive
+    needleRef.current.style.transform = `rotate(${-angle}rad)`;
+  });
+  return null;
+};
+
 // Component to render a sky background + visible sun sphere driven by SunLightInfo.
 const SunSky: React.FC<{ sunLight: SunLightInfo }> = ({ sunLight }) => {
   const { scene } = useThree();
