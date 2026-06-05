@@ -167,6 +167,10 @@ export const AnimationEditor: React.FC = () => {
   const [logicalConsoles, setLogicalConsoles] = useState<import('./LogicalView').ConsoleNode[]>([]);
   const [logicalPositions, setLogicalPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [logicalCables, setLogicalCables] = useState<import('./LogicalView').LogicalCable[]>([]);
+  // Drone-mode logical view has its own separate cables & node positions
+  // (consoles don't apply in drone mode) so wiring doesn't leak between modes.
+  const [droneLogicalPositions, setDroneLogicalPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [droneLogicalCables, setDroneLogicalCables] = useState<import('./LogicalView').LogicalCable[]>([]);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
