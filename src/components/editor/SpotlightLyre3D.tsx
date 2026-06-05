@@ -220,7 +220,7 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
           )}
 
           {/* Volumetric light beam (always visible, colored) */}
-          <mesh position={[0, 0.5, 0]} rotation={[Math.PI, 0, 0]}>
+          <mesh position={[0, 1.2, 0]} rotation={[Math.PI, 0, 0]}>
             <coneGeometry args={[0.55, 2.2, 24, 1, true]} />
             <meshBasicMaterial
               color={lightColor}
