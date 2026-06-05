@@ -106,10 +106,10 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
                 onClick={() => onSelectMode('fireworks')}
               />
               <HexButton
-                icon={<Combine className="w-8 h-8 text-primary" />}
+                icon={<Combine className="w-8 h-8" style={{ color: 'hsl(298, 93%, 47%)' }}/>}
                 label="Combiné"
                 sublabel="Tous les modes"
-                hoverFill="hsl(var(--primary) / 0.15)"
+                hoverFill="hsl(298, 93%, 47%, 0.2)"
                 onClick={() => onSelectMode('combined')}
               />
               <HexButton
