@@ -245,7 +245,7 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
             castShadow
           />
           {/* Spot light target — sits below the head in local space so the beam points down the head's local -Y axis */}
-          <object3D ref={spotTargetRef} position={[0, -10, 0]} />
+          <object3D ref={spotTargetRef} position={[0, 10, 0]} />
         </group>
       </group>
 
