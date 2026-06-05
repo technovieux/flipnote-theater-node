@@ -42,7 +42,7 @@
           "lens": {
             "color": "#88ccff",
             "emissive": true,
-            "position": [0, 0.40, 0],
+            "position": [0, 0.365, 0],
             "rotation": [0, 180, 0],
             "radius": 0.085
           }
