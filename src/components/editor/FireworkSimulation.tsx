@@ -319,15 +319,23 @@ const FireworkEffect: React.FC<{
       )}
 
       {/* Burst light: colored point light that illuminates the scene during the explosion */}
-      {!ground && progress > riseFraction && (
-        <pointLight
-          position={[0, riseHeight, 0]}
-          color={colors[Math.floor((progress * colors.length)) % colors.length]}
-          intensity={Math.max(0, 25 * (1 - (progress - riseFraction) / (1 - riseFraction)))}
-          distance={riseHeight * 4}
-          decay={1.5}
-        />
-      )}
+      {!ground && progress > riseFraction && progress < 1 && (() => {
+        const bp = (progress - riseFraction) / (1 - riseFraction); // 0..1 during burst
+        // Short bright flash that decays quickly with particles, fully off before end
+        const falloff = Math.pow(1 - bp, 2.5);
+        const flash = bp < 0.15 ? bp / 0.15 : 1; // tiny ramp-in to avoid hard pop
+        const intensity = 9 * falloff * flash;
+        if (intensity < 0.05) return null;
+        return (
+          <pointLight
+            position={[0, riseHeight, 0]}
+            color={colors[Math.floor((progress * colors.length)) % colors.length]}
+            intensity={intensity}
+            distance={riseHeight * 3}
+            decay={2}
+          />
+        );
+      })()}
       {/* Fountain glow light */}
       {ground && progress > 0 && progress < 1 && (
         <pointLight
