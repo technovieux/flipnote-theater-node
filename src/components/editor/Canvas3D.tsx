@@ -882,10 +882,28 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
         {anchorEditableObject && !anchorEditorOpen && (
           <button
             onClick={() => setAnchorEditorOpen(true)}
-            className="absolute top-2 left-2 z-20 px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
+            className={`absolute ${sunLight ? 'top-[72px]' : 'top-2'} left-2 z-20 px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 shadow-md`}
           >
             Définir ancrages…
           </button>
+        )}
+        {/* Compass — only when sun simulation is active. Needle rotates with camera yaw to always point world-north. */}
+        {sunLight && (
+          <div
+            className="absolute top-2 left-2 z-20 w-14 h-14 rounded-full bg-background/80 backdrop-blur-sm border border-border shadow-md flex items-center justify-center pointer-events-none select-none"
+            title="Boussole — pointe vers le nord"
+          >
+            <span className="absolute top-1 text-[10px] font-semibold text-muted-foreground">N</span>
+            <span className="absolute bottom-1 text-[10px] font-semibold text-muted-foreground">S</span>
+            <span className="absolute left-1 text-[10px] font-semibold text-muted-foreground">O</span>
+            <span className="absolute right-1 text-[10px] font-semibold text-muted-foreground">E</span>
+            <div ref={compassNeedleRef} className="w-full h-full flex items-center justify-center transition-none">
+              <svg viewBox="-10 -16 20 32" className="w-7 h-10">
+                <polygon points="0,-14 5,4 0,1 -5,4" fill="hsl(var(--destructive))" />
+                <polygon points="0,14 5,-4 0,-1 -5,-4" fill="hsl(var(--muted-foreground))" />
+              </svg>
+            </div>
+          </div>
         )}
         {anchorEditableObject && anchorEditorOpen && onSetAnchors && (
           <AnchorEditor
