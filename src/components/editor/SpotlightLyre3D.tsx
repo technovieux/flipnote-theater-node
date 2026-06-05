@@ -154,7 +154,7 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
   const headPart = loadedFixture?.parts.find(p => p.name === 'head');
 
   // Real colored light: use object's color, with intensity from opacity (0-100 -> 0-1)
-  const lightColor = properties.color || '#ffffff';
+  const lightColor = '#ffffff';
   const lightIntensity = Math.max(0.05, (properties.opacity ?? 100) / 100) * 6;
 
   const renderPart = (part: LoadedFixturePart) => (
