@@ -235,7 +235,7 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
           {/* Real Three.js spotLight projecting on the scene */}
           <spotLight
             ref={spotLightRef}
-            position={[0, -0.18, 0]}
+            position={[0, 0.18, 0]}
             color={lightColor}
             intensity={lightIntensity}
             angle={Math.PI / 7}
