@@ -387,7 +387,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           {/* Track labels column */}
           <div className="w-32 flex-shrink-0 flex flex-col overflow-y-auto border-r border-panel-border">
             {/* Scenes label */}
-            <div className="px-2 py-1 text-sm bg-keyframe-scene/20 font-medium border-b border-panel-border flex-shrink-0">
+            <div className="px-2 h-8 text-sm bg-keyframe-scene/20 font-medium border-b border-panel-border flex-shrink-0 flex items-center">
               Scènes
             </div>
 
@@ -395,13 +395,13 @@ export const Timeline: React.FC<TimelineProps> = ({
             {!renderMode && !mode3D && objects.map((obj) => (
               <div
                 key={obj.id}
-                className={`px-2 py-1 text-sm truncate border-b border-panel-border flex items-center gap-2 cursor-pointer flex-shrink-0 ${
+                className={`px-2 h-8 text-sm border-b border-panel-border flex items-center gap-2 cursor-pointer flex-shrink-0 overflow-hidden ${
                   selectedObjectIds.includes(obj.id) ? 'bg-primary/10' : ''
                 }`}
                 onClick={() => onSelectObject(obj.id)}
               >
                 <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: obj.properties.color }} />
-                {obj.name}
+                <span className="truncate">{obj.name}</span>
               </div>
             ))}
 
@@ -409,19 +409,19 @@ export const Timeline: React.FC<TimelineProps> = ({
             {!renderMode && mode3D && objects3D.map((obj) => (
               <div
                 key={obj.id}
-                className={`px-2 py-1 text-sm truncate border-b border-panel-border flex items-center gap-2 cursor-pointer flex-shrink-0 ${
+                className={`px-2 h-8 text-sm border-b border-panel-border flex items-center gap-2 cursor-pointer flex-shrink-0 overflow-hidden ${
                   selectedObjectIds.includes(obj.id) ? 'bg-primary/10' : ''
                 }`}
                 onClick={() => onSelectObject(obj.id)}
               >
                 <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: obj.properties.color }} />
-                {obj.name}
+                <span className="truncate">{obj.name}</span>
               </div>
             ))}
 
             {/* Audio tracks with names and trash icons */}
             {audioTracks.map((track) => (
-              <div key={track.id} className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
+              <div key={track.id} className="px-2 h-8 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
                 <span className="truncate">🎵 {track.name}</span>
                 <Button
                   size="sm"
@@ -438,7 +438,7 @@ export const Timeline: React.FC<TimelineProps> = ({
             ))}
 
             {/* Audio label with + to add */}
-            <div className="px-2 py-1 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
+            <div className="px-2 h-8 text-sm text-muted-foreground border-b border-panel-border flex items-center justify-between flex-shrink-0">
               <span>Audio</span>
               <Button
                 size="sm"
