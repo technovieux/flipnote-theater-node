@@ -748,6 +748,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
   const [navMode, setNavMode] = useState<'select' | 'pan' | 'rotate'>('select');
   const [transformMode, setTransformMode] = useState<TransformMode>(null);
   const [cameraState, setCameraState] = useState({ zoom: 1 });
+  const compassNeedleRef = useRef<HTMLDivElement>(null);
   
   const selectedObject = objects.find(obj => selectedObjectIds.includes(obj.id));
   const [anchorEditorOpen, setAnchorEditorOpen] = useState(false);
