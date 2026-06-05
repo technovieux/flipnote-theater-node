@@ -1,5 +1,5 @@
 import React, { useRef, useState, Suspense, useEffect, useMemo } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport, TransformControls } from '@react-three/drei';
 import { Line } from '@react-three/drei';
 import { EditorObject3D, Object3DProperties, CameraPosition, CustomGeometry, OBJGeometry } from '@/types/editor';
@@ -16,6 +16,23 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import * as THREE from 'three';
 
 import { SunLightInfo } from '@/lib/sunPosition';
+
+// Tracks camera yaw and rotates an HTML compass needle so it always points to world North.
+// Scene convention: +X east, +Y north, +Z up. SunSky maps to Three.js coords as (x, z, -y),
+// so world-north in Three.js space is the -Z direction.
+const CompassTracker: React.FC<{ needleRef: React.RefObject<HTMLDivElement> }> = ({ needleRef }) => {
+  const { camera } = useThree();
+  const fwd = useRef(new THREE.Vector3());
+  useFrame(() => {
+    if (!needleRef.current) return;
+    camera.getWorldDirection(fwd.current);
+    // Project on the horizontal plane (Three.js XZ) and compute the angle so that
+    // looking north (-Z) keeps the needle pointing up.
+    const angle = Math.atan2(-fwd.current.x, -fwd.current.z); // radians, CCW positive
+    needleRef.current.style.transform = `rotate(${-angle}rad)`;
+  });
+  return null;
+};
 
 // Component to render a sky background + visible sun sphere driven by SunLightInfo.
 const SunSky: React.FC<{ sunLight: SunLightInfo }> = ({ sunLight }) => {
@@ -731,6 +748,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
   const [navMode, setNavMode] = useState<'select' | 'pan' | 'rotate'>('select');
   const [transformMode, setTransformMode] = useState<TransformMode>(null);
   const [cameraState, setCameraState] = useState({ zoom: 1 });
+  const compassNeedleRef = useRef<HTMLDivElement>(null);
   
   const selectedObject = objects.find(obj => selectedObjectIds.includes(obj.id));
   const [anchorEditorOpen, setAnchorEditorOpen] = useState(false);
@@ -864,10 +882,28 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
         {anchorEditableObject && !anchorEditorOpen && (
           <button
             onClick={() => setAnchorEditorOpen(true)}
-            className="absolute top-2 left-2 z-20 px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
+            className={`absolute ${sunLight ? 'top-[72px]' : 'top-2'} left-2 z-20 px-3 py-1.5 text-xs rounded-md bg-primary text-primary-foreground hover:bg-primary/90 shadow-md`}
           >
             Définir ancrages…
           </button>
+        )}
+        {/* Compass — only when sun simulation is active. Needle rotates with camera yaw to always point world-north. */}
+        {sunLight && (
+          <div
+            className="absolute top-2 left-2 z-20 w-14 h-14 rounded-full bg-background/80 backdrop-blur-sm border border-border shadow-md flex items-center justify-center pointer-events-none select-none"
+            title="Boussole — pointe vers le nord"
+          >
+            <span className="absolute top-1 text-[10px] font-semibold text-muted-foreground">N</span>
+            <span className="absolute bottom-1 text-[10px] font-semibold text-muted-foreground">S</span>
+            <span className="absolute left-1 text-[10px] font-semibold text-muted-foreground">O</span>
+            <span className="absolute right-1 text-[10px] font-semibold text-muted-foreground">E</span>
+            <div ref={compassNeedleRef} className="w-full h-full flex items-center justify-center transition-none">
+              <svg viewBox="-10 -16 20 32" className="w-7 h-10">
+                <polygon points="0,-14 5,4 0,1 -5,4" fill="hsl(var(--destructive))" />
+                <polygon points="0,14 5,-4 0,-1 -5,-4" fill="hsl(var(--muted-foreground))" />
+              </svg>
+            </div>
+          </div>
         )}
         {anchorEditableObject && anchorEditorOpen && onSetAnchors && (
           <AnchorEditor
@@ -884,6 +920,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
           <Suspense fallback={null}>
             <CameraTracker controlsRef={controlsRef} />
             <CameraController controlsRef={controlsRef} mode={navMode} />
+            {sunLight && <CompassTracker needleRef={compassNeedleRef} />}
             <ambientLight intensity={sunLight ? sunLight.ambientIntensity : 0.5} color={sunLight ? sunLight.color : '#ffffff'} />
             {sunLight ? (
               <SunSky sunLight={sunLight} />
