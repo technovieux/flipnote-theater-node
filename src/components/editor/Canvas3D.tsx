@@ -920,6 +920,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
           <Suspense fallback={null}>
             <CameraTracker controlsRef={controlsRef} />
             <CameraController controlsRef={controlsRef} mode={navMode} />
+            {sunLight && <CompassTracker needleRef={compassNeedleRef} />}
             <ambientLight intensity={sunLight ? sunLight.ambientIntensity : 0.5} color={sunLight ? sunLight.color : '#ffffff'} />
             {sunLight ? (
               <SunSky sunLight={sunLight} />
