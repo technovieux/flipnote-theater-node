@@ -1038,6 +1038,10 @@ export const AnimationEditor: React.FC = () => {
           addObject3D('spotlight_lyre', fixture.id);
           toast.success(`${fixture.name} ajouté en 3D`);
         }}
+        onSelectFlatSpot={() => {
+          addObject3D('spotlight_par');
+          toast.success('Spot Plat ajouté en 3D');
+        }}
       />
       <DroneLibraryDialog
         open={droneLibraryOpen}

@@ -32,6 +32,7 @@ export const PropertiesPanel3D: React.FC<PropertiesPanel3DProps> = ({
   const firstObj = selectedObjects[0];
   const firstProps = firstObj.properties;
   const isLyre = !isMulti && firstObj.type === 'spotlight_lyre';
+  const isSpotlight = !isMulti && (firstObj.type === 'spotlight_lyre' || firstObj.type === 'spotlight_par');
 
   const getMixedValue = (key: keyof Object3DProperties): number | null => {
     if (!isMulti) return firstProps[key] as number;
@@ -164,6 +165,24 @@ export const PropertiesPanel3D: React.FC<PropertiesPanel3DProps> = ({
             <span className="text-xs text-muted-foreground">mixte</span>
           )}
         </div>
+
+        {isSpotlight && (
+          <>
+            <div className="text-xs font-medium text-muted-foreground mt-3 mb-1">Spot</div>
+            <div className="property-row">
+              <span className="property-label">Puissance (%)</span>
+              <Slider
+                value={[firstProps.spotPower ?? 100]}
+                onValueChange={([v]) => handleChange('spotPower' as keyof Object3DProperties, v)}
+                max={200}
+                min={0}
+                step={1}
+                className="flex-1"
+              />
+              <span className="text-xs w-10 text-right">{Math.round(firstProps.spotPower ?? 100)}</span>
+            </div>
+          </>
+        )}
 
         <div className="pt-4 px-3">
           <Button onClick={onAddKeyframe} className="w-full transport-btn-primary">

@@ -345,6 +345,7 @@ export const useEditorState = () => {
       cup: 'Tasse',
       custom: 'Forme',
       spotlight_lyre: 'Lyre Spot',
+      spotlight_par: 'Spot Plat',
     };
     
     const resolvedFixtureId = fixtureId || (type === 'spotlight_lyre' ? 'lyre_spot_150w' : undefined);
