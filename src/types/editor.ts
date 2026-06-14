@@ -19,6 +19,7 @@ export type Shape3DType =
   | 'firework'
   // Spotlight fixtures
   | 'spotlight_lyre'
+  | 'spotlight_par'
   // Drones (drone mode)
   | 'drone';
 
@@ -85,6 +86,8 @@ export interface Object3DProperties {
   rotationZ: number;
   opacity: number;
   color: string;
+  /** Visual power factor for spotlight fixtures (0-200, default 100). Affects cone size & light intensity. */
+  spotPower?: number;
 }
 
 export interface CameraPosition {

@@ -5,6 +5,7 @@ import { Line } from '@react-three/drei';
 import { EditorObject3D, Object3DProperties, CameraPosition, CustomGeometry, OBJGeometry } from '@/types/editor';
 import { FireworkSimulation } from './FireworkSimulation';
 import { SpotlightLyre3D } from './SpotlightLyre3D';
+import { SpotlightFlat3D } from './SpotlightFlat3D';
 import { Drone3D } from './Drone3D';
 import { AnchorEditor } from './AnchorEditor';
 import { anchorWorldPosition } from '@/lib/anchorGeometry';
@@ -967,6 +968,22 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                     transformMode={transformMode}
                     orbitControlsRef={controlsRef}
                     fixtureId={obj.fixtureId}
+                  />
+                );
+              }
+
+              // Render flat PAR spotlight
+              if (obj.type === 'spotlight_par') {
+                return (
+                  <SpotlightFlat3D
+                    key={obj.id}
+                    object={obj}
+                    properties={props}
+                    isSelected={selectedObjectIds.includes(obj.id)}
+                    onSelect={() => onSelect(obj.id)}
+                    onUpdateProperties={(p) => onUpdateProperties(obj.id, p)}
+                    transformMode={transformMode}
+                    orbitControlsRef={controlsRef}
                   />
                 );
               }

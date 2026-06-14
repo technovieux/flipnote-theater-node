@@ -173,7 +173,11 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
 
   // Real colored light: use object's color, with intensity from opacity (0-100 -> 0-1)
   const lightColor = properties.color || '#ffffff';
-  const lightIntensity = Math.max(0.05, (properties.opacity ?? 100) / 100) * 6;
+  const powerFactor = Math.max(0, (properties.spotPower ?? 100)) / 100;
+  const lightIntensity = Math.max(0.05, (properties.opacity ?? 100) / 100) * 6 * powerFactor;
+  const coneRadius = 0.55 * powerFactor;
+  const coneLength = 2.2 * powerFactor;
+  const coneCenterY = 1.35 * powerFactor;
 
   const renderPart = (part: LoadedFixturePart) => (
     <mesh geometry={part.geometry}>
@@ -242,8 +246,8 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
           )}
 
           {/* Volumetric light beam (always visible, colored) */}
-          <mesh position={[0, 1.35, 0]} rotation={[Math.PI, 0, 0]}>
-            <coneGeometry args={[0.55, 2.2, 24, 1, true]} />
+          <mesh position={[0, coneCenterY, 0]} rotation={[Math.PI, 0, 0]}>
+            <coneGeometry args={[coneRadius, coneLength, 24, 1, true]} />
             <meshBasicMaterial
               color={lightColor}
               transparent
@@ -260,9 +264,9 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
             position={[0, 0.18, 0]}
             color={lightColor}
             intensity={lightIntensity}
-            angle={Math.PI / 7}
+            angle={Math.min(Math.PI / 3, (Math.PI / 7) * Math.max(0.3, powerFactor))}
             penumbra={0.35}
-            distance={40}
+            distance={40 * Math.max(0.3, powerFactor)}
             decay={1.2}
             castShadow
           />
@@ -303,10 +307,10 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
   if (isSelected && transformMode && transformTarget) {
     const isRotate = transformMode === 'rotate';
     // Pan = Y axis only (vertical rotation)
-    // Tilt = X and Z axes (horizontal rotation), centered on pan
+    // Tilt = X axis only (the yoke handles Y/Z rotations)
     const showX = !isRotate || rotateTarget === 'tilt';
     const showY = !isRotate || rotateTarget === 'pan';
-    const showZ = !isRotate || rotateTarget === 'tilt';
+    const showZ = !isRotate;
     return (
       <>
         {content}

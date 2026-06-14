@@ -10,12 +10,14 @@ interface FixtureLibraryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelectFixture: (fixture: FixtureDefinition) => void;
+  onSelectFlatSpot?: () => void;
 }
 
 export const FixtureLibraryDialog: React.FC<FixtureLibraryDialogProps> = ({
   open,
   onOpenChange,
   onSelectFixture,
+  onSelectFlatSpot,
 }) => {
   const [fixtures, setFixtures] = useState<FixtureDefinition[]>([]);
   const [loading, setLoading] = useState(false);
@@ -56,6 +58,24 @@ export const FixtureLibraryDialog: React.FC<FixtureLibraryDialogProps> = ({
             </div>
           ) : (
             <div className="space-y-2">
+              {onSelectFlatSpot && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-start h-auto py-3 px-4"
+                  onClick={() => { onSelectFlatSpot(); onOpenChange(false); }}
+                >
+                  <div className="flex flex-col items-start gap-1.5 w-full">
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-medium">Spot Plat (PAR)</span>
+                      <span className="text-xs text-muted-foreground">Générique</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant="secondary" className="text-xs">par</Badge>
+                      <Badge variant="secondary" className="text-xs">rotation libre XYZ</Badge>
+                    </div>
+                  </div>
+                </Button>
+              )}
               {fixtures.map((fixture) => (
                 <Button
                   key={fixture.id}
