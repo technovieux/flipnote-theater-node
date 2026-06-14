@@ -39,6 +39,7 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
 
   const [rotateTarget, setRotateTarget] = useState<'pan' | 'tilt'>('pan');
   const [loadedFixture, setLoadedFixture] = useState<LoadedFixture | null>(null);
+  const [headCenter, setHeadCenter] = useState<[number, number, number]>([0, 0, 0]);
 
   // Bind the spotLight's target so the beam actually follows the head orientation
   useEffect(() => {
