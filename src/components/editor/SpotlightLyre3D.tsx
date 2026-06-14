@@ -54,6 +54,23 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
     loadFixture(fixtureId).then(setLoadedFixture).catch(console.error);
   }, [fixtureId]);
 
+  // Compute the geometric center of the head so the gizmo and rotation pivot
+  // align with the visible center of the head model (visuals stay unchanged
+  // because we counter-translate the head contents).
+  useEffect(() => {
+    if (!loadedFixture) return;
+    const head = loadedFixture.parts.find(p => p.name === 'head');
+    if (!head) return;
+    head.geometry.computeBoundingBox();
+    const bb = head.geometry.boundingBox;
+    if (!bb) return;
+    setHeadCenter([
+      (bb.min.x + bb.max.x) / 2,
+      (bb.min.y + bb.max.y) / 2,
+      (bb.min.z + bb.max.z) / 2,
+    ]);
+  }, [loadedFixture]);
+
   // Disable orbit controls during gizmo drag
   useEffect(() => {
     if (transformControlsRef.current && orbitControlsRef.current) {
