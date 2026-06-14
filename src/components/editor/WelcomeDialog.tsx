@@ -127,8 +127,9 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
                 icon={<Radio className="w-8 h-8 text-muted-foreground" />}
                 label="Drones"
                 sublabel="Show de drones"
+                sublabel="(prochainement disponible)"
                 hoverFill="hsl(var(--muted) / 0.5)"
-                onClick={() => onSelectMode('drone' as EditorMode)}
+                //onClick={() => onSelectMode('drone' as EditorMode)}
               />
               <HexButton
                 icon={<Settings className="w-8 h-8 text-muted-foreground" />}
