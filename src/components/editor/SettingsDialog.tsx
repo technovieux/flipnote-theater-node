@@ -8,11 +8,16 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Settings, Package, Layers, Box, Sparkles, Lightbulb,
-  Search, Download, Trash2, ArrowLeft, Check
+  Search, Download, Trash2, ArrowLeft, Check, WifiOff, Loader2
 } from 'lucide-react';
 import { getAllModels, deleteModel } from '@/lib/objLibraryStorage';
 import type { ImportedOBJModel } from '@/lib/objImporter';
 import { shape3DLibrary } from '@/data/shape3DLibrary';
+import {
+  fetchCatalog, installPack, uninstallPack, getInstalledPacks,
+  type CatalogEntry, type InstalledPack, type PackMode,
+} from '@/lib/packCatalog';
+import { toast } from 'sonner';
 
 interface SettingsDialogProps {
   open: boolean;
@@ -20,43 +25,8 @@ interface SettingsDialogProps {
 }
 
 type SettingsSection = 'general' | 'packages';
-type PackageMode = '2d' | '3d' | 'fireworks' | 'spotlight';
+type PackageMode = PackMode;
 type PackageTab = 'installed' | 'catalog';
-type CatalogKind = 'pack' | 'single';
-
-interface CatalogItem {
-  id: string;
-  name: string;
-  description: string;
-  author: string;
-  kind: CatalogKind;
-  installed: boolean;
-}
-
-// Mock catalog data
-const mockCatalog: Record<PackageMode, CatalogItem[]> = {
-  '2d': [
-    { id: 'c2d-1', name: 'Pack Formes Avancées', description: 'Polygones complexes et courbes', author: 'Flipnote Team', kind: 'pack', installed: false },
-    { id: 'c2d-2', name: 'Pack Textures', description: 'Textures et motifs pour formes 2D', author: 'Community', kind: 'pack', installed: false },
-    { id: 'c2d-3', name: 'Étoile 12 branches', description: 'Forme étoile personnalisée', author: 'Community', kind: 'single', installed: false },
-  ],
-  '3d': [
-    { id: 'c3d-1', name: 'Pack Véhicules', description: 'Voitures, avions, bateaux détaillés', author: 'Flipnote Team', kind: 'pack', installed: false },
-    { id: 'c3d-2', name: 'Pack Nature', description: 'Arbres, rochers, plantes réalistes', author: 'Community', kind: 'pack', installed: false },
-    { id: 'c3d-3', name: 'Pack Architecture', description: 'Bâtiments et structures modernes', author: 'Flipnote Team', kind: 'pack', installed: false },
-    { id: 'c3d-4', name: 'Lampadaire Vintage', description: 'Modèle de lampadaire rétro', author: 'Community', kind: 'single', installed: false },
-  ],
-  fireworks: [
-    { id: 'cfw-1', name: 'Pack Asiatique', description: 'Effets pyrotechniques traditionnels asiatiques', author: 'Flipnote Team', kind: 'pack', installed: false },
-    { id: 'cfw-2', name: 'Pack Festival', description: 'Compositions pour grands festivals', author: 'Community', kind: 'pack', installed: false },
-    { id: 'cfw-3', name: 'Cascade Dorée', description: 'Effet cascade individuel', author: 'Community', kind: 'single', installed: false },
-  ],
-  spotlight: [
-    { id: 'csp-1', name: 'Pack LED Bars', description: 'Barres LED et wash linéaires', author: 'Flipnote Team', kind: 'pack', installed: false },
-    { id: 'csp-2', name: 'Pack Moving Heads Pro', description: 'Lyres asservies professionnelles', author: 'Community', kind: 'pack', installed: false },
-    { id: 'csp-3', name: 'PAR 64 Classic', description: 'Projecteur PAR classique', author: 'Flipnote Team', kind: 'single', installed: false },
-  ],
-};
 
 const modeConfig: { key: PackageMode; label: string; icon: React.ReactNode }[] = [
   { key: '2d', label: '2D', icon: <Layers className="w-4 h-4" /> },
@@ -73,13 +43,38 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChan
   const [objModels, setObjModels] = useState<ImportedOBJModel[]>([]);
   const [spotlightFixtures, setSpotlightFixtures] = useState<any[]>([]);
   const [fireworkProducts, setFireworkProducts] = useState<any[]>([]);
-  const [installedCatalog, setInstalledCatalog] = useState<string[]>([]);
+  const [remoteCatalog, setRemoteCatalog] = useState<CatalogEntry[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [installingId, setInstallingId] = useState<string | null>(null);
+  const [installedPacks, setInstalledPacks] = useState<InstalledPack[]>([]);
 
   useEffect(() => {
     if (open && section === 'packages') {
       loadInstalledData();
+      setInstalledPacks(getInstalledPacks(selectedMode));
     }
   }, [open, section, selectedMode]);
+
+  useEffect(() => {
+    if (open && section === 'packages' && packageTab === 'catalog') {
+      let cancelled = false;
+      setCatalogLoading(true);
+      setCatalogError(null);
+      fetchCatalog(selectedMode)
+        .then(entries => { if (!cancelled) setRemoteCatalog(entries); })
+        .catch((err) => {
+          if (!cancelled) {
+            setRemoteCatalog([]);
+            setCatalogError(err?.message === 'catalog_unreachable'
+              ? 'offline'
+              : 'offline');
+          }
+        })
+        .finally(() => { if (!cancelled) setCatalogLoading(false); });
+      return () => { cancelled = true; };
+    }
+  }, [open, section, packageTab, selectedMode]);
 
   const loadInstalledData = async () => {
     try {
@@ -107,38 +102,65 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChan
 
   const installedItems = useMemo(() => {
     const q = normalize(searchQuery);
+    const installedFromCatalog = installedPacks.map(p => ({
+      id: p.id,
+      name: p.name,
+      type: 'pack' as const,
+    }));
     if (selectedMode === '3d') {
       const builtIn = shape3DLibrary.map(s => ({ id: s.id, name: s.name, type: 'built-in' as const }));
       const imported = objModels.map(m => ({ id: m.id, name: m.name, type: 'imported' as const }));
-      const all = [...builtIn, ...imported];
+      const all = [...installedFromCatalog, ...builtIn, ...imported];
       return q ? all.filter(i => normalize(i.name).includes(q)) : all;
     }
     if (selectedMode === 'spotlight') {
       const items = spotlightFixtures.map((f: any) => ({ id: f.name, name: `${f.name} (${f.manufacturer})`, type: 'built-in' as const }));
-      return q ? items.filter(i => normalize(i.name).includes(q)) : items;
+      const all = [...installedFromCatalog, ...items];
+      return q ? all.filter(i => normalize(i.name).includes(q)) : all;
     }
     if (selectedMode === 'fireworks') {
       const items = fireworkProducts.map((f: any) => ({ id: f.reference || f.name, name: f.name, type: 'built-in' as const }));
-      return q ? items.filter(i => normalize(i.name).includes(q)) : items;
+      const all = [...installedFromCatalog, ...items];
+      return q ? all.filter(i => normalize(i.name).includes(q)) : all;
     }
-    // 2D has no installable packages yet
-    return [];
-  }, [selectedMode, objModels, spotlightFixtures, fireworkProducts, searchQuery]);
+    // 2D: only catalog-installed packs for now
+    return q ? installedFromCatalog.filter(i => normalize(i.name).includes(q)) : installedFromCatalog;
+  }, [selectedMode, objModels, spotlightFixtures, fireworkProducts, searchQuery, installedPacks]);
 
   const [catalogKindFilter, setCatalogKindFilter] = useState<{ pack: boolean; single: boolean }>({ pack: true, single: true });
 
   const catalogItems = useMemo(() => {
     const q = normalize(searchQuery);
-    const items = mockCatalog[selectedMode] || [];
-    const withState = items.map(i => ({ ...i, installed: installedCatalog.includes(i.id) }));
+    const installedIds = new Set(installedPacks.map(p => p.id));
+    const withState = remoteCatalog.map(e => ({
+      ...e,
+      description: e.description ?? '',
+      author: e.author ?? '',
+      installed: installedIds.has(e.id),
+    }));
     const kindFiltered = withState.filter(i =>
       (catalogKindFilter.pack && i.kind === 'pack') || (catalogKindFilter.single && i.kind === 'single')
     );
     return q ? kindFiltered.filter(i => normalize(i.name).includes(q) || normalize(i.description).includes(q)) : kindFiltered;
-  }, [selectedMode, searchQuery, installedCatalog, catalogKindFilter]);
+  }, [searchQuery, remoteCatalog, installedPacks, catalogKindFilter]);
 
-  const handleInstallCatalog = (id: string) => {
-    setInstalledCatalog(prev => [...prev, id]);
+  const handleInstallCatalog = async (entry: CatalogEntry) => {
+    setInstallingId(entry.id);
+    try {
+      await installPack(selectedMode, entry);
+      setInstalledPacks(getInstalledPacks(selectedMode));
+      toast.success(`${entry.name} installé`);
+    } catch (err: any) {
+      toast.error(`Échec de l'installation : ${err?.message ?? 'erreur réseau'}`);
+    } finally {
+      setInstallingId(null);
+    }
+  };
+
+  const handleUninstallPack = (id: string) => {
+    uninstallPack(selectedMode, id);
+    setInstalledPacks(getInstalledPacks(selectedMode));
+    toast.success('Pack désinstallé');
   };
 
   const handleDeleteOBJ = async (id: string) => {
@@ -149,6 +171,8 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChan
   const handleDeleteInstalled = (id: string, type: string) => {
     if (type === 'imported') {
       handleDeleteOBJ(id);
+    } else if (type === 'pack') {
+      handleUninstallPack(id);
     }
     // For built-in items, deletion is a no-op for now
   };
@@ -251,14 +275,16 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChan
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm">{item.name}</span>
                                   <Badge variant="outline" className="text-[10px] h-4">
-                                    {item.type === 'built-in' ? 'Intégré' : 'Importé'}
+                                    {item.type === 'built-in' ? 'Intégré' : item.type === 'pack' ? 'Pack' : 'Importé'}
                                   </Badge>
                                 </div>
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 disabled:opacity-30"
                                   onClick={() => handleDeleteInstalled(item.id, item.type)}
+                                  disabled={item.type === 'built-in'}
+                                  title={item.type === 'built-in' ? 'Élément intégré, non désinstallable' : 'Désinstaller'}
                                 >
                                   <Trash2 className="w-3.5 h-3.5 text-destructive" />
                                 </Button>
@@ -289,10 +315,16 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChan
                         </label>
                       </div>
                       <ScrollArea className="h-full p-3 pt-1">
-                        {catalogItems.length === 0 ? (
-                          <p className="text-sm text-muted-foreground text-center py-8">
-                            Aucun paquet trouvé
-                          </p>
+                        {catalogLoading ? (
+                          <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Chargement du catalogue...
+                          </div>
+                        ) : catalogError || catalogItems.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                            <WifiOff className="w-5 h-5" />
+                            <p>Pas de connexion ou pas de packs disponibles</p>
+                          </div>
                         ) : (
                           <div className="space-y-2">
                             {catalogItems.map(item => (
@@ -307,19 +339,31 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChan
                                   <p className="text-xs text-muted-foreground">{item.description}</p>
                                   <p className="text-[10px] text-muted-foreground mt-0.5">par {item.author}</p>
                                 </div>
-                                <Button
-                                  variant={item.installed ? 'ghost' : 'outline'}
-                                  size="sm"
-                                  className="text-xs h-7 shrink-0 ml-3"
-                                  disabled={item.installed}
-                                  onClick={() => handleInstallCatalog(item.id)}
-                                >
-                                  {item.installed ? (
-                                    <><Check className="w-3.5 h-3.5 mr-1" /> Installé</>
-                                  ) : (
-                                    <><Download className="w-3.5 h-3.5 mr-1" /> Installer</>
-                                  )}
-                                </Button>
+                                {item.installed ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs h-7 shrink-0 ml-3"
+                                    onClick={() => handleUninstallPack(item.id)}
+                                    title="Désinstaller"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 mr-1" /> Désinstaller
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs h-7 shrink-0 ml-3"
+                                    disabled={installingId === item.id}
+                                    onClick={() => handleInstallCatalog(item)}
+                                  >
+                                    {installingId === item.id ? (
+                                      <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Installation…</>
+                                    ) : (
+                                      <><Download className="w-3.5 h-3.5 mr-1" /> Installer</>
+                                    )}
+                                  </Button>
+                                )}
                               </div>
                             ))}
                           </div>
