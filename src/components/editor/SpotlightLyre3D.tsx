@@ -212,14 +212,18 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
         <group
           ref={headRef}
           position={headPart ? [
-            headPart.pivot[0] - (yokePart?.pivot[0] ?? 0),
-            headPart.pivot[1] - (yokePart?.pivot[1] ?? 0),
-            headPart.pivot[2] - (yokePart?.pivot[2] ?? 0),
+            headPart.pivot[0] - (yokePart?.pivot[0] ?? 0) + headCenter[0],
+            headPart.pivot[1] - (yokePart?.pivot[1] ?? 0) + headCenter[1],
+            headPart.pivot[2] - (yokePart?.pivot[2] ?? 0) + headCenter[2],
           ] : [0, 0.034, 0]}
           rotation={[tiltRad, 0, tiltZRad]}
           onPointerDown={handleTiltPointerDown}
         >
-          {headPart && renderPart(headPart)}
+          {/* Counter-translate all visual content so the head's rotation pivot
+              (and the gizmo) sits at the geometric center of the head model
+              while keeping every child visually in the same world position. */}
+          <group position={[-headCenter[0], -headCenter[1], -headCenter[2]]}>
+            {headPart && renderPart(headPart)}
 
           {/* Lens glow */}
           {headPart?.lens && (
@@ -264,6 +268,7 @@ export const SpotlightLyre3D: React.FC<SpotlightLyre3DProps> = ({
           />
           {/* Spot light target — sits below the head in local space so the beam points down the head's local -Y axis */}
           <object3D ref={spotTargetRef} position={[0, 10, 0]} />
+          </group>
         </group>
       </group>
 
