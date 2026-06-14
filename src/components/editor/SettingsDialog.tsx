@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Settings, Package, Layers, Box, Sparkles, Lightbulb,
-  Search, Download, Trash2, ArrowLeft, Check, WifiOff, Loader2
+  Search, Download, Trash2, ArrowLeft, WifiOff, Loader2
 } from 'lucide-react';
 import { getAllModels, deleteModel } from '@/lib/objLibraryStorage';
 import type { ImportedOBJModel } from '@/lib/objImporter';
