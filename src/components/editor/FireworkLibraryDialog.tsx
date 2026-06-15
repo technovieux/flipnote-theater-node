@@ -19,6 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Search, SlidersHorizontal } from 'lucide-react';
 import { FireworkProduct, FireworkCategory, FireworkSortBy } from '@/types/fireworks';
+import { getInstalledPacks } from '@/lib/packCatalog';
 
 interface FireworkLibraryDialogProps {
   open: boolean;
@@ -52,6 +53,36 @@ export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<FireworkSortBy>('name');
   const [loading, setLoading] = useState(false);
+  const [packProducts, setPackProducts] = useState<Record<FireworkCategory, FireworkProduct[]>>({
+    consumer: [],
+    professional: [],
+    european: [],
+  });
+
+  // Load fireworks contributed by installed remote packs.
+  useEffect(() => {
+    if (!open) return;
+    const packs = getInstalledPacks('fireworks');
+    const merged: Record<FireworkCategory, FireworkProduct[]> = {
+      consumer: [], professional: [], european: [],
+    };
+    for (const pack of packs) {
+      const items = Array.isArray(pack.payload)
+        ? (pack.payload as any[])
+        : Array.isArray((pack.payload as any)?.items)
+          ? (pack.payload as any).items
+          : [];
+      for (const it of items) {
+        if (!it || typeof it !== 'object') continue;
+        const cat: FireworkCategory =
+          it.targetCategory === 'professional' || it.targetCategory === 'european'
+            ? it.targetCategory
+            : 'consumer';
+        merged[cat].push(it as FireworkProduct);
+      }
+    }
+    setPackProducts(merged);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -77,7 +108,17 @@ export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
     s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
   const filteredAndSorted = useMemo(() => {
-    let items = products[activeCategory] || [];
+    const builtIn = products[activeCategory] || [];
+    const fromPacks = packProducts[activeCategory] || [];
+    // Dedup by reference to avoid showing the same product twice.
+    const seen = new Set<string>();
+    let items: FireworkProduct[] = [];
+    for (const p of [...builtIn, ...fromPacks]) {
+      const key = (p.reference || p.name || '').toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      items.push(p);
+    }
     
     if (searchQuery.trim()) {
       const q = normalizeSearch(searchQuery);
@@ -97,7 +138,7 @@ export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
         default: return 0;
       }
     });
-  }, [products, activeCategory, searchQuery, sortBy]);
+  }, [products, packProducts, activeCategory, searchQuery, sortBy]);
 
   const grouped = useMemo(() => {
     const groups: Record<string, FireworkProduct[]> = {};

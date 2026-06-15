@@ -313,8 +313,10 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChan
                           </p>
                         ) : (
                           <div className="space-y-2">
-                            {filteredGroups.map(group => {
-                              const isOpen = openGroups[group.key] ?? !!searchQuery;
+                             {filteredGroups.map(group => {
+                               // Packs are open by default so their items are immediately visible.
+                               const defaultOpen = group.kind === 'pack' || !!searchQuery;
+                               const isOpen = openGroups[group.key] ?? defaultOpen;
                               return (
                                 <Collapsible
                                   key={group.key}
