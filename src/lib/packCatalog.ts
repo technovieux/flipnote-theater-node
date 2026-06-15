@@ -8,11 +8,17 @@
  *   spots3D/manifest.json
  *   fireworks/manifest.json
  *
- * Each manifest.json is an array of entries:
- *   [{ "id": "pack1", "name": "...", "description": "...", "author": "...",
- *      "kind": "pack" | "single", "file": "pack1.json" }, ...]
+ * Each manifest.json is an array of entries. Two flavours are supported:
+ *   1. Leaf pack — points to a JSON payload file (array of items):
+ *        { "id": "acme-2024", "name": "ACME 2024",
+ *          "description": "Catalogue ACME", "author": "ACME",
+ *          "kind": "pack", "file": "acme/pack.json" }
+ *   2. Sub-folder — points to a nested manifest.json (recursive):
+ *        { "id": "manufacturer-acme", "name": "ACME",
+ *          "kind": "pack", "subfolder": "acme" }
  *
- * Each referenced JSON file is the pack payload (any JSON).
+ * The payload file referenced by `file` is expected to be an array of items
+ * matching the mode (firework products, spotlight fixtures, 3D shapes, …).
  *
  * Installed packs are stored in localStorage so they survive offline and are
  * available when the app is bundled as a desktop binary (Tauri).
@@ -31,7 +37,10 @@ export interface CatalogEntry {
   description?: string;
   author?: string;
   kind: PackKind;
-  file: string;
+  /** Path to the payload JSON, relative to the entry's folder. */
+  file?: string;
+  /** Path to a sub-folder containing a nested manifest.json. */
+  subfolder?: string;
   /** Source folder on GitHub (helps when several folders feed one mode). */
   folder: string;
 }
@@ -68,18 +77,39 @@ export const isInstalled = (mode: PackMode, id: string): boolean => {
 };
 
 /**
- * Fetch the remote catalog for a mode. Returns the merged list of entries
- * across all source folders for that mode. Throws on network failure.
+ * Recursively walk a folder and resolve all leaf packs.
+ * `folder` is the path from the repo root (joined with '/').
+ */
+const walkFolder = async (folder: string, depth = 0): Promise<CatalogEntry[]> => {
+  if (depth > 4) return []; // safety
+  const url = `${RAW_BASE}/${folder}/manifest.json`;
+  const res = await fetch(url, { cache: 'no-cache' });
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${folder}`);
+  const data = await res.json() as Array<Omit<CatalogEntry, 'folder'>>;
+
+  const out: CatalogEntry[] = [];
+  for (const entry of data) {
+    if (entry.subfolder) {
+      try {
+        const nested = await walkFolder(`${folder}/${entry.subfolder}`, depth + 1);
+        out.push(...nested);
+      } catch {
+        // skip missing sub-manifests but keep walking siblings
+      }
+    } else if (entry.file) {
+      out.push({ ...entry, folder });
+    }
+  }
+  return out;
+};
+
+/**
+ * Fetch the remote catalog for a mode. Returns the merged list of LEAF
+ * entries across all source folders (and sub-folders) for that mode.
  */
 export const fetchCatalog = async (mode: PackMode): Promise<CatalogEntry[]> => {
   const folders = MODE_FOLDERS[mode] ?? [];
-  const results = await Promise.allSettled(folders.map(async (folder) => {
-    const url = `${RAW_BASE}/${folder}/manifest.json`;
-    const res = await fetch(url, { cache: 'no-cache' });
-    if (!res.ok) throw new Error(`HTTP ${res.status} for ${folder}`);
-    const data = await res.json() as Array<Omit<CatalogEntry, 'folder'>>;
-    return data.map(e => ({ ...e, folder }));
-  }));
+  const results = await Promise.allSettled(folders.map(f => walkFolder(f)));
 
   const merged: CatalogEntry[] = [];
   let hadSuccess = false;
@@ -89,8 +119,6 @@ export const fetchCatalog = async (mode: PackMode): Promise<CatalogEntry[]> => {
       merged.push(...r.value);
     }
   }
-  // If every folder failed, surface the failure to the caller so the UI can
-  // distinguish "no connection" from "no packs available".
   if (!hadSuccess && folders.length > 0) {
     throw new Error('catalog_unreachable');
   }
@@ -101,6 +129,7 @@ export const fetchCatalog = async (mode: PackMode): Promise<CatalogEntry[]> => {
  * Install a pack: download its JSON payload and persist it in localStorage.
  */
 export const installPack = async (mode: PackMode, entry: CatalogEntry): Promise<InstalledPack> => {
+  if (!entry.file) throw new Error('Cette entrée ne contient pas de pack à installer');
   const url = `${RAW_BASE}/${entry.folder}/${entry.file}`;
   const res = await fetch(url, { cache: 'no-cache' });
   if (!res.ok) throw new Error(`Failed to download pack (HTTP ${res.status})`);
