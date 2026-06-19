@@ -10,7 +10,8 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   optimizeDeps: {
-    exclude: ["react-leaflet", "@react-leaflet/core"],
+    exclude: ["react-leaflet"],
+    include: ["@react-leaflet/core", "react-dom"],
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

@@ -19,7 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Search, SlidersHorizontal } from 'lucide-react';
 import { FireworkProduct, FireworkCategory, FireworkSortBy } from '@/types/fireworks';
-import { getInstalledPacks } from '@/lib/packCatalog';
+import { getInstalledPacks, getPackPayloadItems, refreshEmptyInstalledPacks } from '@/lib/packCatalog';
 
 interface FireworkLibraryDialogProps {
   open: boolean;
@@ -62,26 +62,32 @@ export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
   // Load fireworks contributed by installed remote packs.
   useEffect(() => {
     if (!open) return;
-    const packs = getInstalledPacks('fireworks');
-    const merged: Record<FireworkCategory, FireworkProduct[]> = {
-      consumer: [], professional: [], european: [],
-    };
-    for (const pack of packs) {
-      const items = Array.isArray(pack.payload)
-        ? (pack.payload as any[])
-        : Array.isArray((pack.payload as any)?.items)
-          ? (pack.payload as any).items
-          : [];
-      for (const it of items) {
-        if (!it || typeof it !== 'object') continue;
-        const cat: FireworkCategory =
-          it.targetCategory === 'professional' || it.targetCategory === 'european'
-            ? it.targetCategory
-            : 'consumer';
-        merged[cat].push(it as FireworkProduct);
+    let cancelled = false;
+
+    const mergePacks = (packs = getInstalledPacks('fireworks')) => {
+      if (cancelled) return;
+      const merged: Record<FireworkCategory, FireworkProduct[]> = {
+        consumer: [], professional: [], european: [],
+      };
+      for (const pack of packs) {
+        const items = getPackPayloadItems(pack.payload);
+        for (const it of items) {
+          if (!it || typeof it !== 'object') continue;
+          const cat: FireworkCategory =
+            it.targetCategory === 'professional' || it.categoryKey === 'professional'
+              ? 'professional'
+              : it.targetCategory === 'european' || it.categoryKey === 'european'
+                ? 'european'
+                : 'consumer';
+          merged[cat].push(it as FireworkProduct);
+        }
       }
-    }
-    setPackProducts(merged);
+      setPackProducts(merged);
+    };
+
+    mergePacks();
+    refreshEmptyInstalledPacks('fireworks').then(mergePacks);
+    return () => { cancelled = true; };
   }, [open]);
 
   useEffect(() => {
@@ -171,10 +177,10 @@ export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
         </DialogHeader>
 
         <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as FireworkCategory)}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="consumer">{CATEGORY_LABELS.consumer}</TabsTrigger>
-            <TabsTrigger value="professional">{CATEGORY_LABELS.professional}</TabsTrigger>
-            <TabsTrigger value="european">{CATEGORY_LABELS.european}</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 h-10">
+            <TabsTrigger value="consumer" className="min-w-0 h-8 px-2 overflow-hidden text-ellipsis text-xs sm:text-sm">{CATEGORY_LABELS.consumer}</TabsTrigger>
+            <TabsTrigger value="professional" className="min-w-0 h-8 px-2 overflow-hidden text-ellipsis text-xs sm:text-sm">{CATEGORY_LABELS.professional}</TabsTrigger>
+            <TabsTrigger value="european" className="min-w-0 h-8 px-2 overflow-hidden text-ellipsis text-xs sm:text-sm">{CATEGORY_LABELS.european}</TabsTrigger>
           </TabsList>
 
           <div className="flex gap-2 mt-3">
@@ -229,7 +235,7 @@ export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
                           >
                             <div className="flex items-center gap-3 w-full">
                               <div className="flex -space-x-1">
-                                {product.colors.slice(0, 3).map((color, i) => (
+                                {(product.colors ?? []).slice(0, 3).map((color, i) => (
                                   <div
                                     key={i}
                                     className="w-4 h-4 rounded-full border border-background"

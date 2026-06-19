@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { SpotlightFixture } from '@/types/spotlight';
 import { FireworkProduct, FireworkCategory } from '@/types/fireworks';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getInstalledPacks, getPackPayloadItems, refreshEmptyInstalledPacks } from '@/lib/packCatalog';
 
 export interface ConsoleSpec {
   id: string;
@@ -137,7 +138,28 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
       fetch('/data/spotlight_fixtures.json').then(r => r.json()).then(setFixtureLib).catch(console.error);
     }
     if (category === 'firework' && fireworkLib.length === 0) {
-      fetch('/data/consumer_fireworks.json').then(r => r.json()).then(setFireworkLib).catch(console.error);
+      const mergeFireworks = async () => {
+        try {
+          const builtIn: FireworkProduct[] = await fetch('/data/consumer_fireworks.json').then(r => r.json());
+          const packs = await refreshEmptyInstalledPacks('fireworks').catch(() => getInstalledPacks('fireworks'));
+          const seen = new Set<string>();
+          const merged: FireworkProduct[] = [];
+          for (const product of [
+            ...builtIn,
+            ...packs.flatMap(pack => getPackPayloadItems(pack.payload))
+              .filter((item: any) => item?.targetCategory !== 'professional' && item?.targetCategory !== 'european' && item?.categoryKey !== 'professional' && item?.categoryKey !== 'european'),
+          ]) {
+            const key = String(product.reference ?? product.name ?? '').toLowerCase();
+            if (!key || seen.has(key)) continue;
+            seen.add(key);
+            merged.push(product as FireworkProduct);
+          }
+          setFireworkLib(merged);
+        } catch (err) {
+          console.error(err);
+        }
+      };
+      mergeFireworks();
     }
   }, [category, consoleLib.length, fixtureLib.length, fireworkLib.length]);
 
@@ -468,7 +490,7 @@ export const LogicalView: React.FC<LogicalViewProps> = ({
                       <div>{p.effectType} · {p.shots} coups · {p.duration}s</div>
                       <div>Calibre {p.caliber}mm · {p.firingPattern}</div>
                       <div className="flex gap-1 mt-1">
-                        {p.colors.map((c, i) => <span key={i} className="w-3 h-3 rounded-full border border-border" style={{ background: c }} />)}
+                        {(p.colors ?? []).map((c, i) => <span key={i} className="w-3 h-3 rounded-full border border-border" style={{ background: c }} />)}
                       </div>
                     </div>
                   </TooltipContent>
