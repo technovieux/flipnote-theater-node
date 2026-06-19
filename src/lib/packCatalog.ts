@@ -50,6 +50,24 @@ export interface InstalledPack extends CatalogEntry {
   payload: unknown;
 }
 
+export const getPackPayloadItems = (payload: unknown): any[] => {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return [];
+
+  const data = payload as Record<string, any>;
+  for (const key of ['items', 'products', 'fireworks', 'data']) {
+    if (Array.isArray(data[key])) return data[key];
+  }
+
+  const grouped: any[] = [];
+  for (const category of ['consumer', 'professional', 'european']) {
+    if (Array.isArray(data[category])) {
+      grouped.push(...data[category].map((item: any) => ({ ...item, targetCategory: item?.targetCategory ?? category })));
+    }
+  }
+  return grouped;
+};
+
 const MODE_FOLDERS: Record<PackMode, string[]> = {
   '2d': ['2D'],
   '3d': ['3D'],
@@ -139,6 +157,27 @@ export const installPack = async (mode: PackMode, entry: CatalogEntry): Promise<
   const current = getInstalledPacks(mode).filter(p => p.id !== entry.id);
   setInstalledPacks(mode, [...current, pack]);
   return pack;
+};
+
+export const refreshEmptyInstalledPacks = async (mode: PackMode): Promise<InstalledPack[]> => {
+  const packs = getInstalledPacks(mode);
+  let changed = false;
+
+  const next = await Promise.all(packs.map(async (pack) => {
+    if (!pack.file || getPackPayloadItems(pack.payload).length > 0) return pack;
+    try {
+      const res = await fetch(`${RAW_BASE}/${pack.folder}/${pack.file}`, { cache: 'no-cache' });
+      if (!res.ok) return pack;
+      const payload = await res.json();
+      changed = true;
+      return { ...pack, payload, installedAt: Date.now() };
+    } catch {
+      return pack;
+    }
+  }));
+
+  if (changed) setInstalledPacks(mode, next);
+  return next;
 };
 
 /** Uninstall any pack — built-in or downloaded — by id. */

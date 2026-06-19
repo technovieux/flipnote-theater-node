@@ -15,7 +15,7 @@ import { getAllModels, deleteModel } from '@/lib/objLibraryStorage';
 import type { ImportedOBJModel } from '@/lib/objImporter';
 import { shape3DLibrary } from '@/data/shape3DLibrary';
 import {
-  fetchCatalog, installPack, uninstallPack, getInstalledPacks,
+  fetchCatalog, installPack, uninstallPack, getInstalledPacks, getPackPayloadItems, refreshEmptyInstalledPacks,
   type CatalogEntry, type InstalledPack, type PackMode,
 } from '@/lib/packCatalog';
 import { toast } from 'sonner';
@@ -54,6 +54,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChan
     if (open && section === 'packages') {
       loadInstalledData();
       setInstalledPacks(getInstalledPacks(selectedMode));
+      refreshEmptyInstalledPacks(selectedMode).then(setInstalledPacks);
     }
   }, [open, section, selectedMode]);
 
@@ -150,7 +151,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onOpenChan
       list.push({ key: 'built-in', title: 'Intégrés', kind: 'built-in', items: consume(fireworkProducts, 'fireworks') });
     }
     for (const pack of installedPacks) {
-      const payload = Array.isArray(pack.payload) ? pack.payload as any[] : [];
+      const payload = getPackPayloadItems(pack.payload);
       list.push({
         key: `pack:${pack.id}`,
         title: pack.name,
