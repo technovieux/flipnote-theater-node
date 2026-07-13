@@ -84,6 +84,44 @@ const getSpotlightColor = (spot: SpotlightEditorObject, channelValues: number[])
   return `rgb(${Math.round(r * factor)}, ${Math.round(g * factor)}, ${Math.round(b * factor)})`;
 };
 
+// Extract per-channel R/G/B/W levels (0..1, dimmer applied) from raw DMX values.
+const getSpotlightChannelMix = (spot: SpotlightEditorObject, channelValues: number[]) => {
+  let r = 0, g = 0, b = 0, w = 0;
+  let dimmer = 255;
+  let hasDimmer = false;
+  let hasRgb = false;
+  let hasWhite = false;
+
+  spot.fixture.channels.forEach((ch, i) => {
+    const val = channelValues[i] ?? 0;
+    if (ch.type === 'dimmer') {
+      dimmer = val;
+      hasDimmer = true;
+    } else if (ch.type === 'color') {
+      const name = ch.name.toLowerCase();
+      if (name.includes('rouge') || name.includes('red')) { r = val; hasRgb = true; }
+      else if (name.includes('vert') || name.includes('green')) { g = val; hasRgb = true; }
+      else if (name.includes('bleu') || name.includes('blue')) { b = val; hasRgb = true; }
+      else if (name.includes('blanc') || name.includes('white')) { w = val; hasWhite = true; }
+    }
+  });
+
+  const factor = (hasDimmer ? dimmer : 255) / 255;
+  // If no RGB channels at all, fall back to dimmer as a uniform white level for every LED.
+  if (!hasRgb && !hasWhite) {
+    const v = (dimmer / 255);
+    return { r: v, g: v, b: v, w: v };
+  }
+  // If there's no dedicated white channel, derive it from the RGB minimum so RGBW LEDs stay realistic.
+  const wLevel = hasWhite ? (w / 255) * factor : 0;
+  return {
+    r: (r / 255) * factor,
+    g: (g / 255) * factor,
+    b: (b / 255) * factor,
+    w: wLevel,
+  };
+};
+
 
 export const AnimationEditor: React.FC = () => {
   const {
@@ -854,6 +892,7 @@ export const AnimationEditor: React.FC = () => {
                       const intensity = Math.max(r, g, b) / 255;
                       // Convert to hex for the shape view
                       const hex = `#${[r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')}`;
+                      const mix = getSpotlightChannelMix(spot, channels);
                       return (
                         <Spotlight2DShapeView
                           shape={shape}
@@ -861,6 +900,7 @@ export const AnimationEditor: React.FC = () => {
                           intensity={intensity}
                           width={obj.properties.width}
                           height={obj.properties.height}
+                          channels={mix}
                         />
                       );
                     }}
