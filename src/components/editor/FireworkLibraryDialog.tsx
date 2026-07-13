@@ -30,7 +30,7 @@ interface FireworkLibraryDialogProps {
 const CATEGORY_LABELS: Record<FireworkCategory, string> = {
   consumer: '🎆 Particuliers',
   professional: '🎇 Professionnel',
-  european: '🇪🇺 Européen',
+  european: '🌍 Européen',
 };
 
 const CATEGORY_FILES: Record<FireworkCategory, string> = {
@@ -177,10 +177,16 @@ export const FireworkLibraryDialog: React.FC<FireworkLibraryDialogProps> = ({
         </DialogHeader>
 
         <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as FireworkCategory)}>
-          <TabsList className="grid w-full grid-cols-3 h-10">
-            <TabsTrigger value="consumer" className="min-w-0 h-8 px-2 overflow-hidden text-ellipsis text-xs sm:text-sm">{CATEGORY_LABELS.consumer}</TabsTrigger>
-            <TabsTrigger value="professional" className="min-w-0 h-8 px-2 overflow-hidden text-ellipsis text-xs sm:text-sm">{CATEGORY_LABELS.professional}</TabsTrigger>
-            <TabsTrigger value="european" className="min-w-0 h-8 px-2 overflow-hidden text-ellipsis text-xs sm:text-sm">{CATEGORY_LABELS.european}</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 h-10 gap-1">
+            <TabsTrigger value="consumer" className="min-w-0 h-8 px-1.5 text-xs sm:text-sm">
+              <span className="block w-full truncate text-center">{CATEGORY_LABELS.consumer}</span>
+            </TabsTrigger>
+            <TabsTrigger value="professional" className="min-w-0 h-8 px-1.5 text-xs sm:text-sm">
+              <span className="block w-full truncate text-center">{CATEGORY_LABELS.professional}</span>
+            </TabsTrigger>
+            <TabsTrigger value="european" className="min-w-0 h-8 px-1.5 text-xs sm:text-sm">
+              <span className="block w-full truncate text-center">{CATEGORY_LABELS.european}</span>
+            </TabsTrigger>
           </TabsList>
 
           <div className="flex gap-2 mt-3">
