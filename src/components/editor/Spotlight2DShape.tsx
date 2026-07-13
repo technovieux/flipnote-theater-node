@@ -1,12 +1,25 @@
 import React from 'react';
 import type { Spotlight2DShape } from '@/types/editor';
 
+export interface SpotlightChannelMix {
+  /** 0..1 red channel level (dimmer already applied). */
+  r: number;
+  /** 0..1 green channel level. */
+  g: number;
+  /** 0..1 blue channel level. */
+  b: number;
+  /** 0..1 dedicated white channel level. */
+  w: number;
+}
+
 interface Props {
   shape: Spotlight2DShape;
   color: string; // current output color (hex)
   intensity?: number; // 0..1 brightness multiplier
   width: number;
   height: number;
+  /** Per-channel levels (0..1, dimmer applied). Used to light individual LEDs on par_led / led_bar. */
+  channels?: SpotlightChannelMix;
 }
 
 // Adjust a hex color by a brightness factor (0..1).
@@ -21,8 +34,16 @@ const scaleColor = (hex: string, factor: number): string => {
 };
 
 // Draws a decorative 2D representation of a spotlight. Non-interactive.
-export const Spotlight2DShapeView: React.FC<Props> = ({ shape, color, intensity = 1, width, height }) => {
+export const Spotlight2DShapeView: React.FC<Props> = ({ shape, color, intensity = 1, width, height, channels }) => {
   const clampedIntensity = Math.max(0, Math.min(1, intensity));
+  const mix: SpotlightChannelMix = channels ?? { r: clampedIntensity, g: clampedIntensity, b: clampedIntensity, w: clampedIntensity };
+  // Level per palette entry: R, G, B, W (index-aligned with `palette` arrays below).
+  const levels = [
+    Math.max(0, Math.min(1, mix.r)),
+    Math.max(0, Math.min(1, mix.g)),
+    Math.max(0, Math.min(1, mix.b)),
+    Math.max(0, Math.min(1, mix.w)),
+  ];
 
   if (shape === 'circle') {
     return (
@@ -43,8 +64,10 @@ export const Spotlight2DShapeView: React.FC<Props> = ({ shape, color, intensity 
     return (
       <div className="w-full h-full rounded-sm bg-black/85 border border-black/60 flex items-center justify-around px-1">
         {Array.from({ length: count }).map((_, i) => {
-          const led = palette[i % palette.length];
-          const lit = scaleColor(led, clampedIntensity);
+          const idx = i % palette.length;
+          const led = palette[idx];
+          const level = levels[idx];
+          const lit = scaleColor(led, level);
           return (
             <div
               key={i}
@@ -53,7 +76,7 @@ export const Spotlight2DShapeView: React.FC<Props> = ({ shape, color, intensity 
                 width: Math.min(height * 0.5, 10),
                 height: Math.min(height * 0.5, 10),
                 background: lit,
-                boxShadow: `0 0 ${4 + 8 * clampedIntensity}px ${lit}`,
+                boxShadow: `0 0 ${4 + 8 * level}px ${lit}`,
               }}
             />
           );
@@ -78,8 +101,10 @@ export const Spotlight2DShapeView: React.FC<Props> = ({ shape, color, intensity 
         const angle = (i / count) * Math.PI * 2 + offset;
         const x = cx + Math.cos(angle) * radius - ledSize / 2;
         const y = cy + Math.sin(angle) * radius - ledSize / 2;
-        const led = palette[i % palette.length];
-        const lit = scaleColor(led, clampedIntensity);
+        const idx = i % palette.length;
+        const led = palette[idx];
+        const level = levels[idx];
+        const lit = scaleColor(led, level);
         return (
           <div
             key={`${count}-${i}`}
@@ -90,7 +115,7 @@ export const Spotlight2DShapeView: React.FC<Props> = ({ shape, color, intensity 
               width: ledSize,
               height: ledSize,
               background: lit,
-              boxShadow: `0 0 ${3 + 8 * clampedIntensity}px ${lit}`,
+              boxShadow: `0 0 ${3 + 8 * level}px ${lit}`,
             }}
           />
         );
