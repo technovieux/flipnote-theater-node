@@ -1366,6 +1366,7 @@ export const useEditorState = () => {
     updateObject3DDmxAddress,
     updateSpotlightPosition,
     updateSpotlightChannelValue,
+    updateSpotlightShape2D,
     getInterpolatedSpotlightChannels,
     addObject,
     addObject3D,
