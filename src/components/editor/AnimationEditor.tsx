@@ -842,6 +842,28 @@ export const AnimationEditor: React.FC = () => {
                         keyframes: [],
                       };
                     })}
+                    renderShapeContent={(obj) => {
+                      const spot = state.spotlights.find(s => s.id === obj.id);
+                      if (!spot) return null;
+                      const shape = spot.shape2D ?? 'square';
+                      const channels = getInterpolatedSpotlightChannels(spot, state.currentTime);
+                      const color = getSpotlightColor(spot, channels);
+                      // Derive intensity from luminance of resulting color
+                      const m = /rgb\((\d+),\s*(\d+),\s*(\d+)\)/.exec(color);
+                      const [r, g, b] = m ? [parseInt(m[1]), parseInt(m[2]), parseInt(m[3])] : [255, 255, 255];
+                      const intensity = Math.max(r, g, b) / 255;
+                      // Convert to hex for the shape view
+                      const hex = `#${[r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')}`;
+                      return (
+                        <Spotlight2DShapeView
+                          shape={shape}
+                          color={hex}
+                          intensity={intensity}
+                          width={obj.properties.width}
+                          height={obj.properties.height}
+                        />
+                      );
+                    }}
                     selectedObjectIds={renderMode ? [] : state.selectedObjectIds}
                     onSelect={renderMode ? () => {} : selectObject}
                     onUpdateProperties={renderMode ? () => {} : (id, props) => {
