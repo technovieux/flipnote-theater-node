@@ -478,6 +478,7 @@ export const AnimationEditor: React.FC = () => {
       channelValues: s.channelValues,
       x: s.x,
       y: s.y,
+      shape2D: s.shape2D ?? 'square',
     }));
 
   const handleOpenFile = () => {
