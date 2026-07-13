@@ -886,6 +886,7 @@ export const AnimationEditor: React.FC = () => {
                         selectedSpotlights={selectedSpotlightData}
                         onUpdateDmxAddress={updateSpotlightDmxAddress}
                         onUpdateChannelValue={updateSpotlightChannelValue}
+                        onUpdateShape2D={updateSpotlightShape2D}
                         onAddKeyframe={addKeyframe}
                       />
                     ) : state.mode3D ? (
