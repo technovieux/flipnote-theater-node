@@ -88,10 +88,10 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
                 onClick={() => onSelectMode('2d')}
               />
               <HexButton
-                icon={<Box className="w-8 h-8 text-accent" />}
+                icon={<Box className="w-8 h-8 text-accent" style={{ color: 'hsl(119 93% 47%)' }}/>}
                 label="3D"
                 sublabel="Objets en volume"
-                hoverFill="hsl(var(--accent) / 0.2)"
+                hoverFill="hsl(119, 93%, 47%, 0.2)"
                 onClick={() => onSelectMode('3d')}
               />
             </div>
@@ -113,7 +113,7 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
                 onClick={() => onSelectMode('combined')}
               />
               <HexButton
-                icon={<Lightbulb className="w-8 h-8" style={{ color: 'hsl(45, 93%, 47%)' }} />}
+                icon={<Lightbulb className="w-8 h-8" style={{ color: 'hsl(45, 93%, 47%)' }}/>}
                 label="Spot"
                 sublabel="Projecteurs DMX"
                 hoverFill="hsl(45, 93%, 47%, 0.2)"
@@ -131,10 +131,10 @@ export const WelcomeDialog: React.FC<WelcomeDialogProps> = ({ open, onSelectMode
                 //onClick={() => onSelectMode('drone' as EditorMode)}
               />
               <HexButton
-                icon={<Settings className="w-8 h-8 text-muted-foreground" />}
+                icon={<Settings className="w-8 h-8 text-muted-foreground" style={{ color: 'hsl(0, 0%, 100%)' }}/>}
                 label="Paramètres"
                 sublabel="Configuration générale"
-                hoverFill="hsl(var(--muted) / 0.5)"
+                hoverFill="hsl(0, 0%, 100%, 0.2)"
                 onClick={() => setSettingsOpen(true)}
               />
             </div>
