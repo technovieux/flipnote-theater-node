@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { SpotlightChannel } from '@/types/spotlight';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { Spotlight2DShape } from '@/types/editor';
 
 export interface SpotlightObjectData {
   id: string;
@@ -14,12 +16,14 @@ export interface SpotlightObjectData {
   channelValues: number[];
   x: number;
   y: number;
+  shape2D?: Spotlight2DShape;
 }
 
 interface PropertiesPanelSpotlightProps {
   selectedSpotlights: SpotlightObjectData[];
   onUpdateDmxAddress: (id: string, address: number) => void;
   onUpdateChannelValue: (id: string, channelIndex: number, value: number) => void;
+  onUpdateShape2D?: (id: string, shape2D: Spotlight2DShape) => void;
   onAddKeyframe: () => void;
 }
 
@@ -35,6 +39,7 @@ export const PropertiesPanelSpotlight: React.FC<PropertiesPanelSpotlightProps> =
   selectedSpotlights,
   onUpdateDmxAddress,
   onUpdateChannelValue,
+  onUpdateShape2D,
   onAddKeyframe,
 }) => {
   if (selectedSpotlights.length === 0) {
@@ -78,6 +83,27 @@ export const PropertiesPanelSpotlight: React.FC<PropertiesPanelSpotlightProps> =
             Canaux {spot.dmxAddress} - {spot.dmxAddress + spot.channels.length - 1}
           </p>
         </div>
+
+        {/* 2D shape selector */}
+        {onUpdateShape2D && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">Forme 2D</Label>
+            <Select
+              value={spot.shape2D ?? 'square'}
+              onValueChange={(v) => onUpdateShape2D(spot.id, v as Spotlight2DShape)}
+            >
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="square">Carré</SelectItem>
+                <SelectItem value="circle">Rond</SelectItem>
+                <SelectItem value="par_led">PAR LED (RGBW)</SelectItem>
+                <SelectItem value="led_bar">Barre LED</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Channel Sliders */}
         <div className="space-y-3">

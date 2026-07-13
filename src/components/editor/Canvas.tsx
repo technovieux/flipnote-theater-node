@@ -10,6 +10,12 @@ interface CanvasProps {
   currentTime: number;
   backgroundImage: string | null;
   isPlaying: boolean;
+  /**
+   * Optional per-object custom shape renderer. When it returns a non-null node,
+   * the default rectangle/circle/triangle body is replaced with the returned content
+   * and its background color is cleared so decorations own the visual.
+   */
+  renderShapeContent?: (object: EditorObject) => React.ReactNode | null | undefined;
 }
 
 const SCENE_WIDTH = 1920;
@@ -24,6 +30,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   currentTime,
   backgroundImage,
   isPlaying,
+  renderShapeContent,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
@@ -204,6 +211,17 @@ export const Canvas: React.FC<CanvasProps> = ({
       shapeStyle.borderBottom = `${props.height}px solid ${props.color}`;
     }
 
+    const customContent = renderShapeContent?.(obj) ?? null;
+    if (customContent) {
+      // Custom renderer owns the visual; strip default background & borders.
+      shapeStyle.backgroundColor = 'transparent';
+      shapeStyle.borderLeft = undefined;
+      shapeStyle.borderRight = undefined;
+      shapeStyle.borderBottom = undefined;
+      shapeStyle.width = props.width;
+      shapeStyle.height = props.height;
+    }
+
     // Selection box wrapper
     const wrapperStyle: React.CSSProperties = {
       position: 'absolute',
@@ -220,7 +238,9 @@ export const Canvas: React.FC<CanvasProps> = ({
         <div
           style={shapeStyle}
           onMouseDown={(e) => handleMouseDown(e, obj.id)}
-        />
+        >
+          {customContent}
+        </div>
         {isSelected && (
           <div style={wrapperStyle}>
             {/* Dotted border */}

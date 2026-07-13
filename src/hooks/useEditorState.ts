@@ -637,6 +637,16 @@ export const useEditorState = () => {
     }));
   }, []);
 
+  const updateSpotlightShape2D = useCallback((id: string, shape2D: import('@/types/editor').Spotlight2DShape) => {
+    setState(prev => ({
+      ...prev,
+      hasUnsavedChanges: true,
+      spotlights: prev.spotlights.map(s =>
+        s.id === id ? { ...s, shape2D } : s
+      ),
+    }));
+  }, []);
+
   const updateSpotlightChannelValue = useCallback((id: string, channelIndex: number, value: number) => {
     setState(prev => ({
       ...prev,
@@ -1356,6 +1366,7 @@ export const useEditorState = () => {
     updateObject3DDmxAddress,
     updateSpotlightPosition,
     updateSpotlightChannelValue,
+    updateSpotlightShape2D,
     getInterpolatedSpotlightChannels,
     addObject,
     addObject3D,
