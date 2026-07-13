@@ -108,6 +108,7 @@ export const AnimationEditor: React.FC = () => {
     updateSpotlightDmxAddress,
     updateSpotlightPosition,
     updateSpotlightChannelValue,
+    updateSpotlightShape2D,
     getInterpolatedSpotlightChannels,
     addObject,
     addObject3D,
