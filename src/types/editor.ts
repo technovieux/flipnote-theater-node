@@ -47,7 +47,11 @@ export interface SpotlightEditorObject {
   opacity: number;
   color: string;
   keyframes: SpotlightKeyframe[];
+  /** 2D visual representation shape. Defaults to 'square'. */
+  shape2D?: Spotlight2DShape;
 }
+
+export type Spotlight2DShape = 'square' | 'circle' | 'par_led' | 'led_bar';
 
 export interface CustomGeometry {
   points: { x: number; y: number }[];
