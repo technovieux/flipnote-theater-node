@@ -52,6 +52,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { saveProject, saveProjectAs, openProject, clearCurrentFile, FlptProject, EmbeddedOBJModel } from '@/lib/fileOperations';
 import { SpotlightEditorObject } from '@/types/editor';
+import { Spotlight2DShapeView } from './Spotlight2DShape';
 import { computeDronePositions, computeDroneTrajectories } from '@/lib/droneCollision';
 
 // Derive display color from spotlight channel values
