@@ -989,6 +989,22 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                 );
               }
 
+              // Render PAR LED spotlight (R/G/B/W channels)
+              if (obj.type === 'spotlight_par_led') {
+                return (
+                  <SpotlightParLed3D
+                    key={obj.id}
+                    object={obj}
+                    properties={props}
+                    isSelected={selectedObjectIds.includes(obj.id)}
+                    onSelect={() => onSelect(obj.id)}
+                    onUpdateProperties={(p) => onUpdateProperties(obj.id, p)}
+                    transformMode={transformMode}
+                    orbitControlsRef={controlsRef}
+                  />
+                );
+              }
+
               // Render drone with dedicated component
               if (obj.type === 'drone') {
                 return (
