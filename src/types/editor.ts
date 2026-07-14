@@ -20,6 +20,7 @@ export type Shape3DType =
   // Spotlight fixtures
   | 'spotlight_lyre'
   | 'spotlight_par'
+  | 'spotlight_par_led'
   // Drones (drone mode)
   | 'drone';
 
@@ -92,6 +93,12 @@ export interface Object3DProperties {
   color: string;
   /** Visual power factor for spotlight fixtures (0-200, default 100). Affects cone size & light intensity. */
   spotPower?: number;
+  /** PAR LED per-channel DMX values (0-255). Only used by 'spotlight_par_led'. */
+  ledR?: number;
+  ledG?: number;
+  ledB?: number;
+  ledW?: number;
+  ledDimmer?: number;
 }
 
 export interface CameraPosition {
