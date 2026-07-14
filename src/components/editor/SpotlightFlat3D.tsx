@@ -101,43 +101,6 @@ export const SpotlightFlat3D: React.FC<SpotlightFlat3DProps> = ({
   const coneLength = 1.2 * powerFactor;
   const coneCenterY = -coneLength / 2; // emit downward along local -Y
 
-  // Decompose the current color into per-LED (R/G/B/W) channel levels (0..1).
-  // Dimmer/intensity comes from opacity so the LEDs dim in sync with the emitted beam.
-  const dimmer = Math.max(0, Math.min(1, (properties.opacity ?? 100) / 100));
-  const hexMatch = /^#?([0-9a-f]{6})$/i.exec(lightColor);
-  const rgbInt = hexMatch ? parseInt(hexMatch[1], 16) : 0xffffff;
-  const rNorm = ((rgbInt >> 16) & 0xff) / 255;
-  const gNorm = ((rgbInt >> 8) & 0xff) / 255;
-  const bNorm = (rgbInt & 0xff) / 255;
-  const wNorm = Math.min(rNorm, gNorm, bNorm); // white contribution
-  const channelLevels = [
-    rNorm * dimmer,
-    gNorm * dimmer,
-    bNorm * dimmer,
-    wNorm * dimmer,
-  ];
-  const ledPalette: [number, number, number][] = [
-    [1, 0.1, 0.1],   // Red
-    [0.1, 1, 0.1],   // Green
-    [0.15, 0.3, 1],  // Blue
-    [1, 1, 1],       // White
-  ];
-
-  // Build ring positions on the bottom lens face (local -Y).
-  const buildRing = (count: number, radius: number, offset = 0) =>
-    Array.from({ length: count }).map((_, i) => {
-      const angle = (i / count) * Math.PI * 2 + offset;
-      const idx = i % 4;
-      return {
-        key: `${count}-${i}`,
-        pos: [Math.cos(angle) * radius, -0.028, Math.sin(angle) * radius] as [number, number, number],
-        idx,
-      };
-    });
-  const outerLeds = buildRing(12, 0.11);
-  const innerLeds = buildRing(6, 0.055, Math.PI / 6);
-  const ledSize = 0.014;
-
   const handlePointerDown = (e: any) => {
     e.stopPropagation();
     onSelect();
@@ -156,35 +119,26 @@ export const SpotlightFlat3D: React.FC<SpotlightFlat3DProps> = ({
         <cylinderGeometry args={[0.15, 0.15, 0.05, 32]} />
         <meshStandardMaterial color="#1a1a1a" metalness={0.6} roughness={0.35} />
       </mesh>
-      {/* Dark lens plate on the bottom face — hosts the individual LEDs */}
-      <mesh position={[0, -0.026, 0]}>
-        <cylinderGeometry args={[0.13, 0.13, 0.008, 32]} />
-        <meshStandardMaterial color="#050505" metalness={0.2} roughness={0.6} />
+      {/* Lens glow on the bottom face */}
+      <mesh position={[0, -0.026, 0]} rotation={[Math.PI, 0, 0]}>
+        <cylinderGeometry args={[0.13, 0.13, 0.01, 32]} />
+        <meshStandardMaterial
+          color={lightColor}
+          transparent
+          opacity={0.75}
+          emissive={lightColor}
+          emissiveIntensity={1.2}
+          metalness={0.1}
+          roughness={0.1}
+        />
       </mesh>
-      {/* Individual R/G/B/W LEDs — each only lights up when its channel is active */}
-      {[...outerLeds, ...innerLeds].map(({ key, pos, idx }) => {
-        const level = channelLevels[idx];
-        const [pr, pg, pb] = ledPalette[idx];
-        const litColor = new THREE.Color(pr * level, pg * level, pb * level);
-        return (
-          <mesh key={key} position={pos}>
-            <sphereGeometry args={[ledSize, 10, 10]} />
-            <meshStandardMaterial
-              color={litColor}
-              emissive={litColor}
-              emissiveIntensity={0.8 + 2.5 * level}
-              toneMapped={false}
-            />
-          </mesh>
-        );
-      })}
       {/* Volumetric cone (pointing down -Y) */}
       <mesh position={[0, coneCenterY, 0]}>
         <coneGeometry args={[coneRadius, coneLength, 24, 1, true]} />
         <meshBasicMaterial
           color={lightColor}
           transparent
-          opacity={0.16 * dimmer}
+          opacity={0.16}
           side={THREE.DoubleSide}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
