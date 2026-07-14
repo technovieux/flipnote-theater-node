@@ -346,6 +346,7 @@ export const useEditorState = () => {
       custom: 'Forme',
       spotlight_lyre: 'Lyre Spot',
       spotlight_par: 'Spot Plat',
+      spotlight_par_led: 'PAR LED',
     };
     
     const resolvedFixtureId = fixtureId || (type === 'spotlight_lyre' ? 'lyre_spot_150w' : undefined);
