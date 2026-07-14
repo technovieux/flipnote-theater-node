@@ -6,6 +6,7 @@ import { EditorObject3D, Object3DProperties, CameraPosition, CustomGeometry, OBJ
 import { FireworkSimulation } from './FireworkSimulation';
 import { SpotlightLyre3D } from './SpotlightLyre3D';
 import { SpotlightFlat3D } from './SpotlightFlat3D';
+import { SpotlightParLed3D } from './SpotlightParLed3D';
 import { Drone3D } from './Drone3D';
 import { AnchorEditor } from './AnchorEditor';
 import { anchorWorldPosition } from '@/lib/anchorGeometry';
@@ -976,6 +977,22 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
               if (obj.type === 'spotlight_par') {
                 return (
                   <SpotlightFlat3D
+                    key={obj.id}
+                    object={obj}
+                    properties={props}
+                    isSelected={selectedObjectIds.includes(obj.id)}
+                    onSelect={() => onSelect(obj.id)}
+                    onUpdateProperties={(p) => onUpdateProperties(obj.id, p)}
+                    transformMode={transformMode}
+                    orbitControlsRef={controlsRef}
+                  />
+                );
+              }
+
+              // Render PAR LED spotlight (R/G/B/W channels)
+              if (obj.type === 'spotlight_par_led') {
+                return (
+                  <SpotlightParLed3D
                     key={obj.id}
                     object={obj}
                     properties={props}

@@ -346,6 +346,7 @@ export const useEditorState = () => {
       custom: 'Forme',
       spotlight_lyre: 'Lyre Spot',
       spotlight_par: 'Spot Plat',
+      spotlight_par_led: 'PAR LED',
     };
     
     const resolvedFixtureId = fixtureId || (type === 'spotlight_lyre' ? 'lyre_spot_150w' : undefined);
@@ -1140,7 +1141,12 @@ export const useEditorState = () => {
     
     const progress = (time - prevKf.time) / (nextKf.time - prevKf.time);
     const interpolate = (a: number, b: number) => a + (b - a) * progress;
-    
+    const interpolateOpt = (a: number | undefined, b: number | undefined, fallback: number) => {
+      const av = a ?? fallback;
+      const bv = b ?? fallback;
+      return av + (bv - av) * progress;
+    };
+
     return {
       x: interpolate(prevKf.properties.x, nextKf.properties.x),
       y: interpolate(prevKf.properties.y, nextKf.properties.y),
@@ -1153,6 +1159,12 @@ export const useEditorState = () => {
       rotationZ: interpolate(prevKf.properties.rotationZ, nextKf.properties.rotationZ),
       opacity: interpolate(prevKf.properties.opacity, nextKf.properties.opacity),
       color: interpolateColor(prevKf.properties.color, nextKf.properties.color, progress),
+      spotPower: interpolateOpt(prevKf.properties.spotPower, nextKf.properties.spotPower, 100),
+      ledR: interpolateOpt(prevKf.properties.ledR, nextKf.properties.ledR, 0),
+      ledG: interpolateOpt(prevKf.properties.ledG, nextKf.properties.ledG, 0),
+      ledB: interpolateOpt(prevKf.properties.ledB, nextKf.properties.ledB, 0),
+      ledW: interpolateOpt(prevKf.properties.ledW, nextKf.properties.ledW, 0),
+      ledDimmer: interpolateOpt(prevKf.properties.ledDimmer, nextKf.properties.ledDimmer, 255),
     };
   }, [state.animatedMode]);
 

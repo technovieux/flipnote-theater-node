@@ -32,7 +32,8 @@ export const PropertiesPanel3D: React.FC<PropertiesPanel3DProps> = ({
   const firstObj = selectedObjects[0];
   const firstProps = firstObj.properties;
   const isLyre = !isMulti && firstObj.type === 'spotlight_lyre';
-  const isSpotlight = !isMulti && (firstObj.type === 'spotlight_lyre' || firstObj.type === 'spotlight_par');
+  const isParLed = !isMulti && firstObj.type === 'spotlight_par_led';
+  const isSpotlight = !isMulti && (firstObj.type === 'spotlight_lyre' || firstObj.type === 'spotlight_par' || firstObj.type === 'spotlight_par_led');
 
   const getMixedValue = (key: keyof Object3DProperties): number | null => {
     if (!isMulti) return firstProps[key] as number;
@@ -181,6 +182,35 @@ export const PropertiesPanel3D: React.FC<PropertiesPanel3DProps> = ({
               />
               <span className="text-xs w-10 text-right">{Math.round(firstProps.spotPower ?? 100)}</span>
             </div>
+          </>
+        )}
+
+        {isParLed && (
+          <>
+            <div className="text-xs font-medium text-muted-foreground mt-3 mb-1">Canaux LED (DMX 0-255)</div>
+            {([
+              ['ledDimmer', 'Dimmer', 255],
+              ['ledR', 'Rouge', 0],
+              ['ledG', 'Vert', 0],
+              ['ledB', 'Bleu', 0],
+              ['ledW', 'Blanc', 0],
+            ] as const).map(([key, label, def]) => {
+              const current = (firstProps as any)[key] ?? def;
+              return (
+                <div key={key} className="property-row">
+                  <span className="property-label">{label}</span>
+                  <Slider
+                    value={[current]}
+                    onValueChange={([v]) => handleChange(key as keyof Object3DProperties, v)}
+                    max={255}
+                    min={0}
+                    step={1}
+                    className="flex-1"
+                  />
+                  <span className="text-xs w-10 text-right">{Math.round(current)}</span>
+                </div>
+              );
+            })}
           </>
         )}
 

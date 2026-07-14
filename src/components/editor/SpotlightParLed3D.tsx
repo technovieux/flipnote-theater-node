@@ -5,7 +5,7 @@ import * as THREE from 'three';
 
 type TransformMode = 'translate' | 'rotate' | 'scale' | null;
 
-interface SpotlightFlat3DProps {
+interface SpotlightParLed3DProps {
   object: EditorObject3D;
   properties: Object3DProperties;
   isSelected: boolean;
@@ -16,10 +16,10 @@ interface SpotlightFlat3DProps {
 }
 
 /**
- * Flat round spotlight (PAR-style). Free rotation on all axes via gizmo.
- * Emits a smaller cone of light than the lyre.
+ * Flat round PAR LED spotlight with independent R/G/B/W channels + master dimmer.
+ * The visible LEDs light up per-channel; the emitted beam color is the mix of active channels.
  */
-export const SpotlightFlat3D: React.FC<SpotlightFlat3DProps> = ({
+export const SpotlightParLed3D: React.FC<SpotlightParLed3DProps> = ({
   object,
   properties,
   isSelected,
@@ -40,7 +40,6 @@ export const SpotlightFlat3D: React.FC<SpotlightFlat3DProps> = ({
     }
   }, []);
 
-  // Disable orbit controls during gizmo drag
   useEffect(() => {
     if (transformControlsRef.current && orbitControlsRef.current) {
       const controls = transformControlsRef.current;
@@ -52,7 +51,6 @@ export const SpotlightFlat3D: React.FC<SpotlightFlat3DProps> = ({
     }
   }, [orbitControlsRef, transformMode, isSelected]);
 
-  // Sync gizmo back to properties
   useEffect(() => {
     if (transformControlsRef.current && groupRef.current && isSelected && transformMode) {
       const controls = transformControlsRef.current;
@@ -78,28 +76,71 @@ export const SpotlightFlat3D: React.FC<SpotlightFlat3DProps> = ({
     }
   }, [transformMode, isSelected, onUpdateProperties]);
 
-  // Z-up coords (same convention as SpotlightLyre3D)
   const position: [number, number, number] = [
     properties.x / 100,
     properties.z / 100,
     -properties.y / 100,
   ];
   const uniformScale = (properties.width / 100 + properties.height / 100 + properties.depth / 100) / 3;
-
   const rotation: [number, number, number] = [
     THREE.MathUtils.degToRad(properties.rotationX),
     THREE.MathUtils.degToRad(properties.rotationY),
     THREE.MathUtils.degToRad(properties.rotationZ ?? 0),
   ];
 
-  const lightColor = properties.color || '#ffffff';
   const powerFactor = Math.max(0, (properties.spotPower ?? 100)) / 100;
-  const lightIntensity = Math.max(0.05, (properties.opacity ?? 100) / 100) * 3 * powerFactor;
 
-  // Smaller cone than the lyre
+  // Per-channel DMX values (0..255), default all off with dimmer full.
+  const dmxR = Math.max(0, Math.min(255, properties.ledR ?? 0));
+  const dmxG = Math.max(0, Math.min(255, properties.ledG ?? 0));
+  const dmxB = Math.max(0, Math.min(255, properties.ledB ?? 0));
+  const dmxW = Math.max(0, Math.min(255, properties.ledW ?? 0));
+  const dmxDim = Math.max(0, Math.min(255, properties.ledDimmer ?? 255));
+
+  const dim = dmxDim / 255;
+  const levels = [
+    (dmxR / 255) * dim,
+    (dmxG / 255) * dim,
+    (dmxB / 255) * dim,
+    (dmxW / 255) * dim,
+  ];
+
+  // Mixed emitted color (R + G + B + W, clamped).
+  const mixR = Math.min(1, levels[0] + levels[3]);
+  const mixG = Math.min(1, levels[1] + levels[3]);
+  const mixB = Math.min(1, levels[2] + levels[3]);
+  const beamStrength = Math.max(mixR, mixG, mixB);
+  const beamColor = new THREE.Color(
+    beamStrength > 0 ? mixR / beamStrength : 0,
+    beamStrength > 0 ? mixG / beamStrength : 0,
+    beamStrength > 0 ? mixB / beamStrength : 0,
+  );
+
+  const lightIntensity = beamStrength * 3 * powerFactor;
+
   const coneRadius = 0.25 * powerFactor;
   const coneLength = 1.2 * powerFactor;
-  const coneCenterY = -coneLength / 2; // emit downward along local -Y
+  const coneCenterY = -coneLength / 2;
+
+  const ledPalette: [number, number, number][] = [
+    [1, 0.1, 0.1],
+    [0.1, 1, 0.1],
+    [0.15, 0.3, 1],
+    [1, 1, 1],
+  ];
+  const buildRing = (count: number, radius: number, offset = 0) =>
+    Array.from({ length: count }).map((_, i) => {
+      const angle = (i / count) * Math.PI * 2 + offset;
+      const idx = i % 4;
+      return {
+        key: `${count}-${i}`,
+        pos: [Math.cos(angle) * radius, -0.028, Math.sin(angle) * radius] as [number, number, number],
+        idx,
+      };
+    });
+  const outerLeds = buildRing(12, 0.11);
+  const innerLeds = buildRing(6, 0.055, Math.PI / 6);
+  const ledSize = 0.014;
 
   const handlePointerDown = (e: any) => {
     e.stopPropagation();
@@ -114,41 +155,45 @@ export const SpotlightFlat3D: React.FC<SpotlightFlat3DProps> = ({
       scale={[uniformScale, uniformScale, uniformScale]}
       onPointerDown={handlePointerDown}
     >
-      {/* Flat disc body */}
       <mesh>
         <cylinderGeometry args={[0.15, 0.15, 0.05, 32]} />
         <meshStandardMaterial color="#1a1a1a" metalness={0.6} roughness={0.35} />
       </mesh>
-      {/* Lens glow on the bottom face */}
-      <mesh position={[0, -0.026, 0]} rotation={[Math.PI, 0, 0]}>
-        <cylinderGeometry args={[0.13, 0.13, 0.01, 32]} />
-        <meshStandardMaterial
-          color={lightColor}
-          transparent
-          opacity={0.75}
-          emissive={lightColor}
-          emissiveIntensity={1.2}
-          metalness={0.1}
-          roughness={0.1}
-        />
+      <mesh position={[0, -0.026, 0]}>
+        <cylinderGeometry args={[0.13, 0.13, 0.008, 32]} />
+        <meshStandardMaterial color="#050505" metalness={0.2} roughness={0.6} />
       </mesh>
-      {/* Volumetric cone (pointing down -Y) */}
+      {[...outerLeds, ...innerLeds].map(({ key, pos, idx }) => {
+        const level = levels[idx];
+        const [pr, pg, pb] = ledPalette[idx];
+        const litColor = new THREE.Color(pr * level, pg * level, pb * level);
+        return (
+          <mesh key={key} position={pos}>
+            <sphereGeometry args={[ledSize, 10, 10]} />
+            <meshStandardMaterial
+              color={litColor}
+              emissive={litColor}
+              emissiveIntensity={0.8 + 2.5 * level}
+              toneMapped={false}
+            />
+          </mesh>
+        );
+      })}
       <mesh position={[0, coneCenterY, 0]}>
         <coneGeometry args={[coneRadius, coneLength, 24, 1, true]} />
         <meshBasicMaterial
-          color={lightColor}
+          color={beamColor}
           transparent
-          opacity={0.16}
+          opacity={0.16 * beamStrength}
           side={THREE.DoubleSide}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
-      {/* Real spotLight */}
       <spotLight
         ref={spotLightRef}
         position={[0, -0.03, 0]}
-        color={lightColor}
+        color={beamColor}
         intensity={lightIntensity}
         angle={Math.min(Math.PI / 4, (Math.PI / 9) * Math.max(0.3, powerFactor))}
         penumbra={0.4}
