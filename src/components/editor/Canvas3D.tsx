@@ -6,6 +6,7 @@ import { EditorObject3D, Object3DProperties, CameraPosition, CustomGeometry, OBJ
 import { FireworkSimulation } from './FireworkSimulation';
 import { SpotlightLyre3D } from './SpotlightLyre3D';
 import { SpotlightFlat3D } from './SpotlightFlat3D';
+import { SpotlightParLed3D } from './SpotlightParLed3D';
 import { Drone3D } from './Drone3D';
 import { AnchorEditor } from './AnchorEditor';
 import { anchorWorldPosition } from '@/lib/anchorGeometry';
