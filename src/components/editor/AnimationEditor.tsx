@@ -1176,6 +1176,15 @@ export const AnimationEditor: React.FC = () => {
         onUpdateConfig={updateProjectConfig}
       />
 
+      <KeystoneDialog
+        open={!!keystoneDialogProjectorId}
+        onOpenChange={(o) => { if (!o) setKeystoneDialogProjectorId(null); }}
+        projector={state.objects3D.find(o => o.id === keystoneDialogProjectorId) || null}
+        onUpdateProperties={(p) => {
+          if (keystoneDialogProjectorId) updateObject3DProperties(keystoneDialogProjectorId, p);
+        }}
+      />
+
       <AlertDialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
