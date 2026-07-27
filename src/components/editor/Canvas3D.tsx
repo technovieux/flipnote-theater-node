@@ -1022,6 +1022,24 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
                   />
                 );
               }
+
+              // Render video-mapping projector
+              if (obj.type === 'videoprojector') {
+                const track = videoTracks?.find(t => t.id === props.videoTrackId);
+                return (
+                  <VideoProjector3D
+                    key={obj.id}
+                    object={obj}
+                    properties={props}
+                    isSelected={selectedObjectIds.includes(obj.id)}
+                    onSelect={() => onSelect(obj.id)}
+                    onUpdateProperties={(p) => onUpdateProperties(obj.id, p)}
+                    transformMode={transformMode}
+                    orbitControlsRef={controlsRef}
+                    videoTrack={track}
+                  />
+                );
+              }
               
               return (
                 <Shape3D
