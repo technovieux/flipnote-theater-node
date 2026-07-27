@@ -193,8 +193,8 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
         <meshStandardMaterial color="#141414" metalness={0.7} roughness={0.4} />
       </mesh>
       {/* Lens */}
-      <mesh position={[0, 0, -0.28]}>
-        <cylinderGeometry args={[0.09, 0.09, 0.06, 24]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh position={[0, 0, -0.28]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.09, 0.09, 0.06, 24]} />
         <meshStandardMaterial color="#333" metalness={0.9} roughness={0.15} />
       </mesh>
       <mesh position={[0, 0, -0.31]} rotation={[Math.PI / 2, 0, 0]}>
