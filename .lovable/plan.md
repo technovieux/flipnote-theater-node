@@ -1,119 +1,108 @@
-# Plan — Mode Drone : assignations temporelles & trajectoires
+# Plan — Vidéoprojecteur de mapping (mode combiné)
 
 ## Objectif
-Permettre d'assigner chaque drone à un ancrage d'une forme à un instant T de la timeline, visualiser ces assignations dans la vue logique, et animer physiquement les drones le long de trajectoires pointillées sans collision.
+Ajouter un nouveau type de fixture "vidéoprojecteur de mapping" utilisable en mode combiné :
+- Un bloc 3D avec un faisceau lumineux tronconique
+- Une vidéo associée, éditée dans la timeline comme une piste audio
+- La vidéo est projetée sur les surfaces frappées par le faisceau (projected texture)
+- Configuration du keystone (4 coins) pour adapter la déformation à la surface
+- Propriété "distance max" pour limiter la portée du faisceau
 
 ---
 
-## 1. Modèle de données (`src/types/drone.ts` + `editor.ts`)
+## 1. Nouveau type d'objet — `videoprojector`
 
-Ajouter :
-```ts
-// Une assignation = "à temps t, drone D doit être à l'ancrage A de la forme F"
-interface DroneAssignment {
-  id: string;
-  droneId: string;       // EditorObject3D.id du drone
-  shapeId: string;       // EditorObject3D.id de la forme porteuse d'ancrages
-  anchorId: string;      // Anchor.id dans shape.anchors
-  time: number;          // ms sur la timeline
-}
-```
+`src/types/editor.ts`
+- Ajouter `'videoprojector'` à `Shape3DType`.
+- Étendre `Object3DProperties` (optionnels, spécifiques mapping) :
+  - `throwDistance?: number` (distance max de projection, m)
+  - `throwRatio?: number` (ratio largeur/distance, contrôle l'ouverture)
+  - `keystone?: { tl:[x,y], tr:[x,y], br:[x,y], bl:[x,y] }` (offsets normalisés -1..1 par coin)
+  - `videoTrackId?: string` (lien vers la piste vidéo)
 
-Stockage : `EditorState.droneAssignments: DroneAssignment[]`.
+## 2. Piste vidéo dans la timeline
 
-Chaque forme reçoit aussi `shapeTime?: number` (ms) : moment où la forme doit être "dessinée" (tous ses ancrages occupés).
+`src/types/editor.ts` + `useEditorState.ts`
+- Nouveau type `VideoTrack { id, name, file, url, duration, projectorId }`.
+- `EditorState.videoTracks: VideoTrack[]`.
+- Actions CRUD : `addVideoTrack`, `removeVideoTrack`, `assignVideoToProjector`.
 
----
+`Timeline.tsx`
+- Nouvelle section "Vidéos" sous "Audio", même UI (waveform remplacée par une bande de vignettes ou barre unie), lecture synchronisée sur `currentTime`.
+- Bouton "+ Ajouter vidéo" (input file `video/*`).
 
-## 2. Vue Logique (mode drone) — `LogicalView.tsx`
+## 3. Bibliothèque / ajout du projecteur
 
-Refonte en mode drone :
-- **Colonne gauche** : liste des drones (un nœud par drone, 1 sortie).
-- **Colonne droite** : liste des formes 3D ayant des ancrages. Chaque forme = un nœud avec **N entrées** (une par ancrage) et **N sorties** symétriques. Le nœud affiche son `shapeTime` éditable.
-- **Câblage** : tirer du drone vers une entrée d'ancrage crée une `DroneAssignment` au temps = `shapeTime` de la forme cible.
-- Plusieurs câbles partant du même drone vers différentes formes = trajectoire ordonnée par `shapeTime`.
+Bouton "Ajouter vidéoprojecteur" dans la barre d'outils du mode combiné (à côté des autres ajouts de fixtures). Crée un `EditorObject3D` de type `videoprojector`.
 
-Rendu simple : nœuds positionnables, câbles SVG (réutilise le style existant de LogicalView).
+## 4. Rendu 3D — `VideoProjector3D.tsx`
 
----
+Nouveau composant :
+- Corps : `<Box>` métallique noir avec lentille frontale.
+- Faisceau volumétrique : cône transparent orienté selon rotation, longueur = `throwDistance`, base = `throwDistance * throwRatio`.
+- Texture projetée : élément `<video>` HTML masqué → `VideoTexture` three.js.
+- Projection utilise un `THREE.ProjectorMaterial` custom (shader) OU une approche plus simple : `SpotLight` avec `map` (texture projetée) — supporté par three.js via `SpotLight.map` + `LightShadow`.
+- Keystone : appliqué en pré-déformant les UV via un shader (matrice d'homographie calculée depuis les 4 coins).
 
-## 3. Propriétés (`PropertiesPanelLogical.tsx`)
+Intégration dans `Canvas3D.tsx` : rendre chaque projecteur, connecter sa `<video>` au `currentTime` global et au play/pause.
 
-Quand le nœud sélectionné est :
-- **Drone** : nom, modèle, vitesse max (lecture seule depuis `droneProduct`).
-- **Forme** : champ "Instant de la forme (s)" — édite `shapeTime`.
-- **Assignation (clic sur câble)** : éditeur de temps de l'assignation (par défaut = shapeTime).
+## 5. Keystone editor
 
----
+`ProjectConfigDialog.tsx` (ou nouveau `KeystoneDialog.tsx` ouvert depuis les propriétés du projecteur) :
+- Aperçu carré 300×200 avec la vidéo (ou une mire).
+- 4 poignées draggables aux coins, contraintes dans [-0.5, +0.5].
+- Bouton "Réinitialiser".
+- Sauvegarde dans `properties.keystone`.
 
-## 4. Timeline — `Timeline.tsx`
+## 6. Propriétés du projecteur
 
-Pour chaque drone, afficher une piste avec des marqueurs aux temps d'assignation. Cliquer = sélectionne l'assignation. Glisser = change `time`.
+`PropertiesPanel3D.tsx` — quand `type === 'videoprojector'` :
+- Sliders position / rotation (existants).
+- **Distance max** (slider `throwDistance` 1–100 m).
+- **Throw ratio** (slider 0.3–3).
+- Sélecteur "Piste vidéo" (liste des `videoTracks`, ou bouton "Uploader vidéo").
+- Bouton "Régler keystone…" ouvre le dialog.
 
----
+## 7. Sauvegarde `.flpt`
 
-## 5. Animation physique — nouveau `src/hooks/useDroneAnimation.ts`
-
-À chaque frame (selon `currentTime`) :
-1. Pour chaque drone, trier ses assignations par `time`.
-2. Trouver l'intervalle `[t_prev, t_next]` encadrant `currentTime`.
-3. Position cible = interpolation linéaire (eased) entre l'ancrage précédent (worldspace) et le suivant.
-4. **Évitement de collisions** : algorithme simple — pour chaque paire de drones, si distance < `safeRadius` (≈ 2× diamètre), appliquer une force de répulsion perpendiculaire au mouvement (steering). Itérer 2-3 fois par frame.
-5. Écrire la position calculée dans un store éphémère `droneRuntimePositions` (Map<id, vec3>) consommé par `Drone3D`.
-
-Coordonnées d'ancrage → monde : appliquer la transformation de la forme (position + rotation + scale) à `anchor.position`.
-
----
-
-## 6. Trajectoires pointillées — `Canvas3D.tsx`
-
-Nouveau composant `DroneTrajectory3D` : pour chaque drone, tracer une `Line` (drei) pointillée passant par tous ses ancrages assignés dans l'ordre temporel. Matériau : `LineDashedMaterial` couleur = couleur LED du drone.
-
-Visible uniquement quand mode drone actif. Le segment actuellement parcouru est mis en surbrillance (couleur pleine).
+`fileOperations.ts`
+- Sérialiser `videoTracks` en base64 (comme audio).
+- Inclure `keystone`, `throwDistance`, etc.
 
 ---
 
-## 7. Drone3D — mise à jour
+## Fichiers à créer
+- `src/components/editor/VideoProjector3D.tsx`
+- `src/components/editor/KeystoneDialog.tsx`
+- `src/lib/videoTexture.ts` (helpers video→texture + shader keystone)
 
-Lit sa position runtime depuis le store si le mode physique est actif, sinon utilise `properties.x/y/z` (mode édition).
+## Fichiers à modifier
+- `src/types/editor.ts`
+- `src/hooks/useEditorState.ts`
+- `src/components/editor/Canvas3D.tsx`
+- `src/components/editor/Timeline.tsx`
+- `src/components/editor/PropertiesPanel3D.tsx`
+- `src/components/editor/AnimationEditor.tsx` (bouton ajout)
+- `src/lib/fileOperations.ts`
 
 ---
 
 ## Détails techniques
 
-### Fichiers à créer
-- `src/hooks/useDroneAnimation.ts` (boucle d'animation + collision avoidance)
-- `src/components/editor/DroneTrajectory3D.tsx` (rendu pointillés)
-- `src/lib/droneCollision.ts` (steering / répulsion)
+### Projection vidéo sur surfaces
+Approche retenue : `THREE.SpotLight` avec propriété `map` (texture vidéo). Simple, gère nativement l'atténuation par distance (`distance = throwDistance`) et respecte les ombres. Limitation : pas de keystone natif — on l'implémente en pré-déformant la texture avant assignation (canvas intermédiaire dessinant la vidéo avec transformation d'homographie via `ctx.setTransform` par tuiles, ou via un `ShaderMaterial` custom si la qualité est insuffisante).
 
-### Fichiers à modifier
-- `src/types/drone.ts` (DroneAssignment)
-- `src/types/editor.ts` (EditorState.droneAssignments, EditorObject3D.shapeTime)
-- `src/hooks/useEditorState.ts` (CRUD assignments, shapeTime)
-- `src/components/editor/LogicalView.tsx` (rendu drones/formes/câbles en mode drone)
-- `src/components/editor/PropertiesPanelLogical.tsx` (édition shapeTime, assignment time)
-- `src/components/editor/Timeline.tsx` (pistes d'assignations drone)
-- `src/components/editor/Canvas3D.tsx` (intègre DroneTrajectory3D + runtime positions)
-- `src/components/editor/Drone3D.tsx` (lecture runtime)
-- `src/lib/fileOperations.ts` (sauvegarde .flpt avec assignments)
+### Keystone (homographie)
+4 points source (coins carré unité) → 4 points destination (coins déformés). Calcul de la matrice 3×3 classique, appliquée dans le shader UV = H * uv.
 
-### Algorithme évitement de collisions (résumé)
-```
-for each drone d:
-  target = interpolate(prev_anchor, next_anchor, t)
-  for each other drone o:
-    delta = d.pos - o.pos
-    if |delta| < safeRadius:
-      target += normalize(delta) * (safeRadius - |delta|) * 0.5
-  d.pos = lerp(d.pos, target, dampingFactor)
-```
+### Synchro vidéo ↔ timeline
+`videoElement.currentTime = editorState.currentTime / 1000` à chaque frame ; `play()` / `pause()` selon `isPlaying`. `VideoTexture.needsUpdate = true` chaque frame.
 
-Pas de pathfinding global pour v1 — uniquement répulsion locale, suffisant tant que la densité reste raisonnable.
+### Distance max
+Utilisée directement comme `SpotLight.distance` et longueur du cône volumétrique. Au-delà, la vidéo n'apparaît plus (atténuation naturelle).
 
 ---
 
-## Points à confirmer
-1. **Création d'assignations** : uniquement via la vue logique (drag-drop drone→ancrage) ? Ou aussi via clic direct sur un ancrage en 3D quand un drone est sélectionné ?
-2. **shapeTime par défaut** : 0 ms, ou réparti automatiquement (forme 1 à 1s, forme 2 à 2s…) ?
-3. **Collision** : rayon de sécurité fixe (ex. 1m) ou basé sur le diamètre du drone × facteur ?
-4. **Si plus de drones que d'ancrages** dans une forme : les drones excédentaires restent à leur position précédente, OK ?
+## Point à confirmer
+- **Format vidéo** accepté : MP4/WebM uniquement (compatibilité navigateur), OK ?
+- **Une piste vidéo = un projecteur** (lien 1↔1), ou plusieurs projecteurs peuvent partager la même vidéo ?
