@@ -218,6 +218,9 @@ export const AnimationEditor: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const [pendingVideoProjectorId, setPendingVideoProjectorId] = useState<string | null>(null);
+  const [keystoneDialogProjectorId, setKeystoneDialogProjectorId] = useState<string | null>(null);
   
   // Confirmation dialog state
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
