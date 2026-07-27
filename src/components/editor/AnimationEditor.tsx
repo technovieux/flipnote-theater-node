@@ -191,6 +191,11 @@ export const AnimationEditor: React.FC = () => {
     redo,
   } = useEditorState();
 
+  // Sync all mapping-projector video elements with the timeline.
+  useEffect(() => {
+    syncAllVideos(state.currentTime, state.isPlaying);
+  }, [state.currentTime, state.isPlaying, state.videoTracks.length]);
+
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [selectedKeyframe, setSelectedKeyframe] = useState<{ objectId: string; keyframeIndex: number } | null>(null);
