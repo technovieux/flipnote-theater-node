@@ -748,6 +748,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
   onSetAnchors,
   droneRuntimePositions,
   droneTrajectories,
+  videoTracks,
 }) => {
   const controlsRef = useRef<any>(null);
   const [navMode, setNavMode] = useState<'select' | 'pan' | 'rotate'>('select');
