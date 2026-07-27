@@ -27,6 +27,12 @@ export interface FlptProject {
     duration: number;
     data: string;
   }[];
+  videoTracks?: {
+    id?: string;
+    name: string;
+    duration: number;
+    data: string;
+  }[];
   duration: number;
   mode3D?: boolean;
   modeFireworks?: boolean;
