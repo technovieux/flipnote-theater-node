@@ -350,6 +350,7 @@ export const useEditorState = () => {
       spotlight_lyre: 'Lyre Spot',
       spotlight_par: 'Spot Plat',
       spotlight_par_led: 'PAR LED',
+      videoprojector: 'Vidéoprojecteur',
     };
     
     const resolvedFixtureId = fixtureId || (type === 'spotlight_lyre' ? 'lyre_spot_150w' : undefined);
