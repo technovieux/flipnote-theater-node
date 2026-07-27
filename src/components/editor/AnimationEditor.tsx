@@ -28,6 +28,8 @@ import { ProjectConfigDialog } from './ProjectConfigDialog';
 import { getSunLightInfo } from '@/lib/sunPosition';
 import { dmxOutput, DMXOutput } from '@/lib/dmxOutput';
 import { LibraryShape3D } from '@/data/shape3DLibrary';
+import { syncAllVideos } from '@/lib/videoElementRegistry';
+import { KeystoneDialog } from './KeystoneDialog';
 import { ImportedOBJModel } from '@/lib/objImporter';
 import { saveModels, modelExistsByFileName } from '@/lib/objLibraryStorage';
 import {
@@ -177,6 +179,9 @@ export const AnimationEditor: React.FC = () => {
     setBackgroundImage,
     addAudioTrack,
     removeAudioTrack,
+    addVideoTrack,
+    removeVideoTrack,
+    assignVideoToProjector,
     copySelectedObject,
     pasteObject,
     moveKeyframe,
@@ -185,6 +190,11 @@ export const AnimationEditor: React.FC = () => {
     undo,
     redo,
   } = useEditorState();
+
+  // Sync all mapping-projector video elements with the timeline.
+  useEffect(() => {
+    syncAllVideos(state.currentTime, state.isPlaying);
+  }, [state.currentTime, state.isPlaying, state.videoTracks.length]);
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
@@ -215,6 +225,9 @@ export const AnimationEditor: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const [pendingVideoProjectorId, setPendingVideoProjectorId] = useState<string | null>(null);
+  const [keystoneDialogProjectorId, setKeystoneDialogProjectorId] = useState<string | null>(null);
   
   // Confirmation dialog state
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -723,6 +736,31 @@ export const AnimationEditor: React.FC = () => {
         className="hidden"
         accept="audio/*"
       />
+      <input
+        type="file"
+        ref={videoInputRef}
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (file && pendingVideoProjectorId) {
+            const url = URL.createObjectURL(file);
+            const el = document.createElement('video');
+            el.preload = 'metadata';
+            el.src = url;
+            await new Promise<void>((res) => {
+              el.onloadedmetadata = () => res();
+              el.onerror = () => res();
+            });
+            const duration = isFinite(el.duration) ? el.duration * 1000 : 0;
+            URL.revokeObjectURL(url);
+            const trackId = addVideoTrack(file, duration);
+            assignVideoToProjector(pendingVideoProjectorId, trackId);
+          }
+          setPendingVideoProjectorId(null);
+          e.target.value = '';
+        }}
+        className="hidden"
+        accept="video/*"
+      />
       
       <MenuBar
         onNewProject={handleNewProject}
@@ -866,6 +904,7 @@ export const AnimationEditor: React.FC = () => {
                       state.objects3D.filter(o => o.anchors && o.anchors.length > 0),
                       state.droneAssignments,
                     ) : undefined}
+                    videoTracks={state.videoTracks}
                   />
                 ) : state.modeSpotlight ? (
                   <Canvas
@@ -958,6 +997,15 @@ export const AnimationEditor: React.FC = () => {
                         onUpdateProperties={updateObject3DProperties}
                         onUpdateAllSelected={updateSelectedObjects3DProperties}
                         onAddKeyframe={addKeyframe}
+                        videoTracks={state.videoTracks}
+                        onPickVideoForProjector={(projectorId) => {
+                          setPendingVideoProjectorId(projectorId);
+                          videoInputRef.current?.click();
+                        }}
+                        onRemoveVideoFromProjector={(projectorId) => {
+                          assignVideoToProjector(projectorId, undefined);
+                        }}
+                        onOpenKeystoneEditor={(projectorId) => setKeystoneDialogProjectorId(projectorId)}
                       />
                     ) : (
                       <PropertiesPanel
@@ -1126,6 +1174,15 @@ export const AnimationEditor: React.FC = () => {
         onOpenChange={setProjectConfigOpen}
         config={state.projectConfig}
         onUpdateConfig={updateProjectConfig}
+      />
+
+      <KeystoneDialog
+        open={!!keystoneDialogProjectorId}
+        onOpenChange={(o) => { if (!o) setKeystoneDialogProjectorId(null); }}
+        projector={state.objects3D.find(o => o.id === keystoneDialogProjectorId) || null}
+        onUpdateProperties={(p) => {
+          if (keystoneDialogProjectorId) updateObject3DProperties(keystoneDialogProjectorId, p);
+        }}
       />
 
       <AlertDialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>

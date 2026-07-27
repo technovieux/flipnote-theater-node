@@ -27,6 +27,12 @@ export interface FlptProject {
     duration: number;
     data: string;
   }[];
+  videoTracks?: {
+    id?: string;
+    name: string;
+    duration: number;
+    data: string;
+  }[];
   duration: number;
   mode3D?: boolean;
   modeFireworks?: boolean;
@@ -54,6 +60,26 @@ export const serializeProject = async (state: EditorState): Promise<FlptProject>
         waveform: track.waveform,
         duration: track.duration,
         data: base64,
+      });
+    }
+  }
+
+  const videoTracksData: FlptProject['videoTracks'] = [];
+  for (const track of state.videoTracks) {
+    if (track.file) {
+      const arrayBuffer = await track.file.arrayBuffer();
+      let binary = '';
+      const bytes = new Uint8Array(arrayBuffer);
+      // Chunked to avoid stack overflow on large videos
+      const CHUNK = 0x8000;
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK) as unknown as number[]);
+      }
+      videoTracksData.push({
+        id: track.id,
+        name: track.name,
+        duration: track.duration,
+        data: btoa(binary),
       });
     }
   }
@@ -86,6 +112,7 @@ export const serializeProject = async (state: EditorState): Promise<FlptProject>
     scenes: state.scenes,
     backgroundImage: state.backgroundImage,
     audioTracks: audioTracksData && audioTracksData.length > 0 ? audioTracksData : undefined,
+    videoTracks: videoTracksData.length > 0 ? videoTracksData : undefined,
     duration: state.duration,
     mode3D: state.mode3D,
     modeFireworks: state.modeFireworks,

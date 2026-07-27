@@ -22,7 +22,9 @@ export type Shape3DType =
   | 'spotlight_par'
   | 'spotlight_par_led'
   // Drones (drone mode)
-  | 'drone';
+  | 'drone'
+  // Video mapping projector (combined mode)
+  | 'videoprojector';
 
 export type EditorMode = '2d' | '3d' | 'fireworks' | 'spotlight' | 'combined' | 'drone';
 
@@ -99,6 +101,17 @@ export interface Object3DProperties {
   ledB?: number;
   ledW?: number;
   ledDimmer?: number;
+  /** Video-mapping projector — maximum throw distance (meters). */
+  throwDistance?: number;
+  /** Video-mapping projector — projection width/distance ratio (controls cone spread). */
+  throwRatio?: number;
+  /** Video-mapping projector — normalized keystone offsets per corner (-0.5..0.5). */
+  keystoneTL?: { x: number; y: number };
+  keystoneTR?: { x: number; y: number };
+  keystoneBR?: { x: number; y: number };
+  keystoneBL?: { x: number; y: number };
+  /** Video-mapping projector — id of the linked VideoTrack. */
+  videoTrackId?: string;
 }
 
 export interface CameraPosition {
@@ -161,6 +174,16 @@ export interface AudioTrack {
   duration: number;
 }
 
+/** Video track associated with a video-mapping projector, edited on the timeline like audio. */
+export interface VideoTrack {
+  id: string;
+  name: string;
+  file: File | null;
+  /** Object URL of the video (revoked on unload). Consumed by HTMLVideoElement. */
+  url: string | null;
+  duration: number;
+}
+
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 export interface EditorState {
@@ -171,6 +194,7 @@ export interface EditorState {
   scenes: Scene[];
   audioTracks: AudioTrack[];
   backgroundImage: string | null; // URL or data URI
+  videoTracks: VideoTrack[];
   currentTime: number;
   isPlaying: boolean;
   duration: number; // max 2 hours = 7200000ms

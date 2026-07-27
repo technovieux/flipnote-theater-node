@@ -14,6 +14,7 @@ import {
   Shape3DType,
   ThemeMode, 
   AudioTrack,
+  VideoTrack,
   CustomGeometry,
   OBJGeometry,
 } from '@/types/editor';
@@ -55,6 +56,7 @@ const cloneStateForHistory = (state: EditorState): EditorState => {
     spotlights: JSON.parse(JSON.stringify(state.spotlights)),
     scenes: JSON.parse(JSON.stringify(state.scenes)),
     audioTracks: state.audioTracks.map(t => ({ ...t })),
+    videoTracks: state.videoTracks.map(t => ({ ...t })),
   };
 };
 
@@ -89,6 +91,7 @@ const initialState: EditorState = {
   selectedObjectIds: [],
   scenes: [],
   audioTracks: [],
+  videoTracks: [],
   backgroundImage: null,
   currentTime: 0,
   isPlaying: false,
@@ -347,6 +350,7 @@ export const useEditorState = () => {
       spotlight_lyre: 'Lyre Spot',
       spotlight_par: 'Spot Plat',
       spotlight_par_led: 'PAR LED',
+      videoprojector: 'Vidéoprojecteur',
     };
     
     const resolvedFixtureId = fixtureId || (type === 'spotlight_lyre' ? 'lyre_spot_150w' : undefined);
@@ -355,7 +359,20 @@ export const useEditorState = () => {
       id: generateId(),
       name: `${typeNames[type] || type} ${state.objects3D.length + 1}`,
       type,
-      properties: { ...default3DProperties, color: randomColor },
+      properties: {
+        ...default3DProperties,
+        color: randomColor,
+        ...(type === 'videoprojector'
+          ? {
+              throwDistance: 8,
+              throwRatio: 0.6,
+              keystoneTL: { x: 0, y: 0 },
+              keystoneTR: { x: 0, y: 0 },
+              keystoneBR: { x: 0, y: 0 },
+              keystoneBL: { x: 0, y: 0 },
+            }
+          : {}),
+      },
       keyframes: [],
       ...(resolvedFixtureId ? { fixtureId: resolvedFixtureId } : {}),
     };
@@ -1197,6 +1214,20 @@ export const useEditorState = () => {
         duration: project.audioTrack.duration,
       });
     }
+
+    const videoTracks: VideoTrack[] = [];
+    if (project.videoTracks && project.videoTracks.length > 0) {
+      for (const vt of project.videoTracks) {
+        const file = base64ToFile(vt.data, vt.name);
+        videoTracks.push({
+          id: vt.id ?? generateId(),
+          name: vt.name,
+          file,
+          url: URL.createObjectURL(file),
+          duration: vt.duration,
+        });
+      }
+    }
     
     setState({
       ...initialState,
@@ -1206,6 +1237,7 @@ export const useEditorState = () => {
       scenes: project.scenes,
       backgroundImage: project.backgroundImage,
       audioTracks,
+      videoTracks,
       duration: project.duration,
       mode3D: project.mode3D || project.modeFireworks || false,
       modeFireworks: project.modeFireworks || false,
@@ -1241,6 +1273,48 @@ export const useEditorState = () => {
       saveToHistory(newState);
       return newState;
     });
+  }, []);
+
+  const addVideoTrack = useCallback((file: File, duration: number): string => {
+    const id = generateId();
+    const url = URL.createObjectURL(file);
+    setState(prev => ({
+      ...prev,
+      hasUnsavedChanges: true,
+      videoTracks: [
+        ...prev.videoTracks,
+        { id, name: file.name, file, url, duration },
+      ],
+    }));
+    return id;
+  }, []);
+
+  const removeVideoTrack = useCallback((trackId: string) => {
+    setState(prev => {
+      const track = prev.videoTracks.find(t => t.id === trackId);
+      if (track?.url) URL.revokeObjectURL(track.url);
+      // Also detach from any projector currently referencing this track.
+      const objects3D = prev.objects3D.map(o =>
+        o.properties.videoTrackId === trackId
+          ? { ...o, properties: { ...o.properties, videoTrackId: undefined } }
+          : o
+      );
+      const newState = { ...prev, videoTracks: prev.videoTracks.filter(t => t.id !== trackId), objects3D, hasUnsavedChanges: true };
+      saveToHistory(newState);
+      return newState;
+    });
+  }, []);
+
+  const assignVideoToProjector = useCallback((projectorId: string, videoTrackId: string | undefined) => {
+    setState(prev => ({
+      ...prev,
+      hasUnsavedChanges: true,
+      objects3D: prev.objects3D.map(o =>
+        o.id === projectorId
+          ? { ...o, properties: { ...o.properties, videoTrackId } }
+          : o
+      ),
+    }));
   }, []);
 
   const copySelectedObject = useCallback(() => {
@@ -1408,6 +1482,9 @@ export const useEditorState = () => {
     setBackgroundImage,
     addAudioTrack,
     removeAudioTrack,
+    addVideoTrack,
+    removeVideoTrack,
+    assignVideoToProjector,
     copySelectedObject,
     pasteObject,
     moveKeyframe,
