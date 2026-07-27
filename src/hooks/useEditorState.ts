@@ -1246,6 +1246,48 @@ export const useEditorState = () => {
     });
   }, []);
 
+  const addVideoTrack = useCallback((file: File, duration: number): string => {
+    const id = generateId();
+    const url = URL.createObjectURL(file);
+    setState(prev => ({
+      ...prev,
+      hasUnsavedChanges: true,
+      videoTracks: [
+        ...prev.videoTracks,
+        { id, name: file.name, file, url, duration },
+      ],
+    }));
+    return id;
+  }, []);
+
+  const removeVideoTrack = useCallback((trackId: string) => {
+    setState(prev => {
+      const track = prev.videoTracks.find(t => t.id === trackId);
+      if (track?.url) URL.revokeObjectURL(track.url);
+      // Also detach from any projector currently referencing this track.
+      const objects3D = prev.objects3D.map(o =>
+        o.properties.videoTrackId === trackId
+          ? { ...o, properties: { ...o.properties, videoTrackId: undefined } }
+          : o
+      );
+      const newState = { ...prev, videoTracks: prev.videoTracks.filter(t => t.id !== trackId), objects3D, hasUnsavedChanges: true };
+      saveToHistory(newState);
+      return newState;
+    });
+  }, []);
+
+  const assignVideoToProjector = useCallback((projectorId: string, videoTrackId: string | undefined) => {
+    setState(prev => ({
+      ...prev,
+      hasUnsavedChanges: true,
+      objects3D: prev.objects3D.map(o =>
+        o.id === projectorId
+          ? { ...o, properties: { ...o.properties, videoTrackId } }
+          : o
+      ),
+    }));
+  }, []);
+
   const copySelectedObject = useCallback(() => {
     if (state.selectedObjectIds.length === 0) return;
     
