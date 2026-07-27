@@ -2,12 +2,13 @@ import React, { useRef, useState, Suspense, useEffect, useMemo } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid, GizmoHelper, GizmoViewport, TransformControls } from '@react-three/drei';
 import { Line } from '@react-three/drei';
-import { EditorObject3D, Object3DProperties, CameraPosition, CustomGeometry, OBJGeometry } from '@/types/editor';
+import { EditorObject3D, Object3DProperties, CameraPosition, CustomGeometry, OBJGeometry, VideoTrack } from '@/types/editor';
 import { FireworkSimulation } from './FireworkSimulation';
 import { SpotlightLyre3D } from './SpotlightLyre3D';
 import { SpotlightFlat3D } from './SpotlightFlat3D';
 import { SpotlightParLed3D } from './SpotlightParLed3D';
 import { Drone3D } from './Drone3D';
+import { VideoProjector3D } from './VideoProjector3D';
 import { AnchorEditor } from './AnchorEditor';
 import { anchorWorldPosition } from '@/lib/anchorGeometry';
 import { Anchor } from '@/types/drone';
@@ -89,6 +90,8 @@ interface Canvas3DProps {
   droneRuntimePositions?: Map<string, [number, number, number]>;
   /** Trajectory polylines to render as dashed lines per drone. */
   droneTrajectories?: { droneId: string; color: string; points: [number, number, number][] }[];
+  /** Available video tracks (for mapping projectors). */
+  videoTracks?: VideoTrack[];
 }
 
 type TransformMode = 'translate' | 'rotate' | 'scale' | null;
