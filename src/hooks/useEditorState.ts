@@ -14,6 +14,7 @@ import {
   Shape3DType,
   ThemeMode, 
   AudioTrack,
+  VideoTrack,
   CustomGeometry,
   OBJGeometry,
 } from '@/types/editor';
@@ -55,6 +56,7 @@ const cloneStateForHistory = (state: EditorState): EditorState => {
     spotlights: JSON.parse(JSON.stringify(state.spotlights)),
     scenes: JSON.parse(JSON.stringify(state.scenes)),
     audioTracks: state.audioTracks.map(t => ({ ...t })),
+    videoTracks: state.videoTracks.map(t => ({ ...t })),
   };
 };
 
@@ -89,6 +91,7 @@ const initialState: EditorState = {
   selectedObjectIds: [],
   scenes: [],
   audioTracks: [],
+  videoTracks: [],
   backgroundImage: null,
   currentTime: 0,
   isPlaying: false,
