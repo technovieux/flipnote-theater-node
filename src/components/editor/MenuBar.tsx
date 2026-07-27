@@ -191,6 +191,11 @@ export const MenuBar: React.FC<MenuBarProps> = ({
                     🎆 Ajouter un feu d'artifice...
                   </MenubarItem>
                 )}
+                {modeCombined && !modeDrone && (
+                  <MenubarItem onClick={() => onAddObject3D('videoprojector')}>
+                    📽️ Ajouter un vidéoprojecteur mapping
+                  </MenubarItem>
+                )}
                 {modeDrone && (
                   <MenubarItem onClick={onOpenDroneLibrary}>
                     🛸 Ajouter un drone...
