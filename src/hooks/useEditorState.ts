@@ -359,7 +359,20 @@ export const useEditorState = () => {
       id: generateId(),
       name: `${typeNames[type] || type} ${state.objects3D.length + 1}`,
       type,
-      properties: { ...default3DProperties, color: randomColor },
+      properties: {
+        ...default3DProperties,
+        color: randomColor,
+        ...(type === 'videoprojector'
+          ? {
+              throwDistance: 8,
+              throwRatio: 0.6,
+              keystoneTL: { x: 0, y: 0 },
+              keystoneTR: { x: 0, y: 0 },
+              keystoneBR: { x: 0, y: 0 },
+              keystoneBL: { x: 0, y: 0 },
+            }
+          : {}),
+      },
       keyframes: [],
       ...(resolvedFixtureId ? { fixtureId: resolvedFixtureId } : {}),
     };
