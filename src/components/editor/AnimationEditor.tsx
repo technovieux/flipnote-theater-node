@@ -28,6 +28,8 @@ import { ProjectConfigDialog } from './ProjectConfigDialog';
 import { getSunLightInfo } from '@/lib/sunPosition';
 import { dmxOutput, DMXOutput } from '@/lib/dmxOutput';
 import { LibraryShape3D } from '@/data/shape3DLibrary';
+import { syncAllVideos } from '@/lib/videoElementRegistry';
+import { KeystoneDialog } from './KeystoneDialog';
 import { ImportedOBJModel } from '@/lib/objImporter';
 import { saveModels, modelExistsByFileName } from '@/lib/objLibraryStorage';
 import {
