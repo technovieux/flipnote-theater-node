@@ -904,6 +904,7 @@ export const AnimationEditor: React.FC = () => {
                       state.objects3D.filter(o => o.anchors && o.anchors.length > 0),
                       state.droneAssignments,
                     ) : undefined}
+                    videoTracks={state.videoTracks}
                   />
                 ) : state.modeSpotlight ? (
                   <Canvas
