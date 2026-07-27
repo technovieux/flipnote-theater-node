@@ -1,5 +1,5 @@
 import React from 'react';
-import { EditorObject3D, Object3DProperties } from '@/types/editor';
+import { EditorObject3D, Object3DProperties, VideoTrack } from '@/types/editor';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,10 @@ interface PropertiesPanel3DProps {
   onUpdateProperties: (id: string, properties: Partial<Object3DProperties>) => void;
   onUpdateAllSelected: (properties: Partial<Object3DProperties>) => void;
   onAddKeyframe: () => void;
+  videoTracks?: VideoTrack[];
+  onPickVideoForProjector?: (projectorId: string) => void;
+  onRemoveVideoFromProjector?: (projectorId: string) => void;
+  onOpenKeystoneEditor?: (projectorId: string) => void;
 }
 
 export const PropertiesPanel3D: React.FC<PropertiesPanel3DProps> = ({
@@ -16,6 +20,10 @@ export const PropertiesPanel3D: React.FC<PropertiesPanel3DProps> = ({
   onUpdateProperties,
   onUpdateAllSelected,
   onAddKeyframe,
+  videoTracks,
+  onPickVideoForProjector,
+  onRemoveVideoFromProjector,
+  onOpenKeystoneEditor,
 }) => {
   if (selectedObjects.length === 0) {
     return (
@@ -34,6 +42,7 @@ export const PropertiesPanel3D: React.FC<PropertiesPanel3DProps> = ({
   const isLyre = !isMulti && firstObj.type === 'spotlight_lyre';
   const isParLed = !isMulti && firstObj.type === 'spotlight_par_led';
   const isSpotlight = !isMulti && (firstObj.type === 'spotlight_lyre' || firstObj.type === 'spotlight_par' || firstObj.type === 'spotlight_par_led');
+  const isProjector = !isMulti && firstObj.type === 'videoprojector';
 
   const getMixedValue = (key: keyof Object3DProperties): number | null => {
     if (!isMulti) return firstProps[key] as number;
