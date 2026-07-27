@@ -1201,6 +1201,20 @@ export const useEditorState = () => {
         duration: project.audioTrack.duration,
       });
     }
+
+    const videoTracks: VideoTrack[] = [];
+    if (project.videoTracks && project.videoTracks.length > 0) {
+      for (const vt of project.videoTracks) {
+        const file = base64ToFile(vt.data, vt.name);
+        videoTracks.push({
+          id: vt.id ?? generateId(),
+          name: vt.name,
+          file,
+          url: URL.createObjectURL(file),
+          duration: vt.duration,
+        });
+      }
+    }
     
     setState({
       ...initialState,
@@ -1210,6 +1224,7 @@ export const useEditorState = () => {
       scenes: project.scenes,
       backgroundImage: project.backgroundImage,
       audioTracks,
+      videoTracks,
       duration: project.duration,
       mode3D: project.mode3D || project.modeFireworks || false,
       modeFireworks: project.modeFireworks || false,
