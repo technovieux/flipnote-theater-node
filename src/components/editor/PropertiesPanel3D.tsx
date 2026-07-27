@@ -223,6 +223,62 @@ export const PropertiesPanel3D: React.FC<PropertiesPanel3DProps> = ({
           </>
         )}
 
+        {isProjector && (
+          <>
+            <div className="text-xs font-medium text-muted-foreground mt-3 mb-1">Mapping vidéo</div>
+            <div className="property-row">
+              <span className="property-label">Distance max (m)</span>
+              <Slider
+                value={[firstProps.throwDistance ?? 8]}
+                onValueChange={([v]) => handleChange('throwDistance' as keyof Object3DProperties, v)}
+                max={30}
+                min={1}
+                step={0.5}
+                className="flex-1"
+              />
+              <span className="text-xs w-10 text-right">{(firstProps.throwDistance ?? 8).toFixed(1)}</span>
+            </div>
+            <div className="property-row">
+              <span className="property-label">Ratio de tir</span>
+              <Slider
+                value={[firstProps.throwRatio ?? 0.6]}
+                onValueChange={([v]) => handleChange('throwRatio' as keyof Object3DProperties, v)}
+                max={2}
+                min={0.3}
+                step={0.05}
+                className="flex-1"
+              />
+              <span className="text-xs w-10 text-right">{(firstProps.throwRatio ?? 0.6).toFixed(2)}</span>
+            </div>
+            <div className="property-row items-start">
+              <span className="property-label">Vidéo</span>
+              <div className="flex-1 flex flex-col gap-1">
+                <span className="text-xs truncate">
+                  {(() => {
+                    const t = videoTracks?.find(v => v.id === firstProps.videoTrackId);
+                    return t ? t.name : '— aucune —';
+                  })()}
+                </span>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="secondary" className="flex-1 h-7 text-xs" onClick={() => onPickVideoForProjector?.(firstObj.id)}>
+                    Charger…
+                  </Button>
+                  {firstProps.videoTrackId && (
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => onRemoveVideoFromProjector?.(firstObj.id)}>
+                      Retirer
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="px-3 pt-2">
+              <Button size="sm" variant="outline" className="w-full h-8 text-xs" onClick={() => onOpenKeystoneEditor?.(firstObj.id)}>
+                Éditer le keystone (4 coins)
+              </Button>
+            </div>
+          </>
+        )}
+
         <div className="pt-4 px-3">
           <Button onClick={onAddKeyframe} className="w-full transport-btn-primary">
             Ajouter Keyframe{isMulti ? 's' : ''}
