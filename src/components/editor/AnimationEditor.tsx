@@ -736,6 +736,31 @@ export const AnimationEditor: React.FC = () => {
         className="hidden"
         accept="audio/*"
       />
+      <input
+        type="file"
+        ref={videoInputRef}
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (file && pendingVideoProjectorId) {
+            const url = URL.createObjectURL(file);
+            const el = document.createElement('video');
+            el.preload = 'metadata';
+            el.src = url;
+            await new Promise<void>((res) => {
+              el.onloadedmetadata = () => res();
+              el.onerror = () => res();
+            });
+            const duration = isFinite(el.duration) ? el.duration * 1000 : 0;
+            URL.revokeObjectURL(url);
+            const trackId = addVideoTrack(file, duration);
+            assignVideoToProjector(pendingVideoProjectorId, trackId);
+          }
+          setPendingVideoProjectorId(null);
+          e.target.value = '';
+        }}
+        className="hidden"
+        accept="video/*"
+      />
       
       <MenuBar
         onNewProject={handleNewProject}
