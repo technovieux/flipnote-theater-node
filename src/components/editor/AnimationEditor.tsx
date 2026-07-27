@@ -997,6 +997,15 @@ export const AnimationEditor: React.FC = () => {
                         onUpdateProperties={updateObject3DProperties}
                         onUpdateAllSelected={updateSelectedObjects3DProperties}
                         onAddKeyframe={addKeyframe}
+                        videoTracks={state.videoTracks}
+                        onPickVideoForProjector={(projectorId) => {
+                          setPendingVideoProjectorId(projectorId);
+                          videoInputRef.current?.click();
+                        }}
+                        onRemoveVideoFromProjector={(projectorId) => {
+                          assignVideoToProjector(projectorId, undefined);
+                        }}
+                        onOpenKeystoneEditor={(projectorId) => setKeystoneDialogProjectorId(projectorId)}
                       />
                     ) : (
                       <PropertiesPanel
