@@ -158,7 +158,9 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
       format: THREE.RGBAFormat,
       generateMipmaps: false,
     });
-    rt.texture.colorSpace = THREE.SRGBColorSpace;
+    // Shader writes linear values (video already decoded to linear on sample),
+    // so tag the RT as linear to avoid double sRGB encoding when SpotLight samples it.
+    rt.texture.colorSpace = THREE.NoColorSpace;
     const material = new THREE.ShaderMaterial({
       vertexShader: KEYSTONE_VERT,
       fragmentShader: KEYSTONE_FRAG,
