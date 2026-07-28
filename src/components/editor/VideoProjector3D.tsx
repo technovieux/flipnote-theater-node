@@ -348,11 +348,11 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
         ref={spotLightRef}
         position={[0, 0, -0.3]}
         color={color}
-        intensity={6 * opacity}
+        intensity={40 * opacity}
         angle={spotAngle}
         penumbra={0.02}
         distance={throwDistance}
-        decay={0.4}
+        decay={0}
       />
       <object3D ref={spotTargetRef} position={[0, 0, -throwDistance]} />
 
