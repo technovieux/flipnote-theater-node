@@ -468,6 +468,8 @@ const Shape3D: React.FC<Shape3DProps> = ({
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      castShadow
+      receiveShadow
     >
       {renderGeometry()}
       <meshStandardMaterial
