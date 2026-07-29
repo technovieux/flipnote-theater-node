@@ -208,7 +208,7 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
     const videoReady = Boolean(
       videoTexture &&
       videoEl &&
-      videoEl.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+      videoEl.readyState >= videoEl.HAVE_CURRENT_DATA &&
       opacity > 0
     );
 
