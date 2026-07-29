@@ -19,6 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import * as THREE from 'three';
 
 import { SunLightInfo } from '@/lib/sunPosition';
+import { patchVideoProjectionMaterial, updateVideoProjectionMaterial } from '@/lib/videoProjection';
 
 // Tracks camera yaw and rotates an HTML compass needle so it always points to world North.
 // Scene convention: +X east, +Y north, +Z up. SunSky maps to Three.js coords as (x, z, -y),
@@ -259,11 +260,31 @@ const Shape3D: React.FC<Shape3DProps> = ({
   orbitControlsRef,
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
+  const materialRef = useRef<THREE.MeshStandardMaterial>(null);
   const transformControlsRef = useRef<any>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragPlaneRef = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
   const dragOffsetRef = useRef(new THREE.Vector3());
   const { camera, raycaster } = useThree();
+
+  useEffect(() => {
+    if (!materialRef.current) return;
+    patchVideoProjectionMaterial(materialRef.current);
+    materialRef.current.needsUpdate = true;
+  }, []);
+
+  useFrame(() => {
+    if (materialRef.current) updateVideoProjectionMaterial(materialRef.current);
+  });
+
+  useEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    mesh.userData.videoProjectionSurface = true;
+    return () => {
+      mesh.userData.videoProjectionSurface = false;
+    };
+  }, []);
 
   // Disable orbit controls when using transform gizmo
   useEffect(() => {
@@ -473,6 +494,7 @@ const Shape3D: React.FC<Shape3DProps> = ({
     >
       {renderGeometry()}
       <meshStandardMaterial
+        ref={materialRef}
         color={properties.color}
         transparent
         opacity={properties.opacity / 100}

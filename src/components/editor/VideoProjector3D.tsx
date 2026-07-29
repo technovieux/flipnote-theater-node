@@ -1,9 +1,10 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { TransformControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { EditorObject3D, Object3DProperties, VideoTrack } from '@/types/editor';
 import { registerVideoElement, unregisterVideoElement } from '@/lib/videoElementRegistry';
+import { removeVideoProjection, setVideoProjection } from '@/lib/videoProjection';
 
 type TransformMode = 'translate' | 'rotate' | 'scale' | null;
 
@@ -18,69 +19,10 @@ interface VideoProjector3DProps {
   videoTrack: VideoTrack | undefined;
 }
 
-// Central inscribed square (in map UV) that will be lit inside the cone.
-// cone circumscribes the target square => half-size in UV = 1/(2*sqrt(2)).
-const HALF_UV = 1 / (2 * Math.SQRT2); // ~0.3536
-
-const KEYSTONE_VERT = /* glsl */ `
-varying vec2 vUv;
-void main() {
-  vUv = uv;
-  gl_Position = vec4(position.xy, 0.0, 1.0);
-}`;
-
-// Inverse-bilinear warp of the video into a keystone-deformed quad inside the RT.
-// Outside the quad => black => spotlight projects no light there (square beam mask).
-const KEYSTONE_FRAG = /* glsl */ `
-precision highp float;
-uniform sampler2D uMap;
-uniform int uHasMap;
-uniform vec2 uBL, uBR, uTR, uTL;
-varying vec2 vUv;
-
-vec2 invBilinear(vec2 p, vec2 a, vec2 b, vec2 c, vec2 d) {
-  vec2 e = b - a;
-  vec2 f = d - a;
-  vec2 g = a - b + c - d;
-  vec2 h = p - a;
-  float k2 = g.x*f.y - g.y*f.x;
-  float k1 = e.x*f.y - e.y*f.x + h.x*g.y - h.y*g.x;
-  float k0 = h.x*e.y - h.y*e.x;
-  float s, t;
-  if (abs(k2) < 1e-5) {
-    s = (abs(k1) < 1e-5) ? -1.0 : (-k0 / k1);
-  } else {
-    float w = k1*k1 - 4.0*k0*k2;
-    if (w < 0.0) return vec2(-1.0);
-    w = sqrt(w);
-    float s1 = (-k1 - w) / (2.0*k2);
-    float s2 = (-k1 + w) / (2.0*k2);
-    s = (s1 >= 0.0 && s1 <= 1.0) ? s1 : s2;
-  }
-  vec2 den = mix(f, c - b, s);
-  t = (abs(den.x) > abs(den.y)) ? (h.x - e.x*s) / den.x : (h.y - e.y*s) / den.y;
-  return vec2(s, t);
-}
-
-void main() {
-  vec2 st = invBilinear(vUv, uBL, uBR, uTR, uTL);
-  if (st.x < 0.0 || st.x > 1.0 || st.y < 0.0 || st.y > 1.0) {
-    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-    return;
-  }
-  vec3 col = (uHasMap == 1) ? texture2D(uMap, vec2(st.x, 1.0 - st.y)).rgb : vec3(0.5);
-  gl_FragColor = vec4(col, 1.0);
-}`;
-
 /**
- * Mapping video projector — real projection.
- *
- * The video is baked (keystone-warped, black outside the deformed quad) into a
- * WebGLRenderTarget every frame. That texture is fed to a `SpotLight.map`
- * with shadows enabled, so it is projected onto the actual scene surfaces:
- *   - only the front-most surface is lit (shadow map occlusion),
- *   - if nothing is in the beam, nothing is drawn,
- *   - the cone opens as a square (thanks to the black mask outside the quad).
+ * Mapping video projector — square/rectangular projected video.
+ * A projector-depth pass is used so only the closest surface in the beam receives
+ * the image; surfaces behind it are masked like real-world projection shadows.
  */
 export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
   object,
@@ -94,9 +36,11 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
 }) => {
   const groupRef = useRef<THREE.Group>(null);
   const transformControlsRef = useRef<any>(null);
-  const spotLightRef = useRef<THREE.SpotLight>(null);
-  const spotTargetRef = useRef<THREE.Object3D>(null);
-  const { gl } = useThree();
+  const projectorCameraRef = useRef<THREE.PerspectiveCamera>(new THREE.PerspectiveCamera(45, 1, 0.05, 8));
+  const projectorMatrixRef = useRef(new THREE.Matrix4());
+  const depthMaterialRef = useRef(new THREE.MeshDepthMaterial({ depthPacking: THREE.BasicDepthPacking, side: THREE.DoubleSide }));
+  const { gl, scene } = useThree();
+  const [videoAspect, setVideoAspect] = useState(16 / 9);
 
   // Editor (Z-up) -> Three (Y-up): (x, z, -y)
   const position: [number, number, number] = [
@@ -144,90 +88,46 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
 
   useEffect(() => () => { videoTexture?.dispose(); }, [videoTexture]);
 
+  useEffect(() => {
+    if (!videoEl) {
+      setVideoAspect(16 / 9);
+      return;
+    }
+
+    const updateAspect = () => {
+      if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
+        setVideoAspect(videoEl.videoWidth / videoEl.videoHeight);
+      }
+    };
+
+    videoEl.addEventListener('loadedmetadata', updateAspect);
+    updateAspect();
+    return () => videoEl.removeEventListener('loadedmetadata', updateAspect);
+  }, [videoEl]);
+
   // Keystone offsets (screen-space corners in normalized [-0.5..0.5]).
   const kTL = properties.keystoneTL ?? { x: 0, y: 0 };
   const kTR = properties.keystoneTR ?? { x: 0, y: 0 };
   const kBR = properties.keystoneBR ?? { x: 0, y: 0 };
   const kBL = properties.keystoneBL ?? { x: 0, y: 0 };
 
-  // Offscreen render target + shader scene for the projected map.
-  const projected = useMemo(() => {
-    const rt = new THREE.WebGLRenderTarget(1024, 1024, {
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      format: THREE.RGBAFormat,
-      generateMipmaps: false,
-    });
-    // Shader writes linear values (video already decoded to linear on sample),
-    // so tag the RT as linear to avoid double sRGB encoding when SpotLight samples it.
-    rt.texture.colorSpace = THREE.NoColorSpace;
-    const material = new THREE.ShaderMaterial({
-      vertexShader: KEYSTONE_VERT,
-      fragmentShader: KEYSTONE_FRAG,
-      uniforms: {
-        uMap: { value: null },
-        uHasMap: { value: 0 },
-        uBL: { value: new THREE.Vector2() },
-        uBR: { value: new THREE.Vector2() },
-        uTR: { value: new THREE.Vector2() },
-        uTL: { value: new THREE.Vector2() },
-      },
-      depthTest: false,
-      depthWrite: false,
-    });
-    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
-    const scene = new THREE.Scene();
-    scene.add(quad);
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    return { rt, scene, camera, material };
+  const depthTarget = useMemo(() => {
+    const target = new THREE.WebGLRenderTarget(1024, 1024);
+    target.texture.minFilter = THREE.NearestFilter;
+    target.texture.magFilter = THREE.NearestFilter;
+    target.texture.generateMipmaps = false;
+    target.depthTexture = new THREE.DepthTexture(1024, 1024);
+    target.depthTexture.type = THREE.UnsignedShortType;
+    target.depthTexture.format = THREE.DepthFormat;
+    return target;
   }, []);
 
   useEffect(() => () => {
-    projected.rt.dispose();
-    projected.material.dispose();
-    (projected.scene.children[0] as THREE.Mesh).geometry.dispose();
-  }, [projected]);
-
-  // Update uniforms whenever the keystone / video changes.
-  useEffect(() => {
-    const m = projected.material;
-    m.uniforms.uMap.value = videoTexture;
-    m.uniforms.uHasMap.value = videoTexture ? 1 : 0;
-    // Base inscribed-square corners in RT UV space, then apply keystone offsets
-    // (offsets are in fraction of the square side; UV side length = 2*HALF_UV).
-    const c = 0.5;
-    const h = HALF_UV;
-    const sz = 2 * HALF_UV;
-    m.uniforms.uBL.value.set(c - h + kBL.x * sz, c - h + kBL.y * sz);
-    m.uniforms.uBR.value.set(c + h + kBR.x * sz, c - h + kBR.y * sz);
-    m.uniforms.uTR.value.set(c + h + kTR.x * sz, c + h + kTR.y * sz);
-    m.uniforms.uTL.value.set(c - h + kTL.x * sz, c + h + kTL.y * sz);
-  }, [projected, videoTexture, kTL.x, kTL.y, kTR.x, kTR.y, kBR.x, kBR.y, kBL.x, kBL.y]);
-
-  // Bake the projected map every frame (video keeps changing).
-  useFrame(() => {
-    const prev = gl.getRenderTarget();
-    gl.setRenderTarget(projected.rt);
-    gl.render(projected.scene, projected.camera);
-    gl.setRenderTarget(prev);
-  });
-
-  // Real spotlight — carries the projected map onto the scene, with shadows.
-  useEffect(() => {
-    if (spotLightRef.current && spotTargetRef.current) {
-      spotLightRef.current.target = spotTargetRef.current;
-      spotLightRef.current.target.updateMatrixWorld();
-    }
-    const sl = spotLightRef.current;
-    if (sl) {
-      sl.map = projected.rt.texture as any;
-      sl.castShadow = true;
-      sl.shadow.mapSize.set(1024, 1024);
-      sl.shadow.bias = -0.0005;
-      sl.shadow.camera.near = 0.1;
-      sl.shadow.camera.far = throwDistance + 1;
-    }
-  }, [projected, throwDistance]);
+    removeVideoProjection(object.id);
+    depthTarget.dispose();
+    depthTarget.depthTexture?.dispose();
+    depthMaterialRef.current.dispose();
+  }, [depthTarget, object.id]);
 
   // Disable orbit controls during gizmo drag
   useEffect(() => {
@@ -264,18 +164,79 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
     }
   }, [transformMode, isSelected, onUpdateProperties]);
 
-  // Base square footprint at throwDistance.
+  // Base projection footprint at throwDistance. Width is driven by throwRatio;
+  // height follows the video's native aspect ratio so the image is not stretched.
   const halfW = throwDistance * throwRatio * 0.5;
+  const halfH = halfW / Math.max(0.1, videoAspect);
 
-  // Square-frustum beam wireframe (subtle) — cross-section = the square keystone footprint.
+  useEffect(() => {
+    const camera = projectorCameraRef.current;
+    camera.aspect = Math.max(0.1, videoAspect);
+    camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(halfH / throwDistance));
+    camera.near = 0.05;
+    camera.far = throwDistance;
+    camera.updateProjectionMatrix();
+  }, [halfH, throwDistance, videoAspect]);
+
+  useFrame(() => {
+    const camera = projectorCameraRef.current;
+    const group = groupRef.current;
+    if (!group) return;
+
+    group.updateWorldMatrix(true, false);
+    camera.position.setFromMatrixPosition(group.matrixWorld);
+    group.getWorldQuaternion(camera.quaternion);
+    camera.updateMatrixWorld(true);
+
+    const previousTarget = gl.getRenderTarget();
+    const previousOverride = scene.overrideMaterial;
+    const hiddenObjects: THREE.Object3D[] = [];
+
+    scene.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      if (!mesh.userData.videoProjectionSurface && mesh.visible) {
+        hiddenObjects.push(mesh);
+        mesh.visible = false;
+      }
+    });
+
+    scene.overrideMaterial = depthMaterialRef.current;
+    gl.setRenderTarget(depthTarget);
+    gl.clear();
+    gl.render(scene, camera);
+    scene.overrideMaterial = previousOverride;
+    hiddenObjects.forEach((child) => {
+      child.visible = true;
+    });
+    gl.setRenderTarget(previousTarget);
+
+    projectorMatrixRef.current.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    setVideoProjection({
+      id: object.id,
+      enabled: Boolean(videoTexture && opacity > 0),
+      projectorMatrix: projectorMatrixRef.current,
+      videoTexture: videoTexture ?? depthTarget.texture,
+      depthTexture: depthTarget.depthTexture,
+      opacity,
+      intensity: 1.5,
+      corners: {
+        bl: new THREE.Vector2(kBL.x, kBL.y),
+        br: new THREE.Vector2(1 + kBR.x, kBR.y),
+        tr: new THREE.Vector2(1 + kTR.x, 1 + kTR.y),
+        tl: new THREE.Vector2(kTL.x, 1 + kTL.y),
+      },
+    });
+  }, -1);
+
+  // Rectangular frustum beam — cross-section follows video aspect + keystone footprint.
   const beamGeometry = useMemo(() => {
     const g = new THREE.BufferGeometry();
-    const s = halfW;
     // Apex at (0,0,0), base at z = -throwDistance with keystone offsets.
-    const bl: [number, number, number] = [-s + kBL.x * 2 * s, -s + kBL.y * 2 * s, -throwDistance];
-    const br: [number, number, number] = [ s + kBR.x * 2 * s, -s + kBR.y * 2 * s, -throwDistance];
-    const tr: [number, number, number] = [ s + kTR.x * 2 * s,  s + kTR.y * 2 * s, -throwDistance];
-    const tl: [number, number, number] = [-s + kTL.x * 2 * s,  s + kTL.y * 2 * s, -throwDistance];
+    const bl: [number, number, number] = [-halfW + kBL.x * 2 * halfW, -halfH + kBL.y * 2 * halfH, -throwDistance];
+    const br: [number, number, number] = [ halfW + kBR.x * 2 * halfW, -halfH + kBR.y * 2 * halfH, -throwDistance];
+    const tr: [number, number, number] = [ halfW + kTR.x * 2 * halfW,  halfH + kTR.y * 2 * halfH, -throwDistance];
+    const tl: [number, number, number] = [-halfW + kTL.x * 2 * halfW,  halfH + kTL.y * 2 * halfH, -throwDistance];
     const apex: [number, number, number] = [0, 0, 0];
     const pts: number[] = [];
     // Four side triangles from apex.
@@ -291,12 +252,9 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
     g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
     g.computeVertexNormals();
     return g;
-  }, [halfW, throwDistance, kTL.x, kTL.y, kTR.x, kTR.y, kBR.x, kBR.y, kBL.x, kBL.y]);
+  }, [halfW, halfH, throwDistance, kTL.x, kTL.y, kTR.x, kTR.y, kBR.x, kBR.y, kBL.x, kBL.y]);
 
   useEffect(() => () => { beamGeometry.dispose(); }, [beamGeometry]);
-
-  // SpotLight angle so the cone circumscribes the square footprint (half-diagonal).
-  const spotAngle = Math.min(Math.PI / 2.5, Math.atan((halfW * Math.SQRT2) / throwDistance));
 
   const handlePointerDown = (e: any) => {
     e.stopPropagation();
@@ -342,19 +300,6 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
           blending={THREE.AdditiveBlending}
         />
       </mesh>
-
-      {/* Real projecting light — casts the video onto scene geometry with shadows. */}
-      <spotLight
-        ref={spotLightRef}
-        position={[0, 0, -0.3]}
-        color={color}
-        intensity={40 * opacity}
-        angle={spotAngle}
-        penumbra={0.02}
-        distance={throwDistance}
-        decay={0}
-      />
-      <object3D ref={spotTargetRef} position={[0, 0, -throwDistance]} />
 
       {isSelected && !transformMode && (
         <mesh>
