@@ -33,18 +33,22 @@ const getPrimaryProjection = (): VideoProjectionState | undefined => {
   return activeProjections.values().next().value;
 };
 
+const projectionVertexShaderChunk = /* glsl */ `
+uniform mat4 uVideoProjectorMatrix;
+varying vec4 vVideoProjectionClipPosition;
+`;
+
 const projectionShaderChunk = /* glsl */ `
 uniform int uVideoProjectionEnabled;
 uniform sampler2D uVideoProjectionMap;
 uniform sampler2D uVideoProjectionDepthMap;
-uniform mat4 uVideoProjectorMatrix;
 uniform vec2 uVideoProjBL;
 uniform vec2 uVideoProjBR;
 uniform vec2 uVideoProjTR;
 uniform vec2 uVideoProjTL;
 uniform float uVideoProjectionOpacity;
 uniform float uVideoProjectionIntensity;
-varying vec4 vVideoProjectionWorldPosition;
+varying vec4 vVideoProjectionClipPosition;
 
 vec2 videoProjectionInvBilinear(vec2 p, vec2 a, vec2 b, vec2 c, vec2 d) {
   vec2 e = b - a;
@@ -73,7 +77,7 @@ vec2 videoProjectionInvBilinear(vec2 p, vec2 a, vec2 b, vec2 c, vec2 d) {
 vec3 sampleVideoProjection() {
   if (uVideoProjectionEnabled == 0) return vec3(0.0);
 
-  vec4 clip = uVideoProjectorMatrix * vVideoProjectionWorldPosition;
+  vec4 clip = vVideoProjectionClipPosition;
   if (clip.w <= 0.0) return vec3(0.0);
 
   vec3 ndc = clip.xyz / clip.w;
@@ -89,7 +93,8 @@ vec3 sampleVideoProjection() {
 
   float projectedDepth = ndc.z * 0.5 + 0.5;
   float nearestDepth = texture2D(uVideoProjectionDepthMap, projectionUv).r;
-  float visibleFromProjector = step(projectedDepth - 0.003, nearestDepth);
+  float hasNearestSurface = 1.0 - step(0.99999, nearestDepth);
+  float visibleFromProjector = hasNearestSurface * step(projectedDepth - 0.004, nearestDepth);
   vec3 videoColor = texture2D(uVideoProjectionMap, vec2(videoUv.x, 1.0 - videoUv.y)).rgb;
   return videoColor * visibleFromProjector * uVideoProjectionOpacity * uVideoProjectionIntensity;
 }
@@ -112,6 +117,7 @@ export const patchVideoProjectionMaterial = (material: THREE.MeshStandardMateria
   if (material.userData.videoProjectionPatched) return;
 
   material.userData.videoProjectionPatched = true;
+  material.customProgramCacheKey = () => 'video-projection-projector-locked-v2';
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uVideoProjectionEnabled = { value: 0 };
     shader.uniforms.uVideoProjectionMap = { value: emptyTexture };
@@ -125,8 +131,11 @@ export const patchVideoProjectionMaterial = (material: THREE.MeshStandardMateria
     shader.uniforms.uVideoProjectionIntensity = { value: 1.35 };
 
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec4 vVideoProjectionWorldPosition;')
-      .replace('#include <project_vertex>', '#include <project_vertex>\nvVideoProjectionWorldPosition = modelMatrix * vec4(transformed, 1.0);');
+      .replace('#include <common>', `#include <common>\n${projectionVertexShaderChunk}`)
+      .replace(
+        '#include <project_vertex>',
+        '#include <project_vertex>\nvVideoProjectionClipPosition = uVideoProjectorMatrix * (modelMatrix * vec4(transformed, 1.0));'
+      );
 
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>\n${projectionShaderChunk}`)
