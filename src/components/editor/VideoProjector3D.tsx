@@ -193,28 +193,51 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
     const hiddenObjects: THREE.Object3D[] = [];
 
     scene.traverse((child) => {
-      const mesh = child as THREE.Mesh;
-      if (!mesh.isMesh) return;
-      if (!mesh.userData.videoProjectionSurface && mesh.visible) {
-        hiddenObjects.push(mesh);
-        mesh.visible = false;
-      }
+      const renderable = child as THREE.Object3D & {
+        isMesh?: boolean;
+        isLine?: boolean;
+        isPoints?: boolean;
+        isSprite?: boolean;
+      };
+      const isRenderable = Boolean(renderable.isMesh || renderable.isLine || renderable.isPoints || renderable.isSprite);
+      if (!isRenderable || child.userData.videoProjectionSurface || !child.visible) return;
+      hiddenObjects.push(child);
+      child.visible = false;
     });
 
-    scene.overrideMaterial = depthMaterialRef.current;
-    gl.setRenderTarget(depthTarget);
-    gl.clear();
-    gl.render(scene, camera);
-    scene.overrideMaterial = previousOverride;
-    hiddenObjects.forEach((child) => {
-      child.visible = true;
-    });
-    gl.setRenderTarget(previousTarget);
+    const videoReady = Boolean(
+      videoTexture &&
+      videoEl &&
+      videoEl.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+      opacity > 0
+    );
+
+    if (videoReady) {
+      scene.overrideMaterial = depthMaterialRef.current;
+      gl.setRenderTarget(depthTarget);
+      gl.clear();
+      gl.render(scene, camera);
+      scene.overrideMaterial = previousOverride;
+      hiddenObjects.forEach((child) => {
+        child.visible = true;
+      });
+      gl.setRenderTarget(previousTarget);
+    } else {
+      hiddenObjects.forEach((child) => {
+        child.visible = true;
+      });
+      scene.overrideMaterial = previousOverride;
+      gl.setRenderTarget(previousTarget);
+    }
+
+    if (videoTexture) {
+      videoTexture.needsUpdate = true;
+    }
 
     projectorMatrixRef.current.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     setVideoProjection({
       id: object.id,
-      enabled: Boolean(videoTexture && opacity > 0),
+      enabled: videoReady,
       projectorMatrix: projectorMatrixRef.current,
       videoTexture: videoTexture ?? depthTarget.texture,
       depthTexture: depthTarget.depthTexture,
