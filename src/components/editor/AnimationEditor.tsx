@@ -161,6 +161,7 @@ export const AnimationEditor: React.FC = () => {
     updateSelectedObjectsProperties,
     updateSelectedObjects3DProperties,
     renameObject,
+    toggleObjectVisibility,
     deleteObject,
     deleteSelectedObjects,
     reorderObjects,
