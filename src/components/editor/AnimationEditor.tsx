@@ -824,12 +824,14 @@ export const AnimationEditor: React.FC = () => {
                           type: 'circle' as const,
                           properties: { x: s.x, y: s.y, width: 50, height: 50, rotation: 0, opacity: s.opacity, color: s.color },
                           keyframes: s.keyframes.map(kf => ({ time: kf.time, properties: { x: s.x, y: s.y, width: 50, height: 50, rotation: 0, opacity: 100, color: s.color } })),
+                          visible: s.visible,
                         }))}
                         selectedObjectIds={state.selectedObjectIds}
                         onSelect={selectObject}
                         onReorder={reorderObjects}
                         onDelete={deleteObject}
                         onRename={renameObject}
+                        onToggleVisibility={toggleObjectVisibility}
                       />
                     ) : state.mode3D ? (
                       <ObjectsList3D
@@ -839,6 +841,7 @@ export const AnimationEditor: React.FC = () => {
                         onReorder={reorderObjects}
                         onDelete={deleteObject}
                         onRename={renameObject}
+                        onToggleVisibility={toggleObjectVisibility}
                       />
                     ) : (
                       <ObjectsList
@@ -848,6 +851,7 @@ export const AnimationEditor: React.FC = () => {
                         onReorder={reorderObjects}
                         onDelete={deleteObject}
                         onRename={renameObject}
+                        onToggleVisibility={toggleObjectVisibility}
                       />
                     )}
                   </ResizablePanel>
