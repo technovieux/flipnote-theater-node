@@ -883,6 +883,27 @@ export const useEditorState = () => {
     });
   }, []);
 
+  const toggleObjectVisibility = useCallback((id: string) => {
+    setState(prev => {
+      const current =
+        prev.objects.find(o => o.id === id)?.visible ??
+        prev.objects3D.find(o => o.id === id)?.visible ??
+        prev.spotlights.find(o => o.id === id)?.visible ??
+        true;
+      const nextVisible = current === false;
+      return {
+        ...prev,
+        hasUnsavedChanges: true,
+        objects: prev.objects.map(o => (o.id === id ? { ...o, visible: nextVisible } : o)),
+        objects3D: prev.objects3D.map(o => (o.id === id ? { ...o, visible: nextVisible } : o)),
+        spotlights: prev.spotlights.map(o => (o.id === id ? { ...o, visible: nextVisible } : o)),
+        selectedObjectIds: nextVisible
+          ? prev.selectedObjectIds
+          : prev.selectedObjectIds.filter(sid => sid !== id),
+      };
+    });
+  }, []);
+
   const renameObject = useCallback((id: string, name: string) => {
     setState(prev => ({
       ...prev,
@@ -1464,6 +1485,7 @@ export const useEditorState = () => {
     updateSelectedObjectsProperties,
     updateSelectedObjects3DProperties,
     renameObject,
+    toggleObjectVisibility,
     deleteObject,
     deleteSelectedObjects,
     reorderObjects,

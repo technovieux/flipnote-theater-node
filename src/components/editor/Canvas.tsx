@@ -276,7 +276,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   };
 
   // Render objects in reverse order (first in array = on top)
-  const reversedObjects = [...objects].reverse();
+  const reversedObjects = [...objects].filter(o => o.visible !== false).reverse();
 
   // Calculate scaled dimensions
   const scaledWidth = SCENE_WIDTH * zoom;

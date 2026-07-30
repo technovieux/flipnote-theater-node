@@ -52,6 +52,8 @@ export interface SpotlightEditorObject {
   keyframes: SpotlightKeyframe[];
   /** 2D visual representation shape. Defaults to 'square'. */
   shape2D?: Spotlight2DShape;
+  /** When false, the fixture is hidden in the render views and cannot be selected. */
+  visible?: boolean;
 }
 
 export type Spotlight2DShape = 'square' | 'circle' | 'par_led' | 'led_bar';
@@ -137,6 +139,8 @@ export interface EditorObject {
   type: ShapeType;
   properties: ObjectProperties;
   keyframes: Keyframe[];
+  /** When false, the object is hidden in the render views and cannot be selected. */
+  visible?: boolean;
 }
 
 export interface EditorObject3D {
@@ -145,6 +149,8 @@ export interface EditorObject3D {
   type: Shape3DType;
   properties: Object3DProperties;
   keyframes: Keyframe3D[];
+  /** When false, the object is hidden in the render views and cannot be selected. */
+  visible?: boolean;
   customGeometry?: CustomGeometry;
   objGeometry?: OBJGeometry;
   fireworkProduct?: FireworkProduct;

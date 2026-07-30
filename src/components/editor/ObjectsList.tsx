@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { EditorObject } from '@/types/editor';
-import { Trash2, GripVertical } from 'lucide-react';
+import { Trash2, GripVertical, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -11,6 +11,7 @@ interface ObjectsListProps {
   onReorder: (fromIndex: number, toIndex: number) => void;
   onDelete: (id: string) => void;
   onRename?: (id: string, name: string) => void;
+  onToggleVisibility?: (id: string) => void;
   onDuplicate?: (id: string) => void;
 }
 
@@ -21,6 +22,7 @@ export const ObjectsList: React.FC<ObjectsListProps> = ({
   onReorder,
   onDelete,
   onRename,
+  onToggleVisibility,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -80,6 +82,8 @@ export const ObjectsList: React.FC<ObjectsListProps> = ({
   };
 
   const handleClick = (e: React.MouseEvent, objId: string) => {
+    const target = objects.find(o => o.id === objId);
+    if (target && target.visible === false) return;
     onSelect(objId, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey });
   };
 
@@ -106,12 +110,21 @@ export const ObjectsList: React.FC<ObjectsListProps> = ({
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, index)}
               onDragEnd={handleDragEnd}
-              className={`object-item ${selectedObjectIds.includes(obj.id) ? 'selected' : ''} ${
+              className={`object-item ${selectedObjectIds.includes(obj.id) ? 'selected' : ''} ${obj.visible === false ? 'opacity-50' : ''} ${
                 dragOverIndex === index ? 'border-t-2 border-primary' : ''
               } ${draggedIndex === index ? 'opacity-50' : ''}`}
               onClick={(e) => handleClick(e, obj.id)}
             >
               <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab flex-shrink-0" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 flex-shrink-0 text-muted-foreground hover:text-foreground"
+                title={obj.visible === false ? 'Afficher' : 'Masquer'}
+                onClick={(e) => { e.stopPropagation(); onToggleVisibility?.(obj.id); }}
+              >
+                {obj.visible === false ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </Button>
               <div
                 className="w-4 h-4 rounded-sm flex-shrink-0"
                 style={{ backgroundColor: obj.properties.color }}
