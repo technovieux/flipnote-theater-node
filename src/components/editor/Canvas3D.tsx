@@ -1084,7 +1084,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
             })}
 
             {/* Anchor visualization (drone mode) — small colored crosses at each anchor position */}
-            {droneMode && objects.map((obj) => {
+            {droneMode && objects.filter(o => o.visible !== false).map((obj) => {
               if (!obj.anchors || obj.anchors.length === 0) return null;
               const props = isPlaying
                 ? getInterpolatedProperties(obj, currentTime)
