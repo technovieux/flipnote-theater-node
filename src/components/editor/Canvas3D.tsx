@@ -978,7 +978,7 @@ export const Canvas3D: React.FC<Canvas3DProps> = ({
               followCamera={false}
             />
             
-            {objects.map((obj) => {
+            {objects.filter(o => o.visible !== false).map((obj) => {
               const props = isPlaying
                 ? getInterpolatedProperties(obj, currentTime)
                 : (selectedObjectIds.includes(obj.id) ? obj.properties : getInterpolatedProperties(obj, currentTime));
