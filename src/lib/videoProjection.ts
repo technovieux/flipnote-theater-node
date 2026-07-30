@@ -129,7 +129,7 @@ export const patchVideoProjectionMaterial = (material: THREE.MeshStandardMateria
   if (material.userData.videoProjectionPatched) return;
 
   material.userData.videoProjectionPatched = true;
-  material.customProgramCacheKey = () => 'video-projection-correct-bilinear-v3';
+  material.customProgramCacheKey = () => 'video-projection-facing-v4';
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uVideoProjectionEnabled = { value: 0 };
     shader.uniforms.uVideoProjectionMap = { value: emptyTexture };
