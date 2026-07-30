@@ -122,6 +122,7 @@ type ProjectionShader = THREE.WebGLProgramParametersWithUniforms['uniforms'] & {
   uVideoProjTL: { value: THREE.Vector2 };
   uVideoProjectionOpacity: { value: number };
   uVideoProjectionIntensity: { value: number };
+  uVideoProjectorPosition: { value: THREE.Vector3 };
 };
 
 export const patchVideoProjectionMaterial = (material: THREE.MeshStandardMaterial) => {
@@ -140,12 +141,17 @@ export const patchVideoProjectionMaterial = (material: THREE.MeshStandardMateria
     shader.uniforms.uVideoProjTL = { value: new THREE.Vector2(0, 1) };
     shader.uniforms.uVideoProjectionOpacity = { value: 1 };
     shader.uniforms.uVideoProjectionIntensity = { value: 1.35 };
+    shader.uniforms.uVideoProjectorPosition = { value: new THREE.Vector3() };
 
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>\n${projectionVertexShaderChunk}`)
       .replace(
         '#include <project_vertex>',
         '#include <project_vertex>\nvVideoProjectionClipPosition = uVideoProjectorMatrix * (modelMatrix * vec4(transformed, 1.0));'
+      )
+      .replace(
+        '#include <defaultnormal_vertex>',
+        '#include <defaultnormal_vertex>\nvVideoProjectionWorldNormal = mat3(modelMatrix) * objectNormal;\nvVideoProjectionWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;'
       );
 
     shader.fragmentShader = shader.fragmentShader
@@ -173,4 +179,5 @@ export const updateVideoProjectionMaterial = (material: THREE.MeshStandardMateri
   uniforms.uVideoProjTL.value.copy(projection.corners.tl);
   uniforms.uVideoProjectionOpacity.value = projection.opacity;
   uniforms.uVideoProjectionIntensity.value = projection.intensity;
+  uniforms.uVideoProjectorPosition.value.copy(projection.projectorPosition);
 };
