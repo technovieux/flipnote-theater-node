@@ -8,6 +8,7 @@ export interface VideoProjectionState {
   depthTexture: THREE.Texture;
   opacity: number;
   intensity: number;
+  projectorPosition: THREE.Vector3;
   corners: {
     bl: THREE.Vector2;
     br: THREE.Vector2;
@@ -36,6 +37,8 @@ const getPrimaryProjection = (): VideoProjectionState | undefined => {
 const projectionVertexShaderChunk = /* glsl */ `
 uniform mat4 uVideoProjectorMatrix;
 varying vec4 vVideoProjectionClipPosition;
+varying vec3 vVideoProjectionWorldPos;
+varying vec3 vVideoProjectionWorldNormal;
 `;
 
 const projectionShaderChunk = /* glsl */ `
@@ -48,7 +51,10 @@ uniform vec2 uVideoProjTR;
 uniform vec2 uVideoProjTL;
 uniform float uVideoProjectionOpacity;
 uniform float uVideoProjectionIntensity;
+uniform vec3 uVideoProjectorPosition;
 varying vec4 vVideoProjectionClipPosition;
+varying vec3 vVideoProjectionWorldPos;
+varying vec3 vVideoProjectionWorldNormal;
 
 vec2 videoProjectionInvBilinear(vec2 p, vec2 a, vec2 b, vec2 c, vec2 d) {
   vec2 e = b - a;
@@ -76,6 +82,11 @@ vec2 videoProjectionInvBilinear(vec2 p, vec2 a, vec2 b, vec2 c, vec2 d) {
 
 vec3 sampleVideoProjection() {
   if (uVideoProjectionEnabled == 0) return vec3(0.0);
+
+  // Only surfaces facing the projector can receive the image.
+  vec3 toSurface = normalize(vVideoProjectionWorldPos - uVideoProjectorPosition);
+  vec3 surfaceNormal = normalize(vVideoProjectionWorldNormal);
+  if (dot(surfaceNormal, toSurface) > -0.02) return vec3(0.0);
 
   vec4 clip = vVideoProjectionClipPosition;
   if (clip.w <= 0.0) return vec3(0.0);
@@ -111,13 +122,14 @@ type ProjectionShader = THREE.WebGLProgramParametersWithUniforms['uniforms'] & {
   uVideoProjTL: { value: THREE.Vector2 };
   uVideoProjectionOpacity: { value: number };
   uVideoProjectionIntensity: { value: number };
+  uVideoProjectorPosition: { value: THREE.Vector3 };
 };
 
 export const patchVideoProjectionMaterial = (material: THREE.MeshStandardMaterial) => {
   if (material.userData.videoProjectionPatched) return;
 
   material.userData.videoProjectionPatched = true;
-  material.customProgramCacheKey = () => 'video-projection-correct-bilinear-v3';
+  material.customProgramCacheKey = () => 'video-projection-facing-v4';
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uVideoProjectionEnabled = { value: 0 };
     shader.uniforms.uVideoProjectionMap = { value: emptyTexture };
@@ -129,12 +141,17 @@ export const patchVideoProjectionMaterial = (material: THREE.MeshStandardMateria
     shader.uniforms.uVideoProjTL = { value: new THREE.Vector2(0, 1) };
     shader.uniforms.uVideoProjectionOpacity = { value: 1 };
     shader.uniforms.uVideoProjectionIntensity = { value: 1.35 };
+    shader.uniforms.uVideoProjectorPosition = { value: new THREE.Vector3() };
 
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>\n${projectionVertexShaderChunk}`)
       .replace(
         '#include <project_vertex>',
         '#include <project_vertex>\nvVideoProjectionClipPosition = uVideoProjectorMatrix * (modelMatrix * vec4(transformed, 1.0));'
+      )
+      .replace(
+        '#include <defaultnormal_vertex>',
+        '#include <defaultnormal_vertex>\nvVideoProjectionWorldNormal = mat3(modelMatrix) * objectNormal;\nvVideoProjectionWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;'
       );
 
     shader.fragmentShader = shader.fragmentShader
@@ -162,4 +179,5 @@ export const updateVideoProjectionMaterial = (material: THREE.MeshStandardMateri
   uniforms.uVideoProjTL.value.copy(projection.corners.tl);
   uniforms.uVideoProjectionOpacity.value = projection.opacity;
   uniforms.uVideoProjectionIntensity.value = projection.intensity;
+  uniforms.uVideoProjectorPosition.value.copy(projection.projectorPosition);
 };

@@ -38,6 +38,7 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
   const transformControlsRef = useRef<any>(null);
   const projectorCameraRef = useRef<THREE.PerspectiveCamera>(new THREE.PerspectiveCamera(45, 1, 0.05, 8));
   const projectorMatrixRef = useRef(new THREE.Matrix4());
+  const projectorPositionRef = useRef(new THREE.Vector3());
   const depthMaterialRef = useRef(new THREE.MeshDepthMaterial({ depthPacking: THREE.BasicDepthPacking, side: THREE.DoubleSide }));
   const { gl, scene } = useThree();
   const [videoAspect, setVideoAspect] = useState(16 / 9);
@@ -235,10 +236,12 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
     }
 
     projectorMatrixRef.current.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    projectorPositionRef.current.copy(camera.position);
     setVideoProjection({
       id: object.id,
       enabled: videoReady,
       projectorMatrix: projectorMatrixRef.current,
+      projectorPosition: projectorPositionRef.current,
       videoTexture: videoTexture ?? depthTarget.texture,
       depthTexture: depthTarget.depthTexture,
       opacity,
