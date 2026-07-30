@@ -58,20 +58,20 @@ vec2 videoProjectionInvBilinear(vec2 p, vec2 a, vec2 b, vec2 c, vec2 d) {
   float k2 = g.x * f.y - g.y * f.x;
   float k1 = e.x * f.y - e.y * f.x + h.x * g.y - h.y * g.x;
   float k0 = h.x * e.y - h.y * e.x;
-  float s;
+  float v;
   if (abs(k2) < 1e-5) {
-    s = (abs(k1) < 1e-5) ? -1.0 : (-k0 / k1);
+    v = (abs(k1) < 1e-5) ? -1.0 : (-k0 / k1);
   } else {
     float w = k1 * k1 - 4.0 * k0 * k2;
     if (w < 0.0) return vec2(-1.0);
     w = sqrt(w);
-    float s1 = (-k1 - w) / (2.0 * k2);
-    float s2 = (-k1 + w) / (2.0 * k2);
-    s = (s1 >= 0.0 && s1 <= 1.0) ? s1 : s2;
+    float v1 = (-k1 - w) / (2.0 * k2);
+    float v2 = (-k1 + w) / (2.0 * k2);
+    v = (v1 >= 0.0 && v1 <= 1.0) ? v1 : v2;
   }
-  vec2 den = mix(f, c - b, s);
-  float t = (abs(den.x) > abs(den.y)) ? (h.x - e.x * s) / den.x : (h.y - e.y * s) / den.y;
-  return vec2(s, t);
+  vec2 den = e + g * v;
+  float u = (abs(den.x) > abs(den.y)) ? (h.x - f.x * v) / den.x : (h.y - f.y * v) / den.y;
+  return vec2(u, v);
 }
 
 vec3 sampleVideoProjection() {
@@ -117,7 +117,7 @@ export const patchVideoProjectionMaterial = (material: THREE.MeshStandardMateria
   if (material.userData.videoProjectionPatched) return;
 
   material.userData.videoProjectionPatched = true;
-  material.customProgramCacheKey = () => 'video-projection-projector-locked-v2';
+  material.customProgramCacheKey = () => 'video-projection-correct-bilinear-v3';
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uVideoProjectionEnabled = { value: 0 };
     shader.uniforms.uVideoProjectionMap = { value: emptyTexture };
