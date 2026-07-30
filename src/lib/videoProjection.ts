@@ -8,6 +8,7 @@ export interface VideoProjectionState {
   depthTexture: THREE.Texture;
   opacity: number;
   intensity: number;
+  projectorPosition: THREE.Vector3;
   corners: {
     bl: THREE.Vector2;
     br: THREE.Vector2;
@@ -36,6 +37,8 @@ const getPrimaryProjection = (): VideoProjectionState | undefined => {
 const projectionVertexShaderChunk = /* glsl */ `
 uniform mat4 uVideoProjectorMatrix;
 varying vec4 vVideoProjectionClipPosition;
+varying vec3 vVideoProjectionWorldPos;
+varying vec3 vVideoProjectionWorldNormal;
 `;
 
 const projectionShaderChunk = /* glsl */ `
@@ -48,7 +51,10 @@ uniform vec2 uVideoProjTR;
 uniform vec2 uVideoProjTL;
 uniform float uVideoProjectionOpacity;
 uniform float uVideoProjectionIntensity;
+uniform vec3 uVideoProjectorPosition;
 varying vec4 vVideoProjectionClipPosition;
+varying vec3 vVideoProjectionWorldPos;
+varying vec3 vVideoProjectionWorldNormal;
 
 vec2 videoProjectionInvBilinear(vec2 p, vec2 a, vec2 b, vec2 c, vec2 d) {
   vec2 e = b - a;
@@ -76,6 +82,11 @@ vec2 videoProjectionInvBilinear(vec2 p, vec2 a, vec2 b, vec2 c, vec2 d) {
 
 vec3 sampleVideoProjection() {
   if (uVideoProjectionEnabled == 0) return vec3(0.0);
+
+  // Only surfaces facing the projector can receive the image.
+  vec3 toSurface = normalize(vVideoProjectionWorldPos - uVideoProjectorPosition);
+  vec3 surfaceNormal = normalize(vVideoProjectionWorldNormal);
+  if (dot(surfaceNormal, toSurface) > -0.02) return vec3(0.0);
 
   vec4 clip = vVideoProjectionClipPosition;
   if (clip.w <= 0.0) return vec3(0.0);
