@@ -32,31 +32,32 @@ export const removeVideoProjection = (id: string) => {
   activeProjections.delete(id);
 };
 
-const getPrimaryProjection = (): VideoProjectionState | undefined => {
-  return activeProjections.values().next().value;
-};
+export const MAX_VIDEO_PROJECTORS = 4;
+
+const getProjections = (): VideoProjectionState[] =>
+  Array.from(activeProjections.values()).slice(0, MAX_VIDEO_PROJECTORS);
 
 const projectionVertexShaderChunk = /* glsl */ `
-uniform mat4 uVideoProjectorMatrix;
-varying vec4 vVideoProjectionClipPosition;
 varying vec3 vVideoProjectionWorldPos;
 varying vec3 vVideoProjectionWorldNormal;
 `;
 
 const projectionShaderChunk = /* glsl */ `
-uniform int uVideoProjectionEnabled;
-uniform sampler2D uVideoProjectionMap;
-uniform sampler2D uVideoProjectionDepthMap;
-uniform vec2 uVideoProjBL;
-uniform vec2 uVideoProjBR;
-uniform vec2 uVideoProjTR;
-uniform vec2 uVideoProjTL;
-uniform float uVideoProjectionOpacity;
-uniform float uVideoProjectionIntensity;
-uniform vec3 uVideoProjectorPosition;
-uniform float uVideoProjectionNear;
-uniform float uVideoProjectionFar;
-varying vec4 vVideoProjectionClipPosition;
+#define MAX_VIDEO_PROJECTORS ${MAX_VIDEO_PROJECTORS}
+uniform int uVideoProjectionCount;
+uniform int uVideoProjectionEnabled[MAX_VIDEO_PROJECTORS];
+uniform sampler2D uVideoProjectionMap[MAX_VIDEO_PROJECTORS];
+uniform sampler2D uVideoProjectionDepthMap[MAX_VIDEO_PROJECTORS];
+uniform mat4 uVideoProjectorMatrix[MAX_VIDEO_PROJECTORS];
+uniform vec2 uVideoProjBL[MAX_VIDEO_PROJECTORS];
+uniform vec2 uVideoProjBR[MAX_VIDEO_PROJECTORS];
+uniform vec2 uVideoProjTR[MAX_VIDEO_PROJECTORS];
+uniform vec2 uVideoProjTL[MAX_VIDEO_PROJECTORS];
+uniform float uVideoProjectionOpacity[MAX_VIDEO_PROJECTORS];
+uniform float uVideoProjectionIntensity[MAX_VIDEO_PROJECTORS];
+uniform vec3 uVideoProjectorPosition[MAX_VIDEO_PROJECTORS];
+uniform float uVideoProjectionNear[MAX_VIDEO_PROJECTORS];
+uniform float uVideoProjectionFar[MAX_VIDEO_PROJECTORS];
 varying vec3 vVideoProjectionWorldPos;
 varying vec3 vVideoProjectionWorldNormal;
 
@@ -84,88 +85,91 @@ vec2 videoProjectionInvBilinear(vec2 p, vec2 a, vec2 b, vec2 c, vec2 d) {
   return vec2(u, v);
 }
 
-float videoProjectionLinearDepth(float depth) {
+float videoProjectionLinearDepth(float depth, float near, float far) {
   float z = depth * 2.0 - 1.0;
-  return (2.0 * uVideoProjectionNear * uVideoProjectionFar) /
-         (uVideoProjectionFar + uVideoProjectionNear - z * (uVideoProjectionFar - uVideoProjectionNear));
+  return (2.0 * near * far) / (far + near - z * (far - near));
 }
 
 vec3 sampleVideoProjection() {
-  if (uVideoProjectionEnabled == 0) return vec3(0.0);
-
-  // Only surfaces facing the projector can receive the image.
-  vec3 toSurface = normalize(vVideoProjectionWorldPos - uVideoProjectorPosition);
+  vec3 total = vec3(0.0);
   vec3 surfaceNormal = normalize(vVideoProjectionWorldNormal);
-  if (dot(surfaceNormal, toSurface) > -0.02) return vec3(0.0);
 
-  vec4 clip = vVideoProjectionClipPosition;
-  if (clip.w <= 0.0) return vec3(0.0);
+  for (int i = 0; i < MAX_VIDEO_PROJECTORS; i++) {
+    if (i >= uVideoProjectionCount) break;
+    if (uVideoProjectionEnabled[i] == 0) continue;
 
-  vec3 ndc = clip.xyz / clip.w;
-  if (ndc.x < -1.0 || ndc.x > 1.0 || ndc.y < -1.0 || ndc.y > 1.0 || ndc.z < -1.0 || ndc.z > 1.0) {
-    return vec3(0.0);
+    // Only surfaces facing the projector can receive the image.
+    vec3 toSurface = normalize(vVideoProjectionWorldPos - uVideoProjectorPosition[i]);
+    if (dot(surfaceNormal, toSurface) > -0.02) continue;
+
+    vec4 clip = uVideoProjectorMatrix[i] * vec4(vVideoProjectionWorldPos, 1.0);
+    if (clip.w <= 0.0) continue;
+
+    vec3 ndc = clip.xyz / clip.w;
+    if (ndc.x < -1.0 || ndc.x > 1.0 || ndc.y < -1.0 || ndc.y > 1.0 || ndc.z < -1.0 || ndc.z > 1.0) continue;
+
+    vec2 projectionUv = ndc.xy * 0.5 + 0.5;
+    vec2 videoUv = videoProjectionInvBilinear(projectionUv, uVideoProjBL[i], uVideoProjBR[i], uVideoProjTR[i], uVideoProjTL[i]);
+    if (videoUv.x < 0.0 || videoUv.x > 1.0 || videoUv.y < 0.0 || videoUv.y > 1.0) continue;
+
+    float projectedDepth = ndc.z * 0.5 + 0.5;
+    float nearestDepth = texture2D(uVideoProjectionDepthMap[i], projectionUv).r;
+    float hasNearestSurface = 1.0 - step(0.99999, nearestDepth);
+    // Compare in linear (metric) space so the depth bias stays constant in world units.
+    float projectedLinear = videoProjectionLinearDepth(projectedDepth, uVideoProjectionNear[i], uVideoProjectionFar[i]);
+    float nearestLinear = videoProjectionLinearDepth(nearestDepth, uVideoProjectionNear[i], uVideoProjectionFar[i]);
+    float visibleFromProjector = hasNearestSurface * step(projectedLinear - 0.02, nearestLinear);
+    vec3 videoColor = texture2D(uVideoProjectionMap[i], vec2(videoUv.x, 1.0 - videoUv.y)).rgb;
+    total += videoColor * visibleFromProjector * uVideoProjectionOpacity[i] * uVideoProjectionIntensity[i];
   }
 
-  vec2 projectionUv = ndc.xy * 0.5 + 0.5;
-  vec2 videoUv = videoProjectionInvBilinear(projectionUv, uVideoProjBL, uVideoProjBR, uVideoProjTR, uVideoProjTL);
-  if (videoUv.x < 0.0 || videoUv.x > 1.0 || videoUv.y < 0.0 || videoUv.y > 1.0) {
-    return vec3(0.0);
-  }
-
-  float projectedDepth = ndc.z * 0.5 + 0.5;
-  float nearestDepth = texture2D(uVideoProjectionDepthMap, projectionUv).r;
-  float hasNearestSurface = 1.0 - step(0.99999, nearestDepth);
-  // Compare in linear (metric) space so the depth bias stays constant in world units.
-  float projectedLinear = videoProjectionLinearDepth(projectedDepth);
-  float nearestLinear = videoProjectionLinearDepth(nearestDepth);
-  float visibleFromProjector = hasNearestSurface * step(projectedLinear - 0.02, nearestLinear);
-  vec3 videoColor = texture2D(uVideoProjectionMap, vec2(videoUv.x, 1.0 - videoUv.y)).rgb;
-  return videoColor * visibleFromProjector * uVideoProjectionOpacity * uVideoProjectionIntensity;
+  return total;
 }
 `;
 
 type ProjectionShader = THREE.WebGLProgramParametersWithUniforms['uniforms'] & {
-  uVideoProjectionEnabled: { value: number };
-  uVideoProjectionMap: { value: THREE.Texture };
-  uVideoProjectionDepthMap: { value: THREE.Texture };
-  uVideoProjectorMatrix: { value: THREE.Matrix4 };
-  uVideoProjBL: { value: THREE.Vector2 };
-  uVideoProjBR: { value: THREE.Vector2 };
-  uVideoProjTR: { value: THREE.Vector2 };
-  uVideoProjTL: { value: THREE.Vector2 };
-  uVideoProjectionOpacity: { value: number };
-  uVideoProjectionIntensity: { value: number };
-  uVideoProjectorPosition: { value: THREE.Vector3 };
-  uVideoProjectionNear: { value: number };
-  uVideoProjectionFar: { value: number };
+  uVideoProjectionCount: { value: number };
+  uVideoProjectionEnabled: { value: number[] };
+  uVideoProjectionMap: { value: THREE.Texture[] };
+  uVideoProjectionDepthMap: { value: THREE.Texture[] };
+  uVideoProjectorMatrix: { value: THREE.Matrix4[] };
+  uVideoProjBL: { value: THREE.Vector2[] };
+  uVideoProjBR: { value: THREE.Vector2[] };
+  uVideoProjTR: { value: THREE.Vector2[] };
+  uVideoProjTL: { value: THREE.Vector2[] };
+  uVideoProjectionOpacity: { value: number[] };
+  uVideoProjectionIntensity: { value: number[] };
+  uVideoProjectorPosition: { value: THREE.Vector3[] };
+  uVideoProjectionNear: { value: number[] };
+  uVideoProjectionFar: { value: number[] };
 };
+
+const fill = <T,>(factory: (i: number) => T): T[] =>
+  Array.from({ length: MAX_VIDEO_PROJECTORS }, (_, i) => factory(i));
 
 export const patchVideoProjectionMaterial = (material: THREE.MeshStandardMaterial) => {
   if (material.userData.videoProjectionPatched) return;
 
   material.userData.videoProjectionPatched = true;
-  material.customProgramCacheKey = () => 'video-projection-lineardepth-v5';
+  material.customProgramCacheKey = () => 'video-projection-multi-v6';
   material.onBeforeCompile = (shader) => {
-    shader.uniforms.uVideoProjectionEnabled = { value: 0 };
-    shader.uniforms.uVideoProjectionMap = { value: emptyTexture };
-    shader.uniforms.uVideoProjectionDepthMap = { value: emptyTexture };
-    shader.uniforms.uVideoProjectorMatrix = { value: new THREE.Matrix4() };
-    shader.uniforms.uVideoProjBL = { value: new THREE.Vector2(0, 0) };
-    shader.uniforms.uVideoProjBR = { value: new THREE.Vector2(1, 0) };
-    shader.uniforms.uVideoProjTR = { value: new THREE.Vector2(1, 1) };
-    shader.uniforms.uVideoProjTL = { value: new THREE.Vector2(0, 1) };
-    shader.uniforms.uVideoProjectionOpacity = { value: 1 };
-    shader.uniforms.uVideoProjectionIntensity = { value: 1.35 };
-    shader.uniforms.uVideoProjectorPosition = { value: new THREE.Vector3() };
-    shader.uniforms.uVideoProjectionNear = { value: 0.2 };
-    shader.uniforms.uVideoProjectionFar = { value: 8 };
+    shader.uniforms.uVideoProjectionCount = { value: 0 };
+    shader.uniforms.uVideoProjectionEnabled = { value: fill(() => 0) };
+    shader.uniforms.uVideoProjectionMap = { value: fill(() => emptyTexture) };
+    shader.uniforms.uVideoProjectionDepthMap = { value: fill(() => emptyTexture) };
+    shader.uniforms.uVideoProjectorMatrix = { value: fill(() => new THREE.Matrix4()) };
+    shader.uniforms.uVideoProjBL = { value: fill(() => new THREE.Vector2(0, 0)) };
+    shader.uniforms.uVideoProjBR = { value: fill(() => new THREE.Vector2(1, 0)) };
+    shader.uniforms.uVideoProjTR = { value: fill(() => new THREE.Vector2(1, 1)) };
+    shader.uniforms.uVideoProjTL = { value: fill(() => new THREE.Vector2(0, 1)) };
+    shader.uniforms.uVideoProjectionOpacity = { value: fill(() => 1) };
+    shader.uniforms.uVideoProjectionIntensity = { value: fill(() => 1.35) };
+    shader.uniforms.uVideoProjectorPosition = { value: fill(() => new THREE.Vector3()) };
+    shader.uniforms.uVideoProjectionNear = { value: fill(() => 0.2) };
+    shader.uniforms.uVideoProjectionFar = { value: fill(() => 8) };
 
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>\n${projectionVertexShaderChunk}`)
-      .replace(
-        '#include <project_vertex>',
-        '#include <project_vertex>\nvVideoProjectionClipPosition = uVideoProjectorMatrix * (modelMatrix * vec4(transformed, 1.0));'
-      )
       .replace(
         '#include <defaultnormal_vertex>',
         '#include <defaultnormal_vertex>\nvVideoProjectionWorldNormal = mat3(modelMatrix) * objectNormal;\nvVideoProjectionWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;'
@@ -183,20 +187,29 @@ export const updateVideoProjectionMaterial = (material: THREE.MeshStandardMateri
   const uniforms = material.userData.videoProjectionUniforms as ProjectionShader | undefined;
   if (!uniforms) return;
 
-  const projection = getPrimaryProjection();
-  uniforms.uVideoProjectionEnabled.value = projection?.enabled ? 1 : 0;
-  if (!projection) return;
+  const projections = getProjections();
+  uniforms.uVideoProjectionCount.value = projections.length;
 
-  uniforms.uVideoProjectionMap.value = projection.videoTexture;
-  uniforms.uVideoProjectionDepthMap.value = projection.depthTexture;
-  uniforms.uVideoProjectorMatrix.value.copy(projection.projectorMatrix);
-  uniforms.uVideoProjBL.value.copy(projection.corners.bl);
-  uniforms.uVideoProjBR.value.copy(projection.corners.br);
-  uniforms.uVideoProjTR.value.copy(projection.corners.tr);
-  uniforms.uVideoProjTL.value.copy(projection.corners.tl);
-  uniforms.uVideoProjectionOpacity.value = projection.opacity;
-  uniforms.uVideoProjectionIntensity.value = projection.intensity;
-  uniforms.uVideoProjectorPosition.value.copy(projection.projectorPosition);
-  uniforms.uVideoProjectionNear.value = projection.near;
-  uniforms.uVideoProjectionFar.value = projection.far;
+  for (let i = 0; i < MAX_VIDEO_PROJECTORS; i++) {
+    const projection = projections[i];
+    if (!projection) {
+      uniforms.uVideoProjectionEnabled.value[i] = 0;
+      uniforms.uVideoProjectionMap.value[i] = emptyTexture;
+      uniforms.uVideoProjectionDepthMap.value[i] = emptyTexture;
+      continue;
+    }
+    uniforms.uVideoProjectionEnabled.value[i] = projection.enabled ? 1 : 0;
+    uniforms.uVideoProjectionMap.value[i] = projection.videoTexture;
+    uniforms.uVideoProjectionDepthMap.value[i] = projection.depthTexture;
+    uniforms.uVideoProjectorMatrix.value[i].copy(projection.projectorMatrix);
+    uniforms.uVideoProjBL.value[i].copy(projection.corners.bl);
+    uniforms.uVideoProjBR.value[i].copy(projection.corners.br);
+    uniforms.uVideoProjTR.value[i].copy(projection.corners.tr);
+    uniforms.uVideoProjTL.value[i].copy(projection.corners.tl);
+    uniforms.uVideoProjectionOpacity.value[i] = projection.opacity;
+    uniforms.uVideoProjectionIntensity.value[i] = projection.intensity;
+    uniforms.uVideoProjectorPosition.value[i].copy(projection.projectorPosition);
+    uniforms.uVideoProjectionNear.value[i] = projection.near;
+    uniforms.uVideoProjectionFar.value[i] = projection.far;
+  }
 };
