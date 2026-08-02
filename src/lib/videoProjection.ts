@@ -90,38 +90,39 @@ float videoProjectionLinearDepth(float depth, float near, float far) {
   return (2.0 * near * far) / (far + near - z * (far - near));
 }
 
+// GLSL ES forbids indexing sampler arrays with a non-constant expression, so the
+// projector loop is unrolled with literal indices (otherwise only index 0 works).
+#define VIDEO_PROJECTION_STEP(i) \
+  if (i < uVideoProjectionCount && uVideoProjectionEnabled[i] == 1) { \
+    vec3 toSurface = normalize(vVideoProjectionWorldPos - uVideoProjectorPosition[i]); \
+    vec4 clip = uVideoProjectorMatrix[i] * vec4(vVideoProjectionWorldPos, 1.0); \
+    if (dot(surfaceNormal, toSurface) <= -0.02 && clip.w > 0.0) { \
+      vec3 ndc = clip.xyz / clip.w; \
+      if (abs(ndc.x) <= 1.0 && abs(ndc.y) <= 1.0 && abs(ndc.z) <= 1.0) { \
+        vec2 projectionUv = ndc.xy * 0.5 + 0.5; \
+        vec2 videoUv = videoProjectionInvBilinear(projectionUv, uVideoProjBL[i], uVideoProjBR[i], uVideoProjTR[i], uVideoProjTL[i]); \
+        if (videoUv.x >= 0.0 && videoUv.x <= 1.0 && videoUv.y >= 0.0 && videoUv.y <= 1.0) { \
+          float projectedDepth = ndc.z * 0.5 + 0.5; \
+          float nearestDepth = texture2D(uVideoProjectionDepthMap[i], projectionUv).r; \
+          float hasNearestSurface = 1.0 - step(0.99999, nearestDepth); \
+          float projectedLinear = videoProjectionLinearDepth(projectedDepth, uVideoProjectionNear[i], uVideoProjectionFar[i]); \
+          float nearestLinear = videoProjectionLinearDepth(nearestDepth, uVideoProjectionNear[i], uVideoProjectionFar[i]); \
+          float visibleFromProjector = hasNearestSurface * step(projectedLinear - 0.02, nearestLinear); \
+          vec3 videoColor = texture2D(uVideoProjectionMap[i], vec2(videoUv.x, 1.0 - videoUv.y)).rgb; \
+          total += videoColor * visibleFromProjector * uVideoProjectionOpacity[i] * uVideoProjectionIntensity[i]; \
+        } \
+      } \
+    } \
+  }
+
 vec3 sampleVideoProjection() {
   vec3 total = vec3(0.0);
   vec3 surfaceNormal = normalize(vVideoProjectionWorldNormal);
 
-  for (int i = 0; i < MAX_VIDEO_PROJECTORS; i++) {
-    if (i >= uVideoProjectionCount) break;
-    if (uVideoProjectionEnabled[i] == 0) continue;
-
-    // Only surfaces facing the projector can receive the image.
-    vec3 toSurface = normalize(vVideoProjectionWorldPos - uVideoProjectorPosition[i]);
-    if (dot(surfaceNormal, toSurface) > -0.02) continue;
-
-    vec4 clip = uVideoProjectorMatrix[i] * vec4(vVideoProjectionWorldPos, 1.0);
-    if (clip.w <= 0.0) continue;
-
-    vec3 ndc = clip.xyz / clip.w;
-    if (ndc.x < -1.0 || ndc.x > 1.0 || ndc.y < -1.0 || ndc.y > 1.0 || ndc.z < -1.0 || ndc.z > 1.0) continue;
-
-    vec2 projectionUv = ndc.xy * 0.5 + 0.5;
-    vec2 videoUv = videoProjectionInvBilinear(projectionUv, uVideoProjBL[i], uVideoProjBR[i], uVideoProjTR[i], uVideoProjTL[i]);
-    if (videoUv.x < 0.0 || videoUv.x > 1.0 || videoUv.y < 0.0 || videoUv.y > 1.0) continue;
-
-    float projectedDepth = ndc.z * 0.5 + 0.5;
-    float nearestDepth = texture2D(uVideoProjectionDepthMap[i], projectionUv).r;
-    float hasNearestSurface = 1.0 - step(0.99999, nearestDepth);
-    // Compare in linear (metric) space so the depth bias stays constant in world units.
-    float projectedLinear = videoProjectionLinearDepth(projectedDepth, uVideoProjectionNear[i], uVideoProjectionFar[i]);
-    float nearestLinear = videoProjectionLinearDepth(nearestDepth, uVideoProjectionNear[i], uVideoProjectionFar[i]);
-    float visibleFromProjector = hasNearestSurface * step(projectedLinear - 0.02, nearestLinear);
-    vec3 videoColor = texture2D(uVideoProjectionMap[i], vec2(videoUv.x, 1.0 - videoUv.y)).rgb;
-    total += videoColor * visibleFromProjector * uVideoProjectionOpacity[i] * uVideoProjectionIntensity[i];
-  }
+  VIDEO_PROJECTION_STEP(0)
+  VIDEO_PROJECTION_STEP(1)
+  VIDEO_PROJECTION_STEP(2)
+  VIDEO_PROJECTION_STEP(3)
 
   return total;
 }
@@ -151,7 +152,7 @@ export const patchVideoProjectionMaterial = (material: THREE.MeshStandardMateria
   if (material.userData.videoProjectionPatched) return;
 
   material.userData.videoProjectionPatched = true;
-  material.customProgramCacheKey = () => 'video-projection-multi-v6';
+  material.customProgramCacheKey = () => 'video-projection-multi-v7';
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uVideoProjectionCount = { value: 0 };
     shader.uniforms.uVideoProjectionEnabled = { value: fill(() => 0) };
