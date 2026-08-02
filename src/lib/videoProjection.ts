@@ -9,6 +9,8 @@ export interface VideoProjectionState {
   opacity: number;
   intensity: number;
   projectorPosition: THREE.Vector3;
+  near: number;
+  far: number;
   corners: {
     bl: THREE.Vector2;
     br: THREE.Vector2;
@@ -52,6 +54,8 @@ uniform vec2 uVideoProjTL;
 uniform float uVideoProjectionOpacity;
 uniform float uVideoProjectionIntensity;
 uniform vec3 uVideoProjectorPosition;
+uniform float uVideoProjectionNear;
+uniform float uVideoProjectionFar;
 varying vec4 vVideoProjectionClipPosition;
 varying vec3 vVideoProjectionWorldPos;
 varying vec3 vVideoProjectionWorldNormal;
@@ -80,6 +84,12 @@ vec2 videoProjectionInvBilinear(vec2 p, vec2 a, vec2 b, vec2 c, vec2 d) {
   return vec2(u, v);
 }
 
+float videoProjectionLinearDepth(float depth) {
+  float z = depth * 2.0 - 1.0;
+  return (2.0 * uVideoProjectionNear * uVideoProjectionFar) /
+         (uVideoProjectionFar + uVideoProjectionNear - z * (uVideoProjectionFar - uVideoProjectionNear));
+}
+
 vec3 sampleVideoProjection() {
   if (uVideoProjectionEnabled == 0) return vec3(0.0);
 
@@ -105,7 +115,10 @@ vec3 sampleVideoProjection() {
   float projectedDepth = ndc.z * 0.5 + 0.5;
   float nearestDepth = texture2D(uVideoProjectionDepthMap, projectionUv).r;
   float hasNearestSurface = 1.0 - step(0.99999, nearestDepth);
-  float visibleFromProjector = hasNearestSurface * step(projectedDepth - 0.004, nearestDepth);
+  // Compare in linear (metric) space so the depth bias stays constant in world units.
+  float projectedLinear = videoProjectionLinearDepth(projectedDepth);
+  float nearestLinear = videoProjectionLinearDepth(nearestDepth);
+  float visibleFromProjector = hasNearestSurface * step(projectedLinear - 0.02, nearestLinear);
   vec3 videoColor = texture2D(uVideoProjectionMap, vec2(videoUv.x, 1.0 - videoUv.y)).rgb;
   return videoColor * visibleFromProjector * uVideoProjectionOpacity * uVideoProjectionIntensity;
 }
@@ -123,13 +136,15 @@ type ProjectionShader = THREE.WebGLProgramParametersWithUniforms['uniforms'] & {
   uVideoProjectionOpacity: { value: number };
   uVideoProjectionIntensity: { value: number };
   uVideoProjectorPosition: { value: THREE.Vector3 };
+  uVideoProjectionNear: { value: number };
+  uVideoProjectionFar: { value: number };
 };
 
 export const patchVideoProjectionMaterial = (material: THREE.MeshStandardMaterial) => {
   if (material.userData.videoProjectionPatched) return;
 
   material.userData.videoProjectionPatched = true;
-  material.customProgramCacheKey = () => 'video-projection-facing-v4';
+  material.customProgramCacheKey = () => 'video-projection-lineardepth-v5';
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uVideoProjectionEnabled = { value: 0 };
     shader.uniforms.uVideoProjectionMap = { value: emptyTexture };
@@ -142,6 +157,8 @@ export const patchVideoProjectionMaterial = (material: THREE.MeshStandardMateria
     shader.uniforms.uVideoProjectionOpacity = { value: 1 };
     shader.uniforms.uVideoProjectionIntensity = { value: 1.35 };
     shader.uniforms.uVideoProjectorPosition = { value: new THREE.Vector3() };
+    shader.uniforms.uVideoProjectionNear = { value: 0.2 };
+    shader.uniforms.uVideoProjectionFar = { value: 8 };
 
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>\n${projectionVertexShaderChunk}`)
@@ -180,4 +197,6 @@ export const updateVideoProjectionMaterial = (material: THREE.MeshStandardMateri
   uniforms.uVideoProjectionOpacity.value = projection.opacity;
   uniforms.uVideoProjectionIntensity.value = projection.intensity;
   uniforms.uVideoProjectorPosition.value.copy(projection.projectorPosition);
+  uniforms.uVideoProjectionNear.value = projection.near;
+  uniforms.uVideoProjectionFar.value = projection.far;
 };

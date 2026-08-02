@@ -36,7 +36,7 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
 }) => {
   const groupRef = useRef<THREE.Group>(null);
   const transformControlsRef = useRef<any>(null);
-  const projectorCameraRef = useRef<THREE.PerspectiveCamera>(new THREE.PerspectiveCamera(45, 1, 0.05, 8));
+  const projectorCameraRef = useRef<THREE.PerspectiveCamera>(new THREE.PerspectiveCamera(45, 1, 0.2, 8));
   const projectorMatrixRef = useRef(new THREE.Matrix4());
   const projectorPositionRef = useRef(new THREE.Vector3());
   const depthMaterialRef = useRef(new THREE.MeshDepthMaterial({ depthPacking: THREE.BasicDepthPacking, side: THREE.DoubleSide }));
@@ -174,7 +174,7 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
     const camera = projectorCameraRef.current;
     camera.aspect = Math.max(0.1, videoAspect);
     camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(halfH / throwDistance));
-    camera.near = 0.05;
+    camera.near = 0.2;
     camera.far = throwDistance;
     camera.updateProjectionMatrix();
   }, [halfH, throwDistance, videoAspect]);
@@ -246,6 +246,8 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
       depthTexture: depthTarget.depthTexture,
       opacity,
       intensity: 1.5,
+      near: camera.near,
+      far: camera.far,
       corners: {
         bl: new THREE.Vector2(kBL.x, kBL.y),
         br: new THREE.Vector2(1 + kBR.x, kBR.y),
