@@ -1,4 +1,5 @@
-import { EditorState, EditorObject, EditorObject3D, SpotlightEditorObject, Scene, AudioTrack, OBJGeometry } from '@/types/editor';
+import { EditorState, EditorObject, EditorObject3D, SpotlightEditorObject, Scene, AudioTrack, OBJGeometry, ProjectConfig } from '@/types/editor';
+import { DroneAssignment } from '@/types/drone';
 
 // Embedded OBJ model for portable project files
 export interface EmbeddedOBJModel {
@@ -32,11 +33,16 @@ export interface FlptProject {
     name: string;
     duration: number;
     data: string;
+    mimeType?: string;
   }[];
   duration: number;
   mode3D?: boolean;
   modeFireworks?: boolean;
   modeSpotlight?: boolean;
+  modeCombined?: boolean;
+  modeDrone?: boolean;
+  projectConfig?: ProjectConfig;
+  droneAssignments?: DroneAssignment[];
   embeddedOBJModels?: EmbeddedOBJModel[];
 }
 
@@ -80,6 +86,7 @@ export const serializeProject = async (state: EditorState): Promise<FlptProject>
         name: track.name,
         duration: track.duration,
         data: btoa(binary),
+        mimeType: track.file.type || 'video/mp4',
       });
     }
   }
@@ -117,6 +124,10 @@ export const serializeProject = async (state: EditorState): Promise<FlptProject>
     mode3D: state.mode3D,
     modeFireworks: state.modeFireworks,
     modeSpotlight: state.modeSpotlight || undefined,
+    modeCombined: state.modeCombined || undefined,
+    modeDrone: state.modeDrone || undefined,
+    projectConfig: state.projectConfig,
+    droneAssignments: state.droneAssignments.length > 0 ? state.droneAssignments : undefined,
     embeddedOBJModels: embeddedOBJModels.length > 0 ? embeddedOBJModels : undefined,
   };
 };
@@ -234,12 +245,12 @@ export const clearCurrentFile = (): void => {
   currentFileHandle = null;
 };
 
-// Convert base64 audio back to File
-export const base64ToFile = (base64: string, filename: string): File => {
+// Convert base64 media back to File
+export const base64ToFile = (base64: string, filename: string, mimeType = 'audio/mpeg'): File => {
   const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);
   for (let i = 0; i < binaryString.length; i++) {
     bytes[i] = binaryString.charCodeAt(i);
   }
-  return new File([bytes], filename, { type: 'audio/mpeg' });
+  return new File([bytes], filename, { type: mimeType });
 };
