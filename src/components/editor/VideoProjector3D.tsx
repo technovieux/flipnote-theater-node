@@ -3,7 +3,7 @@ import { TransformControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { EditorObject3D, Object3DProperties, VideoTrack } from '@/types/editor';
-import { registerVideoElement, unregisterVideoElement } from '@/lib/videoElementRegistry';
+import { isVideoTrackActive, registerVideoElement, unregisterVideoElement } from '@/lib/videoElementRegistry';
 import { removeVideoProjection, setVideoProjection } from '@/lib/videoProjection';
 
 type TransformMode = 'translate' | 'rotate' | 'scale' | null;
@@ -207,6 +207,8 @@ export const VideoProjector3D: React.FC<VideoProjector3DProps> = ({
     });
 
     const videoReady = Boolean(
+      videoTrack &&
+      isVideoTrackActive(videoTrack.id) &&
       videoTexture &&
       videoEl &&
       videoEl.readyState >= videoEl.HAVE_CURRENT_DATA &&

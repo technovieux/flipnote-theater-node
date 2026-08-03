@@ -193,9 +193,18 @@ export const AnimationEditor: React.FC = () => {
   } = useEditorState();
 
   // Sync all mapping-projector video elements with the timeline.
+  // Each projector has at most one keyframe = the video start time.
   useEffect(() => {
-    syncAllVideos(state.currentTime, state.isPlaying);
-  }, [state.currentTime, state.isPlaying, state.videoTracks.length]);
+    const starts: Record<string, number | undefined> = {};
+    state.objects3D.forEach(o => {
+      if (o.type !== 'videoprojector') return;
+      const trackId = o.properties.videoTrackId;
+      if (!trackId) return;
+      const kf = o.keyframes[0];
+      if (kf) starts[trackId] = kf.time;
+    });
+    syncAllVideos(state.currentTime, state.isPlaying, starts);
+  }, [state.currentTime, state.isPlaying, state.videoTracks.length, state.objects3D]);
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [newName, setNewName] = useState('');
