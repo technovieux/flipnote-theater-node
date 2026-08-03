@@ -1240,7 +1240,7 @@ export const useEditorState = () => {
     const videoTracks: VideoTrack[] = [];
     if (project.videoTracks && project.videoTracks.length > 0) {
       for (const vt of project.videoTracks) {
-        const file = base64ToFile(vt.data, vt.name);
+        const file = base64ToFile(vt.data, vt.name, vt.mimeType || 'video/mp4');
         videoTracks.push({
           id: vt.id ?? generateId(),
           name: vt.name,
@@ -1264,6 +1264,10 @@ export const useEditorState = () => {
       mode3D: project.mode3D || project.modeFireworks || false,
       modeFireworks: project.modeFireworks || false,
       modeSpotlight: project.modeSpotlight || false,
+      modeCombined: project.modeCombined || false,
+      modeDrone: project.modeDrone || false,
+      projectConfig: project.projectConfig || initialState.projectConfig,
+      droneAssignments: project.droneAssignments || [],
       hasUnsavedChanges: false,
     });
   }, []);
